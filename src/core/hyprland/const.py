@@ -1,0 +1,10 @@
+import os
+
+
+XDG_RUNTIME_DIR = os.getenv("XDG_RUNTIME_DIR", "")
+HYPRLAND_INSTANCE_SIGNATURE = os.getenv("HYPRLAND_INSTANCE_SIGNATURE", "")
+
+HYPR_RUNTIME_DIR = os.path.join(XDG_RUNTIME_DIR, "hypr", HYPRLAND_INSTANCE_SIGNATURE)
+
+COMMAND_SOCK_DIR = os.path.join(HYPR_RUNTIME_DIR, ".socket.sock")
+EVENT_SOCK_DIR = os.path.join(HYPR_RUNTIME_DIR, ".socket2.sock")

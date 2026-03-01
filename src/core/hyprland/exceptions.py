@@ -1,0 +1,2 @@
+class UnknownRequestError(Exception):
+    pass
