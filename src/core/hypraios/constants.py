@@ -2,7 +2,6 @@ from enum import Enum
 
 
 FAULT_ROUTING = {
-
     # Kernel loop timing
     "cooldown_thrash": {
         "layer": "kernel",
@@ -13,7 +12,6 @@ FAULT_ROUTING = {
             "cooldown_floor": "increase",
         },
     },
-
     "attention_ignored": {
         "layer": "kernel",
         "params": ["gamma", "rho"],
@@ -22,7 +20,6 @@ FAULT_ROUTING = {
             "rho": "decrease",
         },
     },
-
     # Phase activation
     "self_activation_overuse": {
         "layer": "phase",
@@ -31,7 +28,6 @@ FAULT_ROUTING = {
             "k_self": "increase",
         },
     },
-
     "self_activation_missed": {
         "layer": "phase",
         "params": ["k_self"],
@@ -39,7 +35,6 @@ FAULT_ROUTING = {
             "k_self": "decrease",
         },
     },
-
     # Fatigue accumulation
     "fatigue_saturation": {
         "layer": "fatigue",
@@ -50,7 +45,6 @@ FAULT_ROUTING = {
             "k_inf": "decrease",
         },
     },
-
     "fatigue_never_builds": {
         "layer": "fatigue",
         "params": ["k_tok", "k_evt", "k_inf"],
@@ -60,7 +54,6 @@ FAULT_ROUTING = {
             "k_inf": "increase",
         },
     },
-
     # Sleep ↔ memory coupling
     "sleep_overextension": {
         "layer": "sleep",
@@ -69,7 +62,6 @@ FAULT_ROUTING = {
             "k_sleep": "increase",
         },
     },
-
     "sleep_underrecovery": {
         "layer": "sleep",
         "params": ["k_sleep"],
@@ -77,7 +69,6 @@ FAULT_ROUTING = {
             "k_sleep": "decrease",
         },
     },
-
     # Rudeness smoothing
     "rudeness_spike_sensitive": {
         "layer": "mood_filter",
@@ -86,7 +77,6 @@ FAULT_ROUTING = {
             "lambda_r": "increase",
         },
     },
-
     "rudeness_never_accumulates": {
         "layer": "mood_filter",
         "params": ["lambda_r"],
@@ -94,7 +84,6 @@ FAULT_ROUTING = {
             "lambda_r": "decrease",
         },
     },
-
     # Valence dynamics
     "valence_stuck_negative": {
         "layer": "valence",
@@ -104,7 +93,6 @@ FAULT_ROUTING = {
             "alpha_p": "increase",
         },
     },
-
     "valence_oscillation": {
         "layer": "valence",
         "params": ["k_v", "alpha_p", "alpha_r"],
@@ -114,7 +102,6 @@ FAULT_ROUTING = {
             "alpha_r": "decrease",
         },
     },
-
     "forced_cheerfulness": {
         "layer": "valence",
         "params": ["k_v"],
@@ -122,7 +109,6 @@ FAULT_ROUTING = {
             "k_v": "decrease",
         },
     },
-
     # Energy dynamics
     "energy_collapse": {
         "layer": "energy",
@@ -131,7 +117,6 @@ FAULT_ROUTING = {
             "beta_f": "decrease",
         },
     },
-
     "energy_hyperactivity": {
         "layer": "energy",
         "params": ["beta_a"],
@@ -139,7 +124,6 @@ FAULT_ROUTING = {
             "beta_a": "decrease",
         },
     },
-
     # Observer boundary
     "observer_dominance": {
         "layer": "observer",
@@ -148,7 +132,6 @@ FAULT_ROUTING = {
             "lambda_obs": "decrease",
         },
     },
-
     "observer_irrelevant": {
         "layer": "observer",
         "params": ["lambda_obs"],
@@ -156,7 +139,6 @@ FAULT_ROUTING = {
             "lambda_obs": "increase",
         },
     },
-
     # Logit bias
     "style_overcoercion": {
         "layer": "output",
@@ -165,7 +147,6 @@ FAULT_ROUTING = {
             "bias_gain": "decrease",
         },
     },
-
     "style_invisible": {
         "layer": "output",
         "params": ["bias_gain"],
@@ -177,7 +158,7 @@ FAULT_ROUTING = {
 
 
 class Phases(Enum):
-    PASSIVE = 0,
-    ACTIVE = 1,
-    MAINT = 3,
+    PASSIVE = 0
+    ACTIVE = 1
+    MAINT = 3
     SLEEP = 4

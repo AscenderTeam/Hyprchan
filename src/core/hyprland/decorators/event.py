@@ -5,11 +5,13 @@ from core.hyprland.socket import HyprlandSocket
 
 
 class HyprEvent(ControllerDecoratorHook):
-    hyprsocket: HyprlandSocket = inject(HyprlandSocket)
-    
     def __init__(self, name: str) -> None:
         super().__init__()
         self.event_name = name
-    
+
     def on_load(self, callable: Callable[..., Any]):
-        self.hyprsocket.add_event_listener(self.event_name, callable)
+        fallback = object()
+        socket = inject(HyprlandSocket, fallback=fallback)
+        if socket is fallback:
+            return
+        socket.add_event_listener(self.event_name, callable)
