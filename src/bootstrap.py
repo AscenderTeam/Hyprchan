@@ -1,6 +1,7 @@
 from typing import Any, cast
 
 from ascender.common.api_docs import DefineAPIDocs
+from ascender.core.cli_engine import useCLI
 from ascender.core.database import ORMEnum, provideDatabase
 from ascender.core.router import provideRouter
 from ascender.core.types import IBootstrap
@@ -8,6 +9,7 @@ from ascender.core.types import IBootstrap
 from animations.depressed_sit import DepressedSitAnimation
 from core.animations.provider import provideAnimations
 from routes import routes
+from scripts.animation_cli import AnimationCLI
 from settings import (
     AGENTHUB_MAX_PAYLOAD,
     AGENTHUB_ORG,
@@ -33,6 +35,7 @@ providers = [
     },
     provideRouter(routes),
     provideDatabase(ORMEnum.SQLALCHEMY, cast(Any, DATABASE_CONNECTION)),
+    useCLI(AnimationCLI),
     provideAttpClient(
         AGENTHUB_TOKEN,
         AGENTHUB_ORG,

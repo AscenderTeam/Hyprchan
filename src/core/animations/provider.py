@@ -1,4 +1,4 @@
-from ascender.core import Provider, provideLifecycle
+from ascender.core import Provider
 
 from core.animations.animation import Animation
 from core.animations.engine import AnimationEngine
@@ -8,7 +8,8 @@ def provideAnimations(animations: list[Animation], target_fps: int = 60) -> Prov
     return [
         {
             "provide": AnimationEngine,
-            "value": AnimationEngine(animations, target_fps=target_fps),
+            "use_factory": lambda: AnimationEngine(
+                animations, target_fps=target_fps
+            ),
         },
-        provideLifecycle([AnimationEngine]),
     ]
