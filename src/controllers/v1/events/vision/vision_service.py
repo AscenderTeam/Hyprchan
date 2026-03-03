@@ -5,6 +5,7 @@ from ascender.common import Injectable
 from ascender.core import Inject
 from ascender.core.applications.application import Application
 
+from core.hypraios.contracts import PerceptionEvent, PerceptionSource
 from core.hypraios.kernel.kernel import HyprAIOSKernel
 from core.hypraios.perception.opencv_module import (
     OpenCVFrameSourceError,
@@ -34,7 +35,7 @@ class VisionService(ServiceLifecycle):
         super().__init__(application)
         self.kernel = kernel
         self.logger = logger
-        self._module: OpenCVPerceptionModule | None = None
+        self._module: PerceptionSource | None = None
         self._startup_error: str | None = None
 
     async def on_startup(self) -> None:
@@ -67,7 +68,7 @@ class VisionService(ServiceLifecycle):
         if self._module is not None:
             await self._module.stop()
 
-    async def _record_event(self, event: dict[str, Any]) -> None:
+    async def _record_event(self, event: PerceptionEvent) -> None:
         amplitude_raw = event.get("amplitude", 0.0)
         try:
             amplitude = max(0.0, float(amplitude_raw))
@@ -98,9 +99,7 @@ class VisionService(ServiceLifecycle):
 
         return {
             "enabled": True,
-            "running": self._module.is_running,
-            "last_error": self._module.last_error,
-            "last_observation": self._module.last_observation,
+            **self._module.status(),
         }
 
     async def scan_once(self) -> dict[str, Any]:

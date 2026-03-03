@@ -2,6 +2,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
+from core.hypraios.contracts import PerceptionSource
 from core.hypraios.perception.opencv_module import (
     OpenCVPerceptionConfig,
     OpenCVPerceptionModule,
@@ -111,3 +112,17 @@ async def test_opencv_module_suppresses_event_below_thresholds() -> None:
 
     assert event is None
     assert callback.await_count == 0
+
+
+def test_opencv_module_implements_perception_contract() -> None:
+    async def _callback(_: dict[str, object]) -> None:
+        return None
+
+    module = OpenCVPerceptionModule(
+        _callback,
+        frame_source=FakeFrameSource([{"frame": 1}]),
+        motion_analyzer=FakeMotionAnalyzer([0.0]),
+        face_analyzer=FakeFaceAnalyzer([(0, 0.0)]),
+    )
+
+    assert isinstance(module, PerceptionSource)

@@ -3,11 +3,13 @@ import inspect
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable, Protocol
+from typing import Any, Protocol
 
-
-PerceptionEvent = dict[str, Any]
-PerceptionEventCallback = Callable[[PerceptionEvent], Any]
+from core.hypraios.contracts import (
+    PerceptionEvent,
+    PerceptionEventCallback,
+    PerceptionStatus,
+)
 
 
 class FrameSource(Protocol):
@@ -273,6 +275,10 @@ class OpenCVPerceptionModule:
         return self._running
 
     @property
+    def source_name(self) -> str:
+        return self.config.origin
+
+    @property
     def last_observation(self) -> dict[str, Any] | None:
         if self._last_observation is None:
             return None
@@ -349,6 +355,14 @@ class OpenCVPerceptionModule:
 
         self._last_emit_at = time.monotonic()
         return event
+
+    def status(self) -> PerceptionStatus:
+        return {
+            "source": self.source_name,
+            "running": self.is_running,
+            "last_error": self.last_error,
+            "last_observation": self.last_observation,
+        }
 
     def _can_emit(self) -> bool:
         now = time.monotonic()
