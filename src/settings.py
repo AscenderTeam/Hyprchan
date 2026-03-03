@@ -42,8 +42,17 @@ def _env_flag(key: str, default: bool) -> bool:
 
 DATABASE_CONNECTION = {
     "type": "dbstring",
-    "content": "sqlite+aiosqlite:///database.db",  # Replace with your own db string
-    "entities": [],
+    "content": os.getenv(
+        "DATABASE_URL",
+        "postgresql+asyncpg://postgres:postgres@localhost:5432/hyprchan",
+    ),
+    "entities": [
+        "entities.episode",
+        "entities.fact",
+        "entities.concept",
+        "entities.edge",
+        "entities.dream",
+    ],
     "pool_options": {},
 }
 
@@ -65,8 +74,11 @@ AGENTHUB_MAX_PAYLOAD = 10 * 1024 * 1024
 
 OPENAI_OAUTH_TOKEN = os.getenv("OPENAI_OAUTH_TOKEN", os.getenv("OPENAI_API_KEY", ""))
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+OPENAI_EMBEDDING_MODEL = os.getenv("OPENAI_EMBEDDING_MODEL", "text-embedding-3-small")
 OPENAI_API_BASE_URL = os.getenv("OPENAI_API_BASE_URL", "https://api.openai.com/v1")
 OPENAI_TIMEOUT_SECONDS = float(os.getenv("OPENAI_TIMEOUT_SECONDS", "30"))
+
+HYPRMEMORY_VECTOR_DIM = int(os.getenv("HYPRMEMORY_VECTOR_DIM", "64"))
 
 SPRITES_BASE_DIR = os.path.abspath(os.path.join("public", "assets", "sprites"))
 
