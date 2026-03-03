@@ -1,5 +1,5 @@
-from dataclasses import dataclass
 import os
+from dataclasses import dataclass
 from typing import Any
 
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
@@ -150,7 +150,7 @@ class InferenceEngine:
         if tools:
             llm = llm.bind_tools(tools)
 
-        return await llm.ainvoke(messages)
+        return await llm.ainvoke(messages)  # pyright: ignore[reportReturnType]
 
     def _resolve_oauth_token(self) -> str:
         token = (
