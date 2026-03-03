@@ -8,10 +8,12 @@ authors = [
 readme = "README.md"
 requires-python = ">=3.11,<3.14"
 dependencies = [
-    "ascender-framework (>=2.0.4,<3.0.0)",
+    "ascender-framework (>=2.1.0,<3.0.0)",
     "hyprland (>=0.2.54,<0.3.0)",
     "agent-scaffolds (>=0.1.10,<0.2.0)",
-    "tiktoken (>=0.8.0,<0.9.0)"
+    "tiktoken (>=0.8.0,<0.9.0)",
+    "pygobject (>=3.56.0,<4.0.0)",
+    "pygobject-stubs (>=2.16.0,<3.0.0)"
 ]
 
 
