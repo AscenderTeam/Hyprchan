@@ -88,7 +88,7 @@ class AnimationEngine:
 
             if command_type == "answer_user":
                 text = str(command.get("text", "")).strip()
-                self.application.set_overlay_text(text)
+                self.application.set_overlay_text(text)  # pyright: ignore[reportAttributeAccessIssue]
                 continue
 
             if command_type == "move_self":
@@ -102,8 +102,8 @@ class AnimationEngine:
                 except (TypeError, ValueError):
                     scale = 1.0
 
-                self.application.move_overlay(direction=direction, delta=delta)
-                self.application.set_sprite_scale(scale)
+                self.application.move_overlay(direction=direction, delta=delta)  # pyright: ignore[reportAttributeAccessIssue]
+                self.application.set_sprite_scale(scale)  # pyright: ignore[reportAttributeAccessIssue]
 
     def available_animation_names(self) -> list[str]:
         return [animation.name for animation in self.animations]
