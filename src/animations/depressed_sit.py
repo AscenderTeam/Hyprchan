@@ -11,4 +11,4 @@ class DepressedSitAnimation(Animation):
                 os.path.join("public", "assets", "sprites", "sit_depressed.png")
             ),
         )
-        super().__init__("sit.depressed", frames, True)
+        super().__init__("sit.depressed", frames, False)
