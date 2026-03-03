@@ -18,7 +18,7 @@ class AnimationEngine:
         self.animations = animations
         self.application = HyprchanApp(self.on_frame_update, self.target_fps)
 
-        self.load_animation("sit.depressed")
+        self.load_animation("sit.falling_asleep")
 
         self.start()
 
@@ -28,7 +28,6 @@ class AnimationEngine:
 
         If not then it loads the next animation if `is_next` is True, if either `is_next` isn't set or is False then it loads the first animation
         """
-        print(self.animations)
         if self.current_animation:
             self.current_animation.reset_engine()
         if name:
@@ -54,12 +53,6 @@ class AnimationEngine:
         raise ValueError("Animation not found")
 
     def on_frame_update(self):
-        print("ASD")
-        new_command = None
-        try:
-            new_command = self.queue.get_nowait()
-        except Empty:
-            pass
 
         if not self.current_animation:
             # wait for a new animation
@@ -68,7 +61,7 @@ class AnimationEngine:
         self.current_animation.update()
 
         frame_idx = self.current_animation.current_frame
-        print(frame_idx)
+        print(self.current_animation.name, frame_idx)
         return self.current_animation.frames[frame_idx]
 
     def stop(self):

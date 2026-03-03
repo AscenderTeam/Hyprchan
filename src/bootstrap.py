@@ -7,6 +7,10 @@ from ascender.core.router import provideRouter
 from ascender.core.types import IBootstrap
 
 from animations.depressed_sit import DepressedSitAnimation
+from animations.falling_asleep_sit import FallingAsleepSitAnimation
+from animations.idle_sit import IdleSitAnimation
+from animations.sleeping_sit import SleepingSitAnimation
+from animations.startle_wakeup_sit import StartleWakeupSitAnimation
 from core.animations.provider import provideAnimations
 from routes import routes
 from scripts.animation_cli import AnimationCLI
@@ -41,7 +45,16 @@ providers = [
         AGENTHUB_ORG,
         limits=Limits(max_payload_size=AGENTHUB_MAX_PAYLOAD),
     ),
-    provideAnimations([DepressedSitAnimation()], target_fps=15),
+    provideAnimations(
+        [
+            DepressedSitAnimation(),
+            FallingAsleepSitAnimation(),
+            SleepingSitAnimation(),
+            IdleSitAnimation(),
+            StartleWakeupSitAnimation(),
+        ],
+        target_fps=8,
+    ),
 ]
 
 if provideAgentHub is not None:

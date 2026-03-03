@@ -7,12 +7,18 @@ if TYPE_CHECKING:
 
 
 class Animation:
+    x: int
+    y: int
+
     def __init__(self, name: str, frames: list["GdkPixbuf.Pixbuf"], loop: bool = True):
         self.name = name
         self.frames = frames
         self.current_frame = 0
         self.loop = loop
         self._engine = None
+
+        self.x = self.frames[0].get_width()
+        self.y = self.frames[0].get_height()
 
         if not frames:
             raise ValueError("Animation must have at least one frame")

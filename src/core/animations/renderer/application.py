@@ -1,11 +1,11 @@
 import asyncio
 from typing import Callable
 
-from ascender.core import inject
 import gi
+from ascender.core import inject
 
-from core.hyprland.socket import HyprlandSocket
 from core.animations.renderer.window import HyprchanWindow
+from core.hyprland.socket import HyprlandSocket
 
 gi.require_version("Gtk", "4.0")
 from gi.repository import GdkPixbuf, GLib, Gtk
@@ -36,8 +36,11 @@ class HyprchanApp(Gtk.Application):
 
     def update_loop(self):
         frame = self.on_update_callback()
-
+        print(frame)
         if frame:
+            width, height = frame.get_width(), frame.get_height()
+
+            self.win.set_default_size(width, height)
             self.win.set_image(frame)
             return True
 

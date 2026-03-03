@@ -59,3 +59,5 @@ OPENAI_OAUTH_TOKEN = os.getenv("OPENAI_OAUTH_TOKEN", os.getenv("OPENAI_API_KEY",
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "openai/gpt-5.3")
 OPENAI_API_BASE_URL = os.getenv("OPENAI_API_BASE_URL", "https://api.openai.com")
 OPENAI_TIMEOUT_SECONDS = float(os.getenv("OPENAI_TIMEOUT_SECONDS", "30"))
+
+SPRITES_BASE_DIR = os.path.abspath(os.path.join("public", "assets", "sprites"))

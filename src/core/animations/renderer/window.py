@@ -12,7 +12,7 @@ class HyprchanWindow(Gtk.Window):
         self.set_decorated(False)
 
         # Resize it to normal size
-        self.set_default_size(112, 232)
+        self.set_default_size(112, 234)
 
         # Make it irresizable
         self.set_resizable(False)
@@ -32,3 +32,4 @@ class HyprchanWindow(Gtk.Window):
 
     def set_image(self, image: GdkPixbuf.Pixbuf):
         self.image.set_from_pixbuf(image)
+        self.image.queue_draw()

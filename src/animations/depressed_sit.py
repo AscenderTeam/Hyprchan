@@ -10,7 +10,5 @@ class DepressedSitAnimation(Animation):
             os.path.abspath(
                 os.path.join("public", "assets", "sprites", "sit_depressed.png")
             ),
-            112,
-            232,
         )
         super().__init__("sit.depressed", frames, True)
