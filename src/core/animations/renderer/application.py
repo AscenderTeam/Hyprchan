@@ -1,7 +1,10 @@
+import asyncio
 from typing import Callable
 
+from ascender.core import inject
 import gi
 
+from core.hyprland.socket import HyprlandSocket
 from core.animations.renderer.window import HyprchanWindow
 
 gi.require_version("Gtk", "4.0")
@@ -22,7 +25,9 @@ class HyprchanApp(Gtk.Application):
         self.win = HyprchanWindow()
         self.win.set_application(self)
 
-        self.win.set_title("hyprchan-overlay")
+        title = "hyprchan-overlay"
+        self.win.set_title(title)
+        self._apply_overlay_window_rules(title)
         self.win.present()
         return super().do_activate()
 
@@ -38,3 +43,28 @@ class HyprchanApp(Gtk.Application):
 
         self.win.hide()
         return False
+
+    def _apply_overlay_window_rules(self, title: str) -> None:
+        fallback = object()
+        hyprland = inject(HyprlandSocket, fallback=fallback)
+        if hyprland is fallback:
+            return
+
+        match_expr = f"match:title ^({title})$"
+        rules = [
+            f"no_blur 1, {match_expr}",
+            f"border_size 0, {match_expr}",
+            f"no_shadow 1, {match_expr}",
+        ]
+
+        async def _apply_rules():
+            for rule in rules:
+                await hyprland.send_command(f"keyword windowrule {rule}")
+
+        try:
+            running_loop = asyncio.get_running_loop()
+        except RuntimeError:
+            asyncio.run(_apply_rules())
+            return
+
+        running_loop.create_task(_apply_rules())
