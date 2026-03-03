@@ -84,3 +84,23 @@ Inside the TUI, commands are:
 The inference layer now applies dynamic token-level `logit_bias` derived from state scalars (`v`, `e`) using mood profiles (sparkly/cheerful/irritated/angry) with bounded intensity.
 
 When fatigue reaches SLEEP, the TUI now shows a live memory-consolidation sequence with periodic one-way `<system>` telemetry and Hypr-chan dream/reflection outputs until consolidation completes.
+
+## Webcam Perception (OpenCV)
+
+HyprAI OS can read your webcam feed as a perception source and emit raw events for face presence and motion.
+
+Env toggles:
+
+```bash
+WEBCAM_VISION_ENABLED=true
+WEBCAM_DEVICE_INDEX=0
+WEBCAM_POLL_INTERVAL_SEC=0.25
+WEBCAM_MIN_MOTION_RATIO=0.02
+WEBCAM_MIN_FACE_RATIO=0.002
+WEBCAM_MIN_EMIT_INTERVAL_SEC=1.2
+```
+
+API endpoints:
+
+- `GET /v1/events/vision/status`
+- `GET /v1/events/vision/scan`
