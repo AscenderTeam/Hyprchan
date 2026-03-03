@@ -8,6 +8,7 @@ from core.hypraios.kernel.states import KernelStates
 from core.hypraios.linguistic.inference_engine import InferenceResult
 from core.hypraios.linguistic.linguistic_engine import LinguisticEngine
 from core.hypraios.linguistic.passive_inference import SYSTEM_INTRO_MESSAGE
+from core.hypraios.linguistic.tool_runtime import ToolExecutionResult
 from core.hypraios.utils.dynamic_variable import DynamicVariable
 
 
@@ -394,3 +395,147 @@ async def test_feed_active_includes_assistant_reply_after_user_when_present() ->
     assert messages[2] == {"role": "user", "content": "hello"}
     assert messages[3] == {"role": "assistant", "content": "hi there"}
     assert messages[4] == {"role": "user", "content": "latest user"}
+
+
+@pytest.mark.asyncio
+async def test_feed_active_replays_tool_observation_before_assistant_reply() -> None:
+    engine = LinguisticEngine()
+    engine.inference_engine.infer = AsyncMock(
+        return_value=InferenceResult(
+            output="ok",
+            model="gpt-4o-mini",
+            input_tokens=5,
+            output_tokens=3,
+            total_tokens=8,
+            tool_calls=[],
+            raw={},
+        )
+    )
+
+    states = _build_states(Phases.ACTIVE)
+    inputs = [
+        {
+            "id": 11,
+            "type": "communication_message",
+            "amplitude": 1.0,
+            "description": "hello",
+            "origin": "communication_controller",
+        },
+        {
+            "id": 12,
+            "type": "tool_observation",
+            "amplitude": 0.15,
+            "description": "Tool `screenshot` result: captured screenshot",
+            "origin": "linguistic_tools",
+            "images": [],
+        },
+        {
+            "id": 13,
+            "type": "agent_response",
+            "amplitude": 0.0,
+            "description": "here is what I saw",
+            "origin": "hyprchan_agent",
+        },
+        {
+            "id": 14,
+            "type": "communication_message",
+            "amplitude": 1.0,
+            "description": "latest user",
+            "origin": "communication_controller",
+        },
+    ]
+
+    await engine.feed(inputs, states)
+
+    infer_call = engine.inference_engine.infer.await_args
+    assert infer_call is not None
+    messages = infer_call.kwargs["messages"]
+    assert messages[2] == {"role": "user", "content": "hello"}
+    assert messages[3] == {
+        "role": "user",
+        "content": "Tool `screenshot` result: captured screenshot",
+    }
+    assert messages[4] == {"role": "assistant", "content": "here is what I saw"}
+    assert messages[5] == {"role": "user", "content": "latest user"}
+
+
+@pytest.mark.asyncio
+async def test_run_inference_performs_followup_after_multimodal_tool_outputs() -> None:
+    engine = LinguisticEngine()
+    engine.inference_engine.infer = AsyncMock(
+        side_effect=[
+            InferenceResult(
+                output="",
+                model="gpt-4o-mini",
+                input_tokens=10,
+                output_tokens=1,
+                total_tokens=11,
+                tool_calls=[{"name": "screenshot", "args": {}}],
+                raw={},
+            ),
+            InferenceResult(
+                output="I can see the screenshot now.",
+                model="gpt-4o-mini",
+                input_tokens=12,
+                output_tokens=6,
+                total_tokens=18,
+                tool_calls=[],
+                raw={},
+            ),
+        ]
+    )
+    engine.tool_runtime.execute_tool_calls = AsyncMock(
+        return_value=ToolExecutionResult(
+            answer_user_called=False,
+            executed_calls=1,
+            followup_messages=[
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": "Tool `screenshot` result: captured"},
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": "data:image/jpeg;base64,AAA=",
+                                "detail": "low",
+                            },
+                        },
+                    ],
+                }
+            ],
+            followup_events=[
+                {
+                    "type": "tool_observation",
+                    "origin": "linguistic_tools",
+                    "description": "Tool `screenshot` result: captured",
+                    "images": [
+                        {
+                            "kind": "screen",
+                            "mime": "image/jpeg",
+                            "path": "/tmp/fake.jpg",
+                        }
+                    ],
+                }
+            ],
+        )
+    )
+
+    states = _build_states(Phases.ACTIVE)
+    inputs = [
+        {
+            "id": 1,
+            "type": "communication_message",
+            "amplitude": 1.0,
+            "description": "what do you see",
+            "origin": "communication_controller",
+        }
+    ]
+
+    result = await engine.feed(inputs, states)
+
+    assert result is not None
+    assert result["output"] == "I can see the screenshot now."
+    assert result["input_tokens"] == 22
+    assert result["output_tokens"] == 7
+    assert result["total_tokens"] == 29
+    assert engine.inference_engine.infer.await_count == 2

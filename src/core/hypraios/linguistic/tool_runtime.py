@@ -1,11 +1,23 @@
+import asyncio
+import base64
+import mimetypes
 from dataclasses import dataclass
-from typing import Any, Callable
+from pathlib import Path
+import subprocess
+import time
+from typing import Any, Callable, Literal
 
 from ascender.core import inject
 from langchain_core.tools import StructuredTool
 from pydantic import BaseModel, Field
 
 from core.animations.engine import AnimationEngine
+from core.hypraios.perception.opencv_module import OpenCVPerceptionModule
+from settings import (
+    WEBCAM_AUTO_FIND_DEVICE,
+    WEBCAM_DEVICE_INDEX,
+    WEBCAM_MAX_DEVICE_INDEX,
+)
 
 
 class SetAnimationPoseInput(BaseModel):
@@ -23,10 +35,46 @@ class AnswerUserInput(BaseModel):
     )
 
 
+class MoveSelfInput(BaseModel):
+    direction: Literal[
+        "up",
+        "down",
+        "left",
+        "right",
+        "up_left",
+        "up_right",
+        "down_left",
+        "down_right",
+    ] = Field(description="Direction to move Hyprchan on screen.")
+    delta: int = Field(
+        description="Movement delta in screen pixels.",
+        ge=0,
+        le=1200,
+    )
+    scale: float = Field(
+        default=1.0,
+        description=(
+            "Sprite scale coefficient in range 0..2. 1.2 means 20% size increase."
+        ),
+        ge=0.0,
+        le=2.0,
+    )
+
+
+class ScreenshotInput(BaseModel):
+    pass
+
+
+class CameraInput(BaseModel):
+    pass
+
+
 @dataclass
 class ToolExecutionResult:
     answer_user_called: bool
     executed_calls: int
+    followup_messages: list[dict[str, Any]]
+    followup_events: list[dict[str, Any]]
 
 
 class LinguisticToolRuntime:
@@ -38,6 +86,8 @@ class LinguisticToolRuntime:
             animation_engine_resolver or self._resolve_animation_engine_from_di
         )
         self.last_answer_text = ""
+        self._camera_fallback_last_attempt_at = 0.0
+        self._camera_fallback_cooldown_sec = 5.0
 
     def build_tools(self) -> list[StructuredTool]:
         available = self.available_animations()
@@ -62,6 +112,27 @@ class LinguisticToolRuntime:
                 ),
                 args_schema=AnswerUserInput,
             ),
+            StructuredTool.from_function(
+                coroutine=self._move_self,
+                name="move_self",
+                description=(
+                    "Move Hyprchan by a directional delta and set sprite scale. "
+                    "Scale is a direct multiplier in [0,2], where 1.2 means +20% size."
+                ),
+                args_schema=MoveSelfInput,
+            ),
+            StructuredTool.from_function(
+                coroutine=self._screenshot,
+                name="screenshot",
+                description="Capture a screenshot right now and return it as multimodal context.",
+                args_schema=ScreenshotInput,
+            ),
+            StructuredTool.from_function(
+                coroutine=self._camera,
+                name="camera",
+                description="Capture a webcam photo right now and return it as multimodal context.",
+                args_schema=CameraInput,
+            ),
         ]
 
     def available_animations(self) -> list[str]:
@@ -76,6 +147,9 @@ class LinguisticToolRuntime:
     ) -> ToolExecutionResult:
         answer_called = False
         executed = 0
+        followup_messages: list[dict[str, Any]] = []
+        followup_events: list[dict[str, Any]] = []
+
         for tool_call in tool_calls:
             name = str(tool_call.get("name", "")).strip()
             args = tool_call.get("args")
@@ -86,7 +160,14 @@ class LinguisticToolRuntime:
                 pose = str(args.get("pose", "")).strip()
                 if not pose:
                     continue
-                await self._set_animation_pose(pose)
+                result = await self._set_animation_pose(pose)
+                self._append_followup_message(
+                    followup_messages,
+                    followup_events,
+                    tool_name=name,
+                    summary=result,
+                    images=[],
+                )
                 executed += 1
                 continue
 
@@ -94,13 +175,72 @@ class LinguisticToolRuntime:
                 text = str(args.get("text", "")).strip()
                 if not text:
                     continue
-                await self._answer_user(text)
+                result = await self._answer_user(text)
                 answer_called = True
+                self._append_followup_message(
+                    followup_messages,
+                    followup_events,
+                    tool_name=name,
+                    summary=result,
+                    images=[],
+                )
+                executed += 1
+                continue
+
+            if name == "move_self":
+                direction = str(args.get("direction", "")).strip().lower()
+                try:
+                    delta = int(args.get("delta", 0))
+                except (TypeError, ValueError):
+                    delta = 0
+                try:
+                    scale = float(args.get("scale", 1.0))
+                except (TypeError, ValueError):
+                    scale = 1.0
+
+                summary, images = await self._move_self(
+                    direction=direction,
+                    delta=delta,
+                    scale=scale,
+                )
+                self._append_followup_message(
+                    followup_messages,
+                    followup_events,
+                    tool_name=name,
+                    summary=summary,
+                    images=images,
+                )
+                executed += 1
+                continue
+
+            if name == "screenshot":
+                summary, images = await self._screenshot()
+                self._append_followup_message(
+                    followup_messages,
+                    followup_events,
+                    tool_name=name,
+                    summary=summary,
+                    images=images,
+                )
+                executed += 1
+                continue
+
+            if name == "camera":
+                summary, images = await self._camera()
+                self._append_followup_message(
+                    followup_messages,
+                    followup_events,
+                    tool_name=name,
+                    summary=summary,
+                    images=images,
+                )
                 executed += 1
 
         return ToolExecutionResult(
             answer_user_called=answer_called,
             executed_calls=executed,
+            followup_messages=followup_messages,
+            followup_events=followup_events,
         )
 
     async def answer_user(self, text: str) -> None:
@@ -134,6 +274,256 @@ class LinguisticToolRuntime:
 
         engine.enqueue_answer_text(message)
         return "answer rendered"
+
+    async def _move_self(
+        self,
+        direction: str,
+        delta: int,
+        scale: float,
+    ) -> tuple[str, list[dict[str, Any]]]:
+        engine = self._resolve_animation_engine()
+        if engine is None:
+            return "animation engine unavailable", []
+
+        normalized_direction = direction.strip().lower()
+        allowed = {
+            "up",
+            "down",
+            "left",
+            "right",
+            "up_left",
+            "up_right",
+            "down_left",
+            "down_right",
+        }
+        if normalized_direction not in allowed:
+            return "invalid direction", []
+
+        safe_delta = max(0, int(delta))
+        safe_scale = max(0.0, min(2.0, float(scale)))
+        engine.enqueue_move_self(
+            direction=normalized_direction,
+            delta=safe_delta,
+            scale=safe_scale,
+        )
+        await asyncio.sleep(0.35)
+        screenshot = await asyncio.to_thread(self._capture_screenshot_file)
+        summary = (
+            f"moved {normalized_direction} by {safe_delta}px, "
+            f"scale set to {safe_scale:.2f}"
+        )
+        images = [screenshot] if screenshot else []
+        return summary, images
+
+    async def _screenshot(self) -> tuple[str, list[dict[str, Any]]]:
+        screenshot = await asyncio.to_thread(self._capture_screenshot_file)
+        if screenshot is None:
+            return "failed to capture screenshot", []
+        return "captured screenshot", [screenshot]
+
+    async def _camera(self) -> tuple[str, list[dict[str, Any]]]:
+        camera = await asyncio.to_thread(self._capture_camera_file)
+        if camera is None:
+            return "failed to capture camera photo", []
+        return "captured camera photo", [camera]
+
+    @staticmethod
+    def _runtime_output_dir() -> Path:
+        path = Path(__file__).resolve().parents[4] / "runtime" / "perception"
+        path.mkdir(parents=True, exist_ok=True)
+        return path
+
+    def _capture_screenshot_file(self) -> dict[str, Any] | None:
+        process = subprocess.run(["grim", "-"], capture_output=True, check=False)
+        if process.returncode != 0 or not process.stdout:
+            return None
+
+        try:
+            import cv2  # type: ignore
+            import numpy as np  # type: ignore
+        except Exception:
+            return None
+
+        raw = np.frombuffer(process.stdout, dtype=np.uint8)
+        image = cv2.imdecode(raw, cv2.IMREAD_COLOR)
+        if image is None:
+            return None
+
+        output_path = (
+            self._runtime_output_dir() / f"tool_screen_{int(time.time() * 1000)}.jpg"
+        )
+        ok, encoded = cv2.imencode(
+            ".jpg",
+            image,
+            [int(cv2.IMWRITE_JPEG_QUALITY), 85],
+        )
+        if not ok:
+            return None
+
+        output_path.write_bytes(bytes(encoded))
+        return {
+            "kind": "screen",
+            "mime": "image/jpeg",
+            "path": str(output_path),
+            "width": int(image.shape[1]),
+            "height": int(image.shape[0]),
+        }
+
+    def _capture_camera_file(self) -> dict[str, Any] | None:
+        shared_capture = self._capture_camera_from_shared_module()
+        if shared_capture is not None:
+            return shared_capture
+
+        now = time.monotonic()
+        if (
+            now - self._camera_fallback_last_attempt_at
+            < self._camera_fallback_cooldown_sec
+        ):
+            return None
+        self._camera_fallback_last_attempt_at = now
+
+        try:
+            import cv2  # type: ignore
+        except Exception:
+            return None
+
+        candidates = [int(WEBCAM_DEVICE_INDEX)]
+        if WEBCAM_AUTO_FIND_DEVICE:
+            for idx in range(max(0, int(WEBCAM_MAX_DEVICE_INDEX)) + 1):
+                if idx not in candidates:
+                    candidates.append(idx)
+
+        for candidate in candidates:
+            capture = cv2.VideoCapture(candidate)
+            if capture is None or not capture.isOpened():
+                if capture is not None:
+                    capture.release()
+                continue
+
+            ok, frame = capture.read()
+            capture.release()
+            if not ok or frame is None:
+                continue
+
+            return self._encode_camera_frame(frame)
+
+        return None
+
+    def _capture_camera_from_shared_module(self) -> dict[str, Any] | None:
+        module = OpenCVPerceptionModule.latest_instance()
+        if module is None or not module.is_running:
+            return None
+
+        frame = module.get_last_frame()
+        if frame is None:
+            return None
+
+        return self._encode_camera_frame(frame)
+
+    def _encode_camera_frame(self, frame: Any) -> dict[str, Any] | None:
+        try:
+            import cv2  # type: ignore
+        except Exception:
+            return None
+
+        output_path = (
+            self._runtime_output_dir() / f"tool_camera_{int(time.time() * 1000)}.jpg"
+        )
+        ok_encode, encoded = cv2.imencode(
+            ".jpg",
+            frame,
+            [int(cv2.IMWRITE_JPEG_QUALITY), 85],
+        )
+        if not ok_encode:
+            return None
+
+        output_path.write_bytes(bytes(encoded))
+        shape = getattr(frame, "shape", None)
+        width = int(shape[1]) if isinstance(shape, tuple) and len(shape) >= 2 else 0
+        height = int(shape[0]) if isinstance(shape, tuple) and len(shape) >= 2 else 0
+        return {
+            "kind": "webcam",
+            "mime": "image/jpeg",
+            "path": str(output_path),
+            "width": width,
+            "height": height,
+        }
+
+    def _append_followup_message(
+        self,
+        out_messages: list[dict[str, Any]],
+        out_events: list[dict[str, Any]],
+        *,
+        tool_name: str,
+        summary: str,
+        images: list[dict[str, Any]],
+    ) -> None:
+        lines = [f"Tool `{tool_name}` result: {summary}"]
+        if images:
+            image_kinds = ", ".join(str(item.get("kind", "image")) for item in images)
+            lines.append(f"Attached images: {image_kinds}")
+        text_block = "\n".join(lines)
+
+        blocks: list[dict[str, Any]] = [{"type": "text", "text": text_block}]
+        for image in images:
+            data_url = self._image_path_to_data_url(
+                path_value=image.get("path"),
+                mime_hint=image.get("mime"),
+            )
+            if not data_url:
+                continue
+            blocks.append(
+                {
+                    "type": "image_url",
+                    "image_url": {"url": data_url, "detail": "low"},
+                }
+            )
+
+        content: Any
+        if len(blocks) == 1:
+            content = text_block
+        else:
+            content = blocks
+        out_messages.append({"role": "user", "content": content})
+
+        event_payload: dict[str, Any] = {
+            "type": "tool_observation",
+            "description": text_block,
+            "origin": "linguistic_tools",
+            "amplitude": 0.15,
+            "tool_name": tool_name,
+            "captured_at": time.time(),
+        }
+        if images:
+            event_payload["images"] = images
+        out_events.append(event_payload)
+
+    @staticmethod
+    def _image_path_to_data_url(path_value: Any, mime_hint: Any) -> str | None:
+        if not isinstance(path_value, str) or not path_value.strip():
+            return None
+
+        path = Path(path_value)
+        if not path.exists() or not path.is_file():
+            return None
+
+        try:
+            raw = path.read_bytes()
+        except OSError:
+            return None
+
+        if not raw:
+            return None
+
+        mime = ""
+        if isinstance(mime_hint, str):
+            mime = mime_hint.strip()
+        if not mime:
+            guessed, _ = mimetypes.guess_type(path.name)
+            mime = guessed or "image/jpeg"
+
+        encoded = base64.b64encode(raw).decode("ascii")
+        return f"data:{mime};base64,{encoded}"
 
     @staticmethod
     def _resolve_animation_engine_from_di() -> AnimationEngine | None:

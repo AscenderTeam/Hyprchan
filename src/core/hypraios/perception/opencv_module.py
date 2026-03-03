@@ -271,6 +271,12 @@ class OpenCVPerceptionModule:
         self._last_error: str | None = None
         self._last_frame: Any | None = None
 
+        OpenCVPerceptionModule._latest_instance = self
+
+    @classmethod
+    def latest_instance(cls) -> "OpenCVPerceptionModule | None":
+        return cls._latest_instance
+
     @property
     def is_running(self) -> bool:
         return self._running
@@ -435,3 +441,5 @@ class OpenCVPerceptionModule:
                 self.frame_source.release()
                 break
             await asyncio.sleep(self.config.poll_interval_sec)
+
+    _latest_instance: "OpenCVPerceptionModule | None" = None

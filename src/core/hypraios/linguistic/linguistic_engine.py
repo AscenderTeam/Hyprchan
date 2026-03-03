@@ -76,6 +76,8 @@ class LinguisticEngine:
             "\n"
             "Animation-and-overlay tools:\n"
             "- Prefer using `set_animation_pose` to align pose with intent.\n"
+            "- Use `move_self` for directional movement and sprite scaling (0..2).\n"
+            "- Use `screenshot` or `camera` when visual confirmation is needed.\n"
             "- Use only loaded poses reported by tool descriptions.\n"
             "- If user-facing text should be shown on the figure, call `answer_user` with concise text.\n"
             "\n"
@@ -226,6 +228,35 @@ class LinguisticEngine:
         tool_result = await self.tool_runtime.execute_tool_calls(result.tool_calls)
 
         output_text = result.output.strip()
+        total_input_tokens = int(result.input_tokens)
+        total_output_tokens = int(result.output_tokens)
+        total_tokens = int(result.total_tokens)
+
+        if tool_result.followup_messages:
+            followup_messages = list(conversation_messages)
+            if output_text:
+                followup_messages.append({"role": "assistant", "content": output_text})
+            followup_messages.extend(tool_result.followup_messages)
+
+            followup_result = await self.inference_engine.infer(
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    *followup_messages,
+                ],
+                temperature=self.temperature.value,
+                top_p=self.top_p.value,
+                max_output_tokens=400,
+                logit_bias=token_logit_bias,
+                tools=None,
+            )
+
+            if followup_result.output.strip():
+                output_text = followup_result.output.strip()
+
+            total_input_tokens += int(followup_result.input_tokens)
+            total_output_tokens += int(followup_result.output_tokens)
+            total_tokens += int(followup_result.total_tokens)
+
         overlay_text = self._strip_control_tags(output_text)
         if overlay_text and not tool_result.answer_user_called:
             await self.tool_runtime.answer_user(overlay_text)
@@ -240,12 +271,13 @@ class LinguisticEngine:
             "input": prompt,
             "output": output_text,
             "model": result.model,
-            "input_tokens": result.input_tokens,
-            "output_tokens": result.output_tokens,
-            "total_tokens": result.total_tokens,
+            "input_tokens": total_input_tokens,
+            "output_tokens": total_output_tokens,
+            "total_tokens": total_tokens,
             "bias_profile": self.last_bias_profile,
             "token_bias_count": len(token_logit_bias),
             "tool_calls": tool_result.executed_calls,
+            "tool_events": list(tool_result.followup_events),
         }
 
     async def feed_passive(self, inputs: list[dict[str, Any]], states: KernelStates):
@@ -317,7 +349,7 @@ class LinguisticEngine:
             for event in inputs
             if isinstance(event, dict)
             and str(event.get("origin", ""))
-            in {"communication_controller", "hyprchan_agent"}
+            in {"communication_controller", "hyprchan_agent", "linguistic_tools"}
         ]
 
         latest_user_id = 0
@@ -356,6 +388,17 @@ class LinguisticEngine:
                         history_messages.append(
                             {"role": "assistant", "content": cleaned}
                         )
+                    continue
+
+                if origin == "linguistic_tools":
+                    tool_prompt = self._clean_user_message(
+                        str(event.get("description", ""))
+                    )
+                    tool_content = self._build_multimodal_content_for_event(
+                        prompt=tool_prompt,
+                        event=event,
+                    )
+                    history_messages.append({"role": "user", "content": tool_content})
 
         if latest_user_message:
             history_messages.append({"role": "user", "content": latest_user_message})
@@ -377,6 +420,37 @@ class LinguisticEngine:
         )
         context_message = {"role": "user", "content": context_content}
         return [context_message, *history_messages], latest_user_message
+
+    def _build_multimodal_content_for_event(
+        self,
+        *,
+        prompt: str,
+        event: dict[str, Any],
+    ) -> str | list[dict[str, Any]]:
+        images = event.get("images")
+        if not isinstance(images, list) or not images:
+            return prompt
+
+        blocks: list[dict[str, Any]] = [{"type": "text", "text": prompt}]
+        for image in images:
+            if not isinstance(image, dict):
+                continue
+            data_url = self._image_path_to_data_url(
+                path_value=image.get("path"),
+                mime_hint=image.get("mime"),
+            )
+            if not data_url:
+                continue
+            blocks.append(
+                {
+                    "type": "image_url",
+                    "image_url": {"url": data_url, "detail": "low"},
+                }
+            )
+
+        if len(blocks) == 1:
+            return prompt
+        return blocks
 
     def _build_full_event_context(
         self, inputs: list[dict[str, Any]], *, limit: int

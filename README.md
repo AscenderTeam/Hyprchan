@@ -155,6 +155,11 @@ Agent context persistence:
 HyprAI OS inference now exposes LangChain tools for the overlay renderer:
 
 - `set_animation_pose` - picks one loaded pose from the current animation set.
+- `move_self` - moves Hyprchan by directional delta and sets sprite scale coefficient in range `0..2`.
+- `screenshot` - captures a live screenshot and returns it as multimodal tool output.
+- `camera` - captures a live webcam photo and returns it as multimodal tool output.
 - `answer_user` - renders user-facing text in white on top of Hyprchan figure.
+
+Tool multimodal outputs are persisted into context/event history as `tool_observation` events before the assistant reply is saved, so image evidence remains recallable in later turns.
 
 If the model returns plain text without calling `answer_user`, HyprAI OS mirrors that text to the overlay automatically.

@@ -61,6 +61,9 @@ class InferenceEngine:
         tools: list[Any] | None = None,
     ) -> InferenceResult:
         lc_messages = self._to_langchain_messages(messages)
+        effective_logit_bias = (
+            logit_bias if self._supports_logit_bias(self.model) else None
+        )
 
         try:
             response = await self._invoke_chat_model(
@@ -68,13 +71,13 @@ class InferenceEngine:
                 temperature=temperature,
                 top_p=top_p,
                 max_output_tokens=max_output_tokens,
-                logit_bias=logit_bias,
+                logit_bias=effective_logit_bias,
                 frequency_penalty=frequency_penalty,
                 presence_penalty=presence_penalty,
                 tools=tools,
             )
         except Exception as exc:
-            if logit_bias:
+            if effective_logit_bias:
                 try:
                     response = await self._invoke_chat_model(
                         messages=lc_messages,
@@ -121,7 +124,7 @@ class InferenceEngine:
     ) -> AIMessage:
         token = self._resolve_oauth_token()
         model_kwargs: dict[str, Any] = {}
-        if logit_bias:
+        if logit_bias and self._supports_logit_bias(self.model):
             model_kwargs["logit_bias"] = logit_bias
         if frequency_penalty is not None:
             model_kwargs["frequency_penalty"] = float(frequency_penalty)
@@ -129,14 +132,19 @@ class InferenceEngine:
             model_kwargs["presence_penalty"] = float(presence_penalty)
         model_kwargs["max_completion_tokens"] = max(64, int(max_output_tokens))
 
+        chat_kwargs: dict[str, Any] = {
+            "model": self.model,
+            "api_key": SecretStr(token),
+            "base_url": self.api_base_url,
+            "timeout": self.timeout_sec,
+            "temperature": float(temperature),
+            "model_kwargs": model_kwargs,
+        }
+        if self._supports_top_p(self.model):
+            chat_kwargs["top_p"] = float(top_p)
+
         llm = ChatOpenAI(
-            model=self.model,
-            api_key=SecretStr(token),
-            base_url=self.api_base_url,
-            timeout=self.timeout_sec,
-            temperature=float(temperature),
-            top_p=float(top_p),
-            model_kwargs=model_kwargs,
+            **chat_kwargs,
         )
 
         if tools:
@@ -179,6 +187,24 @@ class InferenceEngine:
             return model.split("/", 1)[1].strip() or "gpt-4o-mini"
 
         return model
+
+    @staticmethod
+    def _supports_top_p(model: str) -> bool:
+        normalized = str(model or "").strip().lower()
+        return not (
+            normalized.startswith("gpt-5")
+            or normalized.startswith("openai/gpt-5")
+            or "/gpt-5" in normalized
+        )
+
+    @staticmethod
+    def _supports_logit_bias(model: str) -> bool:
+        normalized = str(model or "").strip().lower()
+        return not (
+            normalized.startswith("gpt-5")
+            or normalized.startswith("openai/gpt-5")
+            or "/gpt-5" in normalized
+        )
 
     def _to_langchain_messages(
         self, messages: list[dict[str, Any]]

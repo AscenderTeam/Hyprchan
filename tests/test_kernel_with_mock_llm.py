@@ -170,3 +170,60 @@ async def test_user_inference_uses_recent_90_event_context_window():
     infer_inputs = infer_call.args[0]
     assert len(infer_inputs) == 90
     assert infer_inputs[-1]["origin"] == "communication_controller"
+
+
+@pytest.mark.asyncio
+async def test_tool_observation_saved_before_agent_response_event() -> None:
+    kernel = HyprAIOSKernel(logging.getLogger("kernel-test"))
+    kernel.linguistic_engine.feed = AsyncMock(
+        return_value={
+            "input": "hello",
+            "output": "final reply",
+            "total_tokens": 8,
+            "tool_events": [
+                {
+                    "type": "tool_observation",
+                    "origin": "linguistic_tools",
+                    "description": "Tool `screenshot` result: captured screenshot",
+                    "images": [
+                        {
+                            "kind": "screen",
+                            "mime": "image/jpeg",
+                            "path": "/tmp/screen.jpg",
+                        }
+                    ],
+                }
+            ],
+        }
+    )
+    kernel.phase_engine.after_inference = AsyncMock(
+        return_value={
+            "output": "final reply",
+            "delta": 0.0,
+            "rudeness": 0.0,
+            "mood": "neutral",
+            "active_reason": "USER",
+        }
+    )
+
+    await kernel.record_perception(
+        event_type="communication_message",
+        description="trigger",
+        origin="communication_controller",
+        amplitude=1.0,
+        force_active=True,
+    )
+
+    await kernel.on_loop()
+
+    tool_events = [
+        e for e in kernel.context_events if e.get("origin") == "linguistic_tools"
+    ]
+    agent_events = [
+        e for e in kernel.context_events if e.get("origin") == "hyprchan_agent"
+    ]
+
+    assert len(tool_events) >= 1
+    assert len(agent_events) >= 1
+    assert int(tool_events[-1]["id"]) < int(agent_events[-1]["id"])
+    assert isinstance(tool_events[-1].get("images"), list)

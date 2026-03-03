@@ -72,14 +72,14 @@ async def test_perception_watcher_triggers_attention_callback():
 
 @pytest.mark.asyncio
 async def test_inference_engine_fallback_with_mock_llm_outputs():
-    engine = InferenceEngine(model="openai/gpt-5.3")
+    engine = InferenceEngine(model="gpt-4o-mini")
     engine._invoke_chat_model = AsyncMock(
         side_effect=[
             RuntimeError("model rejected logit_bias"),
             AIMessage(
                 content="Mock fallback answer",
                 response_metadata={
-                    "model_name": "openai/gpt-5.3",
+                    "model_name": "gpt-4o-mini",
                     "token_usage": {
                         "prompt_tokens": 12,
                         "completion_tokens": 6,
@@ -163,3 +163,15 @@ async def test_inference_engine_allows_empty_output_when_tool_calls_present():
 
     assert result.output == ""
     assert result.tool_calls == [{"name": "answer_user", "args": {"text": "hi"}}]
+
+
+def test_inference_engine_disables_top_p_for_gpt5_models():
+    assert InferenceEngine._supports_top_p("gpt-4o-mini") is True
+    assert InferenceEngine._supports_top_p("gpt-5-nano") is False
+    assert InferenceEngine._supports_top_p("openai/gpt-5") is False
+
+
+def test_inference_engine_disables_logit_bias_for_gpt5_models():
+    assert InferenceEngine._supports_logit_bias("gpt-4o-mini") is True
+    assert InferenceEngine._supports_logit_bias("gpt-5-nano") is False
+    assert InferenceEngine._supports_logit_bias("openai/gpt-5") is False

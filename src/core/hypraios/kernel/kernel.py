@@ -431,6 +431,32 @@ class HyprAIOSKernel:
             "delta": float(phase_result.get("delta", 0.0)),
             "rudeness": float(phase_result.get("rudeness", 0.0)),
         }
+
+        tool_events = inference_result.get("tool_events", [])
+        if isinstance(tool_events, list):
+            for raw_event in tool_events:
+                if not isinstance(raw_event, dict):
+                    continue
+                event_payload = {
+                    "id": self._next_event_id(),
+                    "timestamp": float(raw_event.get("captured_at", time.time())),
+                    "type": str(raw_event.get("type", "tool_observation")),
+                    "description": str(raw_event.get("description", "")),
+                    "origin": str(raw_event.get("origin", "linguistic_tools")),
+                    "amplitude": float(raw_event.get("amplitude", 0.15) or 0.15),
+                    "is_user": False,
+                    "activity_level": 0.0,
+                    "attention_required": False,
+                }
+
+                if "tool_name" in raw_event:
+                    event_payload["tool_name"] = raw_event.get("tool_name")
+                images = raw_event.get("images")
+                if isinstance(images, list) and images:
+                    event_payload["images"] = images
+
+                self._remember_event(event_payload)
+
         self._remember_response(payload)
         self._schedule_next_passive_ponder()
         return payload

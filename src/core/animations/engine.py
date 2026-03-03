@@ -89,6 +89,21 @@ class AnimationEngine:
             if command_type == "answer_user":
                 text = str(command.get("text", "")).strip()
                 self.application.set_overlay_text(text)
+                continue
+
+            if command_type == "move_self":
+                direction = str(command.get("direction", "")).strip().lower()
+                try:
+                    delta = int(command.get("delta", 0))
+                except (TypeError, ValueError):
+                    delta = 0
+                try:
+                    scale = float(command.get("scale", 1.0))
+                except (TypeError, ValueError):
+                    scale = 1.0
+
+                self.application.move_overlay(direction=direction, delta=delta)
+                self.application.set_sprite_scale(scale)
 
     def available_animation_names(self) -> list[str]:
         return [animation.name for animation in self.animations]
@@ -98,6 +113,16 @@ class AnimationEngine:
 
     def enqueue_answer_text(self, text: str) -> None:
         self.queue.put({"type": "answer_user", "text": text})
+
+    def enqueue_move_self(self, *, direction: str, delta: int, scale: float) -> None:
+        self.queue.put(
+            {
+                "type": "move_self",
+                "direction": direction,
+                "delta": delta,
+                "scale": scale,
+            }
+        )
 
     def stop(self):
         self.application.quit()
