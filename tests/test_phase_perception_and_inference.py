@@ -2,6 +2,7 @@ import asyncio
 from unittest.mock import AsyncMock
 
 import pytest
+from langchain_core.messages import AIMessage
 
 from core.hypraios.constants import Phases
 from core.hypraios.kernel.states import KernelStates
@@ -71,14 +72,20 @@ async def test_perception_watcher_triggers_attention_callback():
 @pytest.mark.asyncio
 async def test_inference_engine_fallback_with_mock_llm_outputs():
     engine = InferenceEngine(model="openai/gpt-5.3")
-    engine._post_json = AsyncMock(
+    engine._invoke_chat_model = AsyncMock(
         side_effect=[
-            RuntimeError("responses endpoint unavailable"),
-            {
-                "model": "openai/gpt-5.3",
-                "choices": [{"message": {"content": "Mock fallback answer"}}],
-                "usage": {"prompt_tokens": 12, "completion_tokens": 6},
-            },
+            RuntimeError("model rejected logit_bias"),
+            AIMessage(
+                content="Mock fallback answer",
+                response_metadata={
+                    "model_name": "openai/gpt-5.3",
+                    "token_usage": {
+                        "prompt_tokens": 12,
+                        "completion_tokens": 6,
+                        "total_tokens": 18,
+                    },
+                },
+            ),
         ]
     )
 
@@ -86,26 +93,33 @@ async def test_inference_engine_fallback_with_mock_llm_outputs():
         messages=[{"role": "user", "content": "hello"}],
         temperature=0.2,
         top_p=0.9,
+        logit_bias={"42": 5},
     )
 
     assert result.output == "Mock fallback answer"
     assert result.total_tokens == 18
-
-    first_endpoint = engine._post_json.await_args_list[0].args[0]
-    second_endpoint = engine._post_json.await_args_list[1].args[0]
-    assert first_endpoint == "/v1/responses"
-    assert second_endpoint == "/v1/chat/completions"
+    assert engine._invoke_chat_model.await_count == 2
+    assert engine._invoke_chat_model.await_args_list[0].kwargs["logit_bias"] == {
+        "42": 5
+    }
+    assert engine._invoke_chat_model.await_args_list[1].kwargs["logit_bias"] is None
 
 
 @pytest.mark.asyncio
 async def test_inference_engine_uses_chat_path_when_logit_bias_provided():
     engine = InferenceEngine(model="gpt-4o-mini")
-    engine._post_json = AsyncMock(
-        return_value={
-            "model": "gpt-4o-mini",
-            "choices": [{"message": {"content": "Biased response"}}],
-            "usage": {"prompt_tokens": 5, "completion_tokens": 3},
-        }
+    engine._invoke_chat_model = AsyncMock(
+        return_value=AIMessage(
+            content="Biased response",
+            response_metadata={
+                "model_name": "gpt-4o-mini",
+                "token_usage": {
+                    "prompt_tokens": 5,
+                    "completion_tokens": 3,
+                    "total_tokens": 8,
+                },
+            },
+        )
     )
 
     result = await engine.infer(
@@ -116,8 +130,6 @@ async def test_inference_engine_uses_chat_path_when_logit_bias_provided():
     )
 
     assert result.output == "Biased response"
-    assert engine._post_json.await_count == 1
-    endpoint = engine._post_json.await_args_list[0].args[0]
-    payload = engine._post_json.await_args_list[0].args[1]
-    assert endpoint == "/v1/chat/completions"
-    assert payload["logit_bias"] == {"42": 5}
+    assert engine._invoke_chat_model.await_count == 1
+    kwargs = engine._invoke_chat_model.await_args_list[0].kwargs
+    assert kwargs["logit_bias"] == {"42": 5}
