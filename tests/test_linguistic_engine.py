@@ -1,4 +1,5 @@
 from unittest.mock import AsyncMock
+from pathlib import Path
 
 import pytest
 
@@ -31,6 +32,7 @@ async def test_feed_active_uses_mock_llm_and_communication_prompt():
             input_tokens=8,
             output_tokens=5,
             total_tokens=13,
+            tool_calls=[],
             raw={},
         )
     )
@@ -59,8 +61,16 @@ async def test_feed_active_uses_mock_llm_and_communication_prompt():
 
     infer_call = engine.inference_engine.infer.await_args
     assert infer_call is not None
-    user_prompt = infer_call.kwargs["messages"][1]["content"]
-    assert user_prompt == "Please respond now"
+    messages = infer_call.kwargs["messages"]
+    assert messages[1]["role"] == "user"
+    context_blob = messages[1]["content"]
+    assert isinstance(context_blob, str)
+    assert "Supporting perception context (passive inference format):" in context_blob
+    assert "type=window_focus" in context_blob
+    assert "Full event context window (last 90 events, raw data):" in context_blob
+    assert '"origin":"windows_controller"' in context_blob
+    assert messages[2]["role"] == "user"
+    assert messages[2]["content"] == "Please respond now"
     assert infer_call.kwargs["logit_bias"]
     assert result["bias_profile"] in {
         "sparkly",
@@ -81,6 +91,7 @@ async def test_feed_passive_uses_mock_llm_and_aggregated_prompt():
             input_tokens=20,
             output_tokens=9,
             total_tokens=29,
+            tool_calls=[],
             raw={},
         )
     )
@@ -124,6 +135,7 @@ async def test_feed_passive_neutral_state_produces_no_logit_bias():
             input_tokens=6,
             output_tokens=4,
             total_tokens=10,
+            tool_calls=[],
             raw={},
         )
     )
@@ -158,6 +170,7 @@ async def test_feed_passive_system_intro_is_sent_once_per_session():
             input_tokens=3,
             output_tokens=2,
             total_tokens=5,
+            tool_calls=[],
             raw={},
         )
     )
@@ -181,3 +194,203 @@ async def test_feed_passive_system_intro_is_sent_once_per_session():
     second_call = engine.inference_engine.infer.await_args_list[1]
     second_prompt = second_call.kwargs["messages"][1]["content"]
     assert SYSTEM_INTRO_MESSAGE not in second_prompt
+
+
+@pytest.mark.asyncio
+async def test_feed_active_attaches_multimodal_images_when_present(tmp_path: Path):
+    image_file = tmp_path / "snapshot.jpg"
+    image_file.write_bytes(b"fake-image")
+
+    engine = LinguisticEngine()
+    engine.inference_engine.infer = AsyncMock(
+        return_value=InferenceResult(
+            output="ok",
+            model="gpt-4o-mini",
+            input_tokens=4,
+            output_tokens=2,
+            total_tokens=6,
+            tool_calls=[],
+            raw={},
+        )
+    )
+
+    states = _build_states(Phases.ACTIVE)
+    inputs = [
+        {
+            "type": "communication_message",
+            "amplitude": 1.0,
+            "description": "look at this",
+            "origin": "communication_controller",
+        },
+        {
+            "type": "perception_visual_snapshot",
+            "amplitude": 0.2,
+            "description": "periodic visual snapshot captured",
+            "origin": "multimodal_snapshot_source",
+            "images": [
+                {
+                    "kind": "screen",
+                    "mime": "image/jpeg",
+                    "path": str(image_file),
+                }
+            ],
+        },
+    ]
+
+    await engine.feed(inputs, states)
+
+    infer_call = engine.inference_engine.infer.await_args
+    assert infer_call is not None
+    user_content = infer_call.kwargs["messages"][1]["content"]
+    assert isinstance(user_content, list)
+    assert user_content[0]["type"] == "text"
+    assert user_content[1]["type"] == "image_url"
+    assert user_content[1]["image_url"]["url"].startswith("data:image/jpeg;base64,")
+
+
+@pytest.mark.asyncio
+async def test_feed_active_attaches_all_images_from_recent_context(tmp_path: Path):
+    image_a = tmp_path / "a.jpg"
+    image_b = tmp_path / "b.jpg"
+    image_a.write_bytes(b"image-a")
+    image_b.write_bytes(b"image-b")
+
+    engine = LinguisticEngine()
+    engine.inference_engine.infer = AsyncMock(
+        return_value=InferenceResult(
+            output="ok",
+            model="gpt-4o-mini",
+            input_tokens=6,
+            output_tokens=2,
+            total_tokens=8,
+            tool_calls=[],
+            raw={},
+        )
+    )
+
+    states = _build_states(Phases.ACTIVE)
+    inputs = [
+        {
+            "type": "communication_message",
+            "amplitude": 1.0,
+            "description": "attach all images",
+            "origin": "communication_controller",
+        },
+        {
+            "type": "perception_visual_snapshot",
+            "amplitude": 0.2,
+            "description": "snapshot 1",
+            "origin": "multimodal_snapshot_source",
+            "images": [{"kind": "screen", "mime": "image/jpeg", "path": str(image_a)}],
+        },
+        {
+            "type": "perception_visual_snapshot",
+            "amplitude": 0.2,
+            "description": "snapshot 2",
+            "origin": "multimodal_snapshot_source",
+            "images": [{"kind": "webcam", "mime": "image/jpeg", "path": str(image_b)}],
+        },
+    ]
+
+    await engine.feed(inputs, states)
+
+    infer_call = engine.inference_engine.infer.await_args
+    assert infer_call is not None
+    user_content = infer_call.kwargs["messages"][1]["content"]
+    assert isinstance(user_content, list)
+    image_blocks = [block for block in user_content if block.get("type") == "image_url"]
+    assert len(image_blocks) == 2
+
+
+@pytest.mark.asyncio
+async def test_feed_active_keeps_previous_user_messages_separate() -> None:
+    engine = LinguisticEngine()
+    engine.inference_engine.infer = AsyncMock(
+        return_value=InferenceResult(
+            output="ok",
+            model="gpt-4o-mini",
+            input_tokens=5,
+            output_tokens=3,
+            total_tokens=8,
+            tool_calls=[],
+            raw={},
+        )
+    )
+
+    states = _build_states(Phases.ACTIVE)
+    inputs = [
+        {
+            "id": 11,
+            "type": "communication_message",
+            "amplitude": 1.0,
+            "description": "first message",
+            "origin": "communication_controller",
+        },
+        {
+            "id": 12,
+            "type": "communication_message",
+            "amplitude": 1.0,
+            "description": "latest message",
+            "origin": "communication_controller",
+        },
+    ]
+
+    await engine.feed(inputs, states)
+
+    infer_call = engine.inference_engine.infer.await_args
+    assert infer_call is not None
+    messages = infer_call.kwargs["messages"]
+    assert messages[1]["role"] == "user"
+    assert messages[2] == {"role": "user", "content": "first message"}
+    assert messages[3] == {"role": "user", "content": "latest message"}
+
+
+@pytest.mark.asyncio
+async def test_feed_active_includes_assistant_reply_after_user_when_present() -> None:
+    engine = LinguisticEngine()
+    engine.inference_engine.infer = AsyncMock(
+        return_value=InferenceResult(
+            output="ok",
+            model="gpt-4o-mini",
+            input_tokens=5,
+            output_tokens=3,
+            total_tokens=8,
+            tool_calls=[],
+            raw={},
+        )
+    )
+
+    states = _build_states(Phases.ACTIVE)
+    inputs = [
+        {
+            "id": 11,
+            "type": "communication_message",
+            "amplitude": 1.0,
+            "description": "hello",
+            "origin": "communication_controller",
+        },
+        {
+            "id": 12,
+            "type": "agent_response",
+            "amplitude": 0.0,
+            "description": "hi there",
+            "origin": "hyprchan_agent",
+        },
+        {
+            "id": 13,
+            "type": "communication_message",
+            "amplitude": 1.0,
+            "description": "latest user",
+            "origin": "communication_controller",
+        },
+    ]
+
+    await engine.feed(inputs, states)
+
+    infer_call = engine.inference_engine.infer.await_args
+    assert infer_call is not None
+    messages = infer_call.kwargs["messages"]
+    assert messages[1]["role"] == "user"
+    assert messages[2] == {"role": "user", "content": "hello"}
+    assert messages[3] == {"role": "assistant", "content": "hi there"}
+    assert messages[4] == {"role": "user", "content": "latest user"}

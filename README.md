@@ -44,7 +44,7 @@ Ensure you have the following dependencies installed:
 
 If everything works, you're done!
 
-## OpenAI GPT-5.3 OAuth Setup
+## OpenAI OAuth Setup
 
 HyprAI OS now uses OpenAI bearer-token authorization (OAuth style) for inference.
 
@@ -53,8 +53,8 @@ Create a `.env` file in the project root with:
 ```bash
 OPENAI_OAUTH_TOKEN=your_oauth_bearer_token
 # or OPENAI_API_KEY=... as fallback
-OPENAI_MODEL=openai/gpt-5.3
-OPENAI_API_BASE_URL=https://api.openai.com
+OPENAI_MODEL=gpt-4o-mini
+OPENAI_API_BASE_URL=https://api.openai.com/v1
 OPENAI_TIMEOUT_SECONDS=30
 ```
 
@@ -98,9 +98,63 @@ WEBCAM_POLL_INTERVAL_SEC=0.25
 WEBCAM_MIN_MOTION_RATIO=0.02
 WEBCAM_MIN_FACE_RATIO=0.002
 WEBCAM_MIN_EMIT_INTERVAL_SEC=1.2
+WEBCAM_AUTO_INSTALL_OPENCV=true
+WEBCAM_AUTO_FIND_DEVICE=true
+WEBCAM_MAX_DEVICE_INDEX=4
+MULTIMODAL_SNAPSHOT_ENABLED=true
+MULTIMODAL_SNAPSHOT_INTERVAL_SEC=120
+SPEECH_PERCEPTION_ENABLED=true
+SPEECH_INPUT_DEVICE=
+SPEECH_LANGUAGE=en
+SPEECH_FRAME_DURATION_MS=30
+SPEECH_MIN_SPEECH_SEC=0.4
+SPEECH_END_SILENCE_SEC=0.8
+SPEECH_MAX_SPEECH_SEC=15
+SPEECH_PRE_ROLL_SEC=0.3
+SPEECH_MIN_START_DBFS=-38
+SPEECH_MIN_CONTINUE_DBFS=-43
 ```
 
 API endpoints:
 
 - `GET /v1/events/vision/status`
 - `GET /v1/events/vision/scan`
+- `GET /v1/events/speech/status`
+
+## Web Communication Source
+
+Serve mode now includes a user communication perception source and event feed:
+
+- `GET /v1/communication` - HTML communication client.
+- `POST /v1/communication/send` - send user text as a perception event (`communication_controller`).
+- `GET /v1/communication/events` - view all events and agent responses.
+
+Core behavior:
+
+- Non-user perception sources are buffered into context and event logs.
+- User-origin events trigger inference immediately.
+- Passive pondering runs in core kernel after 40s of no user communication.
+- Every 2 minutes, a PerceptionSource captures a full-screen image (downscaled x2) and latest webcam frame; both are attached as multimodal content on subsequent inferences.
+- Snapshot files are written under `runtime/perception/`.
+- A speech PerceptionSource continuously listens on default microphone (or `SPEECH_INPUT_DEVICE` override), detects utterances by volume + silence boundaries, and emits them as `communication_controller` events to trigger immediate inference.
+
+Speech debug CLI:
+
+```bash
+python src/speech_debug_cli.py --list-devices
+python src/speech_debug_cli.py
+python src/speech_debug_cli.py --device "USB" --no-transcribe
+```
+
+Agent context persistence:
+
+- Context, event logs, responses, and persona memory are saved to `agent_memory.json` at repository root and reloaded on boot.
+
+## LLM Animation Tools
+
+HyprAI OS inference now exposes LangChain tools for the overlay renderer:
+
+- `set_animation_pose` - picks one loaded pose from the current animation set.
+- `answer_user` - renders user-facing text in white on top of Hyprchan figure.
+
+If the model returns plain text without calling `answer_user`, HyprAI OS mirrors that text to the overlay automatically.

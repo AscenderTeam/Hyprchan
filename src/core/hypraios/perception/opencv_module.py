@@ -269,6 +269,7 @@ class OpenCVPerceptionModule:
         self._last_emit_at = 0.0
         self._last_observation: OpenCVObservation | None = None
         self._last_error: str | None = None
+        self._last_frame: Any | None = None
 
     @property
     def is_running(self) -> bool:
@@ -294,6 +295,16 @@ class OpenCVPerceptionModule:
     def last_error(self) -> str | None:
         return self._last_error
 
+    def get_last_frame(self) -> Any | None:
+        frame = self._last_frame
+        if frame is None:
+            return None
+
+        copier = getattr(frame, "copy", None)
+        if callable(copier):
+            return copier()
+        return frame
+
     async def start(self) -> None:
         if self._task and not self._task.done():
             return
@@ -314,6 +325,7 @@ class OpenCVPerceptionModule:
 
         self._task = None
         self._previous_frame = None
+        self._last_frame = None
         self.frame_source.release()
 
     async def scan_once(self, *, emit: bool = True) -> PerceptionEvent | None:
@@ -330,6 +342,7 @@ class OpenCVPerceptionModule:
             motion_ratio = self.motion_analyzer.analyze(self._previous_frame, frame)
 
         self._previous_frame = frame
+        self._last_frame = frame
 
         self._last_observation = OpenCVObservation(
             motion_ratio=motion_ratio,

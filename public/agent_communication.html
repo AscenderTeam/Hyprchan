@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Hyprchan Communication</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: #111827;
+      --muted: #94a3b8;
+      --line: #334155;
+      --text: #f8fafc;
+      --accent: #22d3ee;
+      --ok: #34d399;
+      --warn: #f59e0b;
+    }
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      background: radial-gradient(circle at 20% 10%, #172554 0%, var(--bg) 45%, #020617 100%);
+      color: var(--text);
+    }
+    .wrap {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 20px;
+      display: grid;
+      gap: 14px;
+    }
+    .card {
+      background: color-mix(in srgb, var(--panel) 86%, transparent);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 14px;
+      backdrop-filter: blur(6px);
+    }
+    h1 { margin: 0 0 4px; font-size: 20px; }
+    .muted { color: var(--muted); font-size: 13px; }
+    form {
+      display: grid;
+      gap: 10px;
+      grid-template-columns: 1fr auto;
+    }
+    textarea {
+      resize: vertical;
+      min-height: 88px;
+      background: #020617;
+      color: var(--text);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 10px;
+      font: inherit;
+      grid-column: 1 / -1;
+    }
+    .row { display: flex; gap: 8px; align-items: center; }
+    input[type="number"] {
+      width: 82px;
+      background: #020617;
+      color: var(--text);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 6px;
+    }
+    button {
+      background: var(--accent);
+      border: 0;
+      border-radius: 8px;
+      color: #06202a;
+      font-weight: 700;
+      padding: 8px 12px;
+      cursor: pointer;
+    }
+    button:disabled { opacity: 0.6; cursor: not-allowed; }
+    .status {
+      padding: 8px 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      font-size: 13px;
+      color: var(--muted);
+      background: #020617;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+    .log {
+      max-height: 58vh;
+      overflow: auto;
+      display: grid;
+      gap: 8px;
+    }
+    .entry {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 8px;
+      background: #020617;
+      font-size: 12px;
+      line-height: 1.4;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .badge {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 999px;
+      border: 1px solid currentColor;
+      font-size: 10px;
+      margin-right: 6px;
+    }
+    .badge.user { color: var(--ok); }
+    .badge.sensor { color: var(--warn); }
+    @media (max-width: 900px) {
+      .grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1>Hyprchan Communication</h1>
+      <div class="muted">User input is a perception source; all events are visible below.</div>
+    </div>
+
+    <div class="card">
+      <form id="send-form">
+        <textarea id="message" placeholder="Say something to Hyprchan..." required></textarea>
+        <div class="row">
+          <label for="timeout" class="muted">timeout</label>
+          <input id="timeout" type="number" min="1" max="60" value="20" step="1" />
+          <span class="muted">sec</span>
+        </div>
+        <button id="send-btn" type="submit">Send</button>
+      </form>
+      <div id="status" class="status">Ready.</div>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <h3>Event Stream</h3>
+        <div id="events" class="log"></div>
+      </div>
+      <div class="card">
+        <h3>Agent Responses</h3>
+        <div id="responses" class="log"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const state = {
+      latestEventId: 0,
+      events: [],
+      responses: []
+    };
+
+    const statusEl = document.getElementById('status');
+    const eventsEl = document.getElementById('events');
+    const responsesEl = document.getElementById('responses');
+    const sendForm = document.getElementById('send-form');
+    const messageInput = document.getElementById('message');
+    const timeoutInput = document.getElementById('timeout');
+    const sendBtn = document.getElementById('send-btn');
+
+    function setStatus(text) {
+      statusEl.textContent = text;
+    }
+
+    function addEntries(target, items, isEventList) {
+      target.innerHTML = '';
+      for (const item of items.slice(-120).reverse()) {
+        const node = document.createElement('div');
+        node.className = 'entry';
+        if (isEventList) {
+          const user = item.is_user ? 'user' : 'sensor';
+          const imageInfo = Array.isArray(item.images)
+            ? `\nimages=${item.images.map((x) => `${x.kind}:${x.path}`).join(' | ')}`
+            : '';
+          node.innerHTML = `<span class="badge ${user}">${user}</span><strong>#${item.id}</strong> ${item.origin} :: ${item.type}\n${item.description}${imageInfo}`;
+        } else {
+          node.innerHTML = `<strong>response#${item.response_id ?? '?'}</strong> phase=${item.phase} mood=${item.mood}\n${item.output ?? ''}`;
+        }
+        target.appendChild(node);
+      }
+    }
+
+    async function refreshEvents() {
+      const res = await fetch(`/v1/communication/events?since_id=${state.latestEventId}&limit=400`);
+      if (!res.ok) {
+        throw new Error(`events http ${res.status}`);
+      }
+      const data = await res.json();
+      state.latestEventId = Number(data.latest_event_id || state.latestEventId || 0);
+
+      if (Array.isArray(data.events)) {
+        state.events.push(...data.events);
+      }
+      if (Array.isArray(data.responses)) {
+        state.responses.push(...data.responses);
+      }
+
+      const eventMap = new Map();
+      for (const ev of state.events) eventMap.set(String(ev.id), ev);
+      state.events = Array.from(eventMap.values()).sort((a, b) => (a.id || 0) - (b.id || 0));
+
+      const responseMap = new Map();
+      for (const resp of state.responses) responseMap.set(String(resp.response_id), resp);
+      state.responses = Array.from(responseMap.values()).sort((a, b) => (a.response_id || 0) - (b.response_id || 0));
+
+      addEntries(eventsEl, state.events, true);
+      addEntries(responsesEl, state.responses, false);
+      setStatus(`phase=${data.phase} active_reason=${data.active_reason} next_passive=${(data.next_passive_ponder_sec || 0).toFixed(1)}s`);
+    }
+
+    async function sendMessage(text, timeoutSec) {
+      const response = await fetch('/v1/communication/send', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ text, timeout_sec: timeoutSec })
+      });
+      if (!response.ok) {
+        const body = await response.text();
+        throw new Error(`send http ${response.status}: ${body}`);
+      }
+      return response.json();
+    }
+
+    sendForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const text = messageInput.value.trim();
+      if (!text) return;
+      const timeoutSec = Number(timeoutInput.value || 20);
+
+      sendBtn.disabled = true;
+      setStatus('Sending message...');
+      try {
+        const data = await sendMessage(text, timeoutSec);
+        setStatus(`message status=${data.status} event_id=${data.event_id ?? '?'}`);
+        messageInput.value = '';
+        await refreshEvents();
+      } catch (err) {
+        setStatus(`error: ${String(err)}`);
+      } finally {
+        sendBtn.disabled = false;
+      }
+    });
+
+    (async () => {
+      try {
+        await refreshEvents();
+      } catch (err) {
+        setStatus(`initial load failed: ${String(err)}`);
+      }
+      setInterval(async () => {
+        try {
+          await refreshEvents();
+        } catch (err) {
+          setStatus(`poll failed: ${String(err)}`);
+        }
+      }, 1200);
+    })();
+  </script>
+</body>
+</html>

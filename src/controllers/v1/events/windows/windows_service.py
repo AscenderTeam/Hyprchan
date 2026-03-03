@@ -4,6 +4,8 @@ from ascender.common import Injectable
 from ascender.core import Inject
 from ascender.core.applications.application import Application
 
+from controllers.v1.events.speech.speech_service import SpeechService
+from controllers.v1.events.vision.vision_service import VisionService
 from core.hyprland.socket import HyprlandSocket
 from core.hypraios.kernel.kernel import HyprAIOSKernel
 from shared.lifecycle import ServiceLifecycle
@@ -21,6 +23,8 @@ class WindowsService(ServiceLifecycle):
         application: Application,
         hyprland: HyprlandSocket,
         kernel: HyprAIOSKernel,
+        vision_service: VisionService,
+        speech_service: SpeechService,
         logger: Annotated[Logger, Inject("ASC_LOGGER")],
     ):
         super().__init__(application)
@@ -29,6 +33,8 @@ class WindowsService(ServiceLifecycle):
         self.window_sensitivity = 0.4
         self.hyprland = hyprland
         self.kernel = kernel
+        self.vision_service = vision_service
+        self.speech_service = speech_service
         self.logger = logger
 
     async def _on_workspace_burst(self):

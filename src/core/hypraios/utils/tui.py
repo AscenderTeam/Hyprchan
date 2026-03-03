@@ -95,7 +95,7 @@ class HyprRichTUI:
         self.last_diag = TurnDiagnostics(model=model)
         self._last_bias_profile = "neutral"
         self._last_token_bias_count = 0
-        self.passive_ponder_idle_threshold_sec = 20.0
+        self.passive_ponder_idle_threshold_sec = 40.0
         self.passive_ponder_interval_sec = self.passive_ponder_idle_threshold_sec
         self.next_passive_ponder_at = (
             time.monotonic() + self.passive_ponder_interval_sec

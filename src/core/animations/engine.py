@@ -2,7 +2,7 @@ from queue import Empty, Queue
 from threading import Thread
 from typing import Any
 
-from gi.repository import GLib
+from gi.repository import GLib  # type: ignore[attr-defined]
 
 from core.animations.animation import Animation
 from core.animations.renderer.application import HyprchanApp
@@ -17,6 +17,7 @@ class AnimationEngine:
         self.current_animation = None
         self.animations = animations
         self.application = HyprchanApp(self.on_frame_update, self.target_fps)
+        self._thread: Thread | None = None
 
         self.load_animation("sit.falling_asleep")
 
@@ -41,7 +42,8 @@ class AnimationEngine:
                     (self.animations.index(self.current_animation) + 1)
                     % len(self.animations)
                 ]
-            self.current_animation = self.animations[0]
+            else:
+                self.current_animation = self.animations[0]
 
         else:
             self.current_animation = self.animations[0]
@@ -53,6 +55,7 @@ class AnimationEngine:
         raise ValueError("Animation not found")
 
     def on_frame_update(self):
+        self._process_command_queue()
 
         if not self.current_animation:
             # wait for a new animation
@@ -61,8 +64,40 @@ class AnimationEngine:
         self.current_animation.update()
 
         frame_idx = self.current_animation.current_frame
-        print(self.current_animation.name, frame_idx)
         return self.current_animation.frames[frame_idx]
+
+    def _process_command_queue(self) -> None:
+        while True:
+            try:
+                command = self.queue.get_nowait()
+            except Empty:
+                break
+
+            if not isinstance(command, dict):
+                continue
+
+            command_type = str(command.get("type", "")).strip()
+            if command_type == "set_pose":
+                pose = str(command.get("pose", "")).strip()
+                if pose:
+                    try:
+                        self.load_animation(pose)
+                    except ValueError:
+                        continue
+                continue
+
+            if command_type == "answer_user":
+                text = str(command.get("text", "")).strip()
+                self.application.set_overlay_text(text)
+
+    def available_animation_names(self) -> list[str]:
+        return [animation.name for animation in self.animations]
+
+    def enqueue_set_pose(self, pose: str) -> None:
+        self.queue.put({"type": "set_pose", "pose": pose})
+
+    def enqueue_answer_text(self, text: str) -> None:
+        self.queue.put({"type": "answer_user", "text": text})
 
     def stop(self):
         self.application.quit()
@@ -74,5 +109,12 @@ class AnimationEngine:
         NOTE: Start this function in a separate thread.
         And load an animation BEFORE starting the application.
         """
+        if self._thread and self._thread.is_alive():
+            return
+
+        self._thread = Thread(target=self._run_application, daemon=True)
+        self._thread.start()
+
+    def _run_application(self) -> None:
         GLib.idle_add(self.application.start_sprite)
         self.application.run(None)

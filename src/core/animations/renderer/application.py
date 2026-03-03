@@ -8,7 +8,7 @@ from core.animations.renderer.window import HyprchanWindow
 from core.hyprland.socket import HyprlandSocket
 
 gi.require_version("Gtk", "4.0")
-from gi.repository import GdkPixbuf, GLib, Gtk
+from gi.repository import GdkPixbuf, GLib, Gtk  # type: ignore[attr-defined]
 
 
 class HyprchanApp(Gtk.Application):
@@ -20,6 +20,7 @@ class HyprchanApp(Gtk.Application):
         super().__init__(application_id="org.hyprland.hyprchan")
         self.on_update_callback = on_update_callback
         self.target_fps = target_fps
+        self._pending_overlay_text = ""
 
     def do_activate(self) -> None:
         self.win = HyprchanWindow()
@@ -28,24 +29,30 @@ class HyprchanApp(Gtk.Application):
         title = "hyprchan-overlay"
         self.win.set_title(title)
         self._apply_overlay_window_rules(title)
+        self.win.set_overlay_text(self._pending_overlay_text)
         self.win.present()
-        return super().do_activate()
+        return None
 
     def start_sprite(self):
         GLib.timeout_add(1000 // self.target_fps, self.update_loop)
 
     def update_loop(self):
         frame = self.on_update_callback()
-        print(frame)
         if frame:
             width, height = frame.get_width(), frame.get_height()
+            overlay_extra = self.win.overlay_height_hint()
 
-            self.win.set_default_size(width, height)
+            self.win.set_default_size(width, height + overlay_extra)
             self.win.set_image(frame)
             return True
 
         self.win.hide()
         return False
+
+    def set_overlay_text(self, text: str) -> None:
+        self._pending_overlay_text = text
+        if hasattr(self, "win"):
+            self.win.set_overlay_text(text)
 
     def _apply_overlay_window_rules(self, title: str) -> None:
         fallback = object()

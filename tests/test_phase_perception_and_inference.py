@@ -1,4 +1,5 @@
 import asyncio
+from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
 import pytest
@@ -133,3 +134,32 @@ async def test_inference_engine_uses_chat_path_when_logit_bias_provided():
     assert engine._invoke_chat_model.await_count == 1
     kwargs = engine._invoke_chat_model.await_args_list[0].kwargs
     assert kwargs["logit_bias"] == {"42": 5}
+
+
+@pytest.mark.asyncio
+async def test_inference_engine_allows_empty_output_when_tool_calls_present():
+    engine = InferenceEngine(model="gpt-4o-mini")
+    engine._invoke_chat_model = AsyncMock(
+        return_value=SimpleNamespace(
+            content="",
+            tool_calls=[{"name": "answer_user", "args": {"text": "hi"}}],
+            response_metadata={
+                "model_name": "gpt-4o-mini",
+                "token_usage": {
+                    "prompt_tokens": 3,
+                    "completion_tokens": 1,
+                    "total_tokens": 4,
+                },
+            },
+        )
+    )
+
+    result = await engine.infer(
+        messages=[{"role": "user", "content": "test"}],
+        temperature=0.2,
+        top_p=0.9,
+        tools=[object()],
+    )
+
+    assert result.output == ""
+    assert result.tool_calls == [{"name": "answer_user", "args": {"text": "hi"}}]

@@ -17,6 +17,7 @@ async def test_sleep_consolidation_step_generates_dream_and_reduces_fatigue():
             input_tokens=12,
             output_tokens=10,
             total_tokens=22,
+            tool_calls=[],
             raw={},
         )
     )
@@ -51,6 +52,7 @@ async def test_sleep_consolidation_finishes_and_returns_to_passive():
             input_tokens=8,
             output_tokens=8,
             total_tokens=16,
+            tool_calls=[],
             raw={},
         )
     )
