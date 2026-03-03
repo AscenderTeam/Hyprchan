@@ -32,6 +32,14 @@ def _hydrate_env_from_dotenv():
 _hydrate_env_from_dotenv()
 
 
+def _env_flag(key: str, default: bool) -> bool:
+    value = os.getenv(key)
+    if value is None:
+        return default
+    normalized = value.strip().lower()
+    return normalized in {"1", "true", "yes", "on"}
+
+
 DATABASE_CONNECTION = {
     "type": "dbstring",
     "content": "sqlite+aiosqlite:///database.db",  # Replace with your own db string
@@ -59,3 +67,10 @@ OPENAI_OAUTH_TOKEN = os.getenv("OPENAI_OAUTH_TOKEN", os.getenv("OPENAI_API_KEY",
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "openai/gpt-5.3")
 OPENAI_API_BASE_URL = os.getenv("OPENAI_API_BASE_URL", "https://api.openai.com")
 OPENAI_TIMEOUT_SECONDS = float(os.getenv("OPENAI_TIMEOUT_SECONDS", "30"))
+
+WEBCAM_VISION_ENABLED = _env_flag("WEBCAM_VISION_ENABLED", True)
+WEBCAM_DEVICE_INDEX = int(os.getenv("WEBCAM_DEVICE_INDEX", "0"))
+WEBCAM_POLL_INTERVAL_SEC = float(os.getenv("WEBCAM_POLL_INTERVAL_SEC", "0.25"))
+WEBCAM_MIN_MOTION_RATIO = float(os.getenv("WEBCAM_MIN_MOTION_RATIO", "0.02"))
+WEBCAM_MIN_FACE_RATIO = float(os.getenv("WEBCAM_MIN_FACE_RATIO", "0.002"))
+WEBCAM_MIN_EMIT_INTERVAL_SEC = float(os.getenv("WEBCAM_MIN_EMIT_INTERVAL_SEC", "1.2"))
