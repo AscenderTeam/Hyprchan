@@ -539,35 +539,31 @@ class HyprAIOSKernel:
             output_text = str(payload.get("output", "")).strip()
             if output_text:
                 try:
-                    await self.memory_gate.store_message(
-                        role="assistant",
-                        content=output_text,
-                        state=memory_state,
-                        meta={
-                            "response_id": (
-                                self.response_log[-1].get("response_id")
-                                if self.response_log
-                                else None
-                            ),
-                            "origin": "hyprchan_agent",
-                            "type": "agent_response",
-                        },
-                        kind="chat.message",
-                    )
                     response_id = (
                         int(self.response_log[-1].get("response_id", 0))
                         if self.response_log
                         else 0
                     )
-                    self.memory_gate.append_buffer(
+                    await self.memory_gate.append_buffer(
                         MemoryBuffer(
                             index=response_id,
                             role="assistant",
                             content=output_text,
+                            state=memory_state,
+                            meta={
+                                "response_id": (
+                                    self.response_log[-1].get("response_id")
+                                    if self.response_log
+                                    else None
+                                ),
+                                "origin": "hyprchan_agent",
+                                "type": "agent_response",
+                            },
+                            kind="chat.message",
                         )
                     )
                 except Exception as exc:
-                    self.logger.warning("Memory store assistant failed: %s", exc)
+                    self.logger.warning("Memory buffer assistant failed: %s", exc)
 
         self._schedule_next_passive_ponder()
         return payload
@@ -795,26 +791,22 @@ class HyprAIOSKernel:
                 and description.strip()
             ):
                 try:
-                    await self.memory_gate.store_message(
-                        role="user",
-                        content=description.strip(),
-                        state=memory_state,
-                        meta={
-                            "event_id": event_id,
-                            "origin": origin,
-                            "type": event_type,
-                        },
-                        kind="chat.message",
-                    )
-                    self.memory_gate.append_buffer(
+                    await self.memory_gate.append_buffer(
                         MemoryBuffer(
                             index=event_id,
                             role="user",
                             content=description.strip(),
+                            state=memory_state,
+                            meta={
+                                "event_id": event_id,
+                                "origin": origin,
+                                "type": event_type,
+                            },
+                            kind="chat.message",
                         )
                     )
                 except Exception as exc:
-                    self.logger.warning("Memory store user failed: %s", exc)
+                    self.logger.warning("Memory buffer user failed: %s", exc)
 
         if payload["is_user"]:
             self.last_user_input_at = time.monotonic()

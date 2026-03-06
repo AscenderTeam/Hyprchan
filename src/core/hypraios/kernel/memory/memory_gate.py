@@ -60,12 +60,44 @@ class MemoryGate:
         """
         self.wm_buffer.clear()
 
-    def append_buffer(self, buffer: MemoryBuffer):
+    async def append_buffer(self, buffer: MemoryBuffer):
         self.wm_buffer.append(buffer)
-        self._clamp_buffer()
+        evicted: list[MemoryBuffer] = []
+        if len(self.wm_buffer) > self.buffer_limit:
+            evicted = self.wm_buffer[:-self.buffer_limit]
+            self.wm_buffer = self.wm_buffer[-self.buffer_limit :]
+
+        if evicted:
+            await self._flush_evicted(evicted)
 
     def fetch_buffer(self):
         return list(self.wm_buffer)
+
+    async def _flush_evicted(self, evicted: list[MemoryBuffer]) -> None:
+        memory = self._resolve_memory_service()
+        if memory is None:
+            return
+
+        for item in evicted:
+            if item.state is None:
+                continue
+            role = str(item.role or "user").strip().lower() or "user"
+            content = item.content
+            if not isinstance(content, str):
+                try:
+                    content = str(content)
+                except Exception:
+                    continue
+            content = content.strip()
+            if not content:
+                continue
+            await memory.store_message(
+                role=role,
+                content=content,
+                state=item.state,
+                meta=item.meta,
+                kind=item.kind or "chat.message",
+            )
 
     def buffer_messages(self) -> list[dict[str, Any]]:
         messages: list[dict[str, Any]] = []
