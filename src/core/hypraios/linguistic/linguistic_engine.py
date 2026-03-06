@@ -12,6 +12,7 @@ from core.hypraios.linguistic.persona_memory import PersonaMemory
 from core.hypraios.linguistic.tool_runtime import LinguisticToolRuntime
 from core.hypraios.kernel.states import KernelStates
 from core.hypraios.utils.dynamic_variable import DynamicVariable
+from core.hyprmemory.models import MemoryState
 
 
 class LinguisticEngine:
@@ -38,7 +39,9 @@ class LinguisticEngine:
         self.temperature.value = 0.2 + (states.a.value * 0.45)
         self.top_p.value = 0.8 + (states.e.value * 0.15)
 
-    def _build_system_prompt(self, mode: str) -> str:
+    def _build_system_prompt(
+        self, mode: str, *, memory_injection: str | None = None
+    ) -> str:
         persona_block = self.persona_memory.build_primary_persona_prompt(mode)
 
         core_spec = (
@@ -102,7 +105,12 @@ class LinguisticEngine:
             "- Keep response grounded in current prompt evidence, not invented context."
         )
 
-        return f"{core_spec}\n\n{active_mode if mode == 'ACTIVE' else passive_mode}"
+        prompt = f"{core_spec}\n\n{active_mode if mode == 'ACTIVE' else passive_mode}"
+        if memory_injection:
+            cleaned = memory_injection.strip()
+            if cleaned:
+                prompt = f"{prompt}\n\n{cleaned}"
+        return prompt
 
     def _build_multimodal_user_content(
         self,
@@ -190,8 +198,20 @@ class LinguisticEngine:
         states: KernelStates,
         inputs: list[dict[str, Any]],
         messages: list[dict[str, Any]] | None = None,
+        memory_system: str | None = None,
     ):
-        system_prompt = self._build_system_prompt(mode)
+        memory_state = MemoryState(
+            f=float(states.f.value),
+            v=float(states.v.value),
+            e=float(states.e.value),
+            a=float(states.a.value),
+        )
+        self.tool_runtime.update_memory_context(
+            memory_state=memory_state,
+            phase=states.phase,
+        )
+
+        system_prompt = self._build_system_prompt(mode, memory_injection=memory_system)
 
         conversation_messages: list[dict[str, Any]]
         if messages is None:
@@ -280,7 +300,13 @@ class LinguisticEngine:
             "tool_events": list(tool_result.followup_events),
         }
 
-    async def feed_passive(self, inputs: list[dict[str, Any]], states: KernelStates):
+    async def feed_passive(
+        self,
+        inputs: list[dict[str, Any]],
+        states: KernelStates,
+        *,
+        memory_system: str | None = None,
+    ):
         if not inputs:
             return None
 
@@ -298,9 +324,17 @@ class LinguisticEngine:
             mode="PASSIVE",
             states=states,
             inputs=inputs,
+            memory_system=memory_system,
         )
 
-    async def feed_active(self, inputs: list[dict[str, Any]], states: KernelStates):
+    async def feed_active(
+        self,
+        inputs: list[dict[str, Any]],
+        states: KernelStates,
+        *,
+        memory_system: str | None = None,
+        buffer_messages: list[dict[str, Any]] | None = None,
+    ):
         if not inputs:
             return None
 
@@ -315,7 +349,8 @@ class LinguisticEngine:
 
         if user_events:
             chat_messages, latest_message = await self._build_active_chat_messages(
-                inputs
+                inputs,
+                buffer_messages=buffer_messages,
             )
             if not latest_message:
                 latest_message = self._clean_user_message(
@@ -329,6 +364,7 @@ class LinguisticEngine:
                 states=states,
                 inputs=inputs,
                 messages=chat_messages,
+                memory_system=memory_system,
             )
         else:
             prompt = await PassiveProcessor(inputs).process_inputs(self.inference_count)
@@ -338,11 +374,14 @@ class LinguisticEngine:
             mode="ACTIVE",
             states=states,
             inputs=inputs,
+            memory_system=memory_system,
         )
 
     async def _build_active_chat_messages(
         self,
         inputs: list[dict[str, Any]],
+        *,
+        buffer_messages: list[dict[str, Any]] | None = None,
     ) -> tuple[list[dict[str, Any]], str]:
         conversation_events = [
             event
@@ -400,8 +439,36 @@ class LinguisticEngine:
                     )
                     history_messages.append({"role": "user", "content": tool_content})
 
+        dedup: set[tuple[str, str]] = set()
+        for message in history_messages:
+            role = str(message.get("role", "")).strip().lower()
+            content = message.get("content")
+            if role and isinstance(content, str) and content.strip():
+                dedup.add((role, content))
+
+        if buffer_messages:
+            for message in buffer_messages:
+                if not isinstance(message, dict):
+                    continue
+                role = str(message.get("role", "user")).strip().lower()
+                if role not in {"user", "assistant", "system"}:
+                    role = "user"
+                content = message.get("content")
+                if content is None:
+                    continue
+                if isinstance(content, str):
+                    content = content.strip()
+                    if not content:
+                        continue
+                    key = (role, content)
+                    if key in dedup:
+                        continue
+                    dedup.add(key)
+                history_messages.append({"role": role, "content": content})
+
         if latest_user_message:
-            history_messages.append({"role": "user", "content": latest_user_message})
+            if ("user", latest_user_message) not in dedup:
+                history_messages.append({"role": "user", "content": latest_user_message})
 
         passive_style_digest = await PassiveProcessor(
             inputs,
@@ -487,11 +554,31 @@ class LinguisticEngine:
         stripped = self._strip_control_tags(compact)
         return stripped[:1200]
 
-    async def feed(self, inputs: list[dict[str, Any]], states: KernelStates):
+    async def feed(
+        self,
+        inputs: list[dict[str, Any]],
+        states: KernelStates,
+        *,
+        memory_system: str | None = None,
+        buffer_messages: list[dict[str, Any]] | None = None,
+    ):
         if states.phase == Phases.PASSIVE:
-            return await self.feed_passive(inputs, states)
+            return await self.feed_passive(
+                inputs,
+                states,
+                memory_system=memory_system,
+            )
 
         if states.phase == Phases.ACTIVE:
-            return await self.feed_active(inputs, states)
+            return await self.feed_active(
+                inputs,
+                states,
+                memory_system=memory_system,
+                buffer_messages=buffer_messages,
+            )
 
-        return await self.feed_passive(inputs, states)
+        return await self.feed_passive(
+            inputs,
+            states,
+            memory_system=memory_system,
+        )

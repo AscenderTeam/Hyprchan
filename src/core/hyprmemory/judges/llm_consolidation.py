@@ -72,7 +72,7 @@ class LLMConsolidationJudge(ConsolidationJudge):
             "Extract semantic facts as a JSON array. Each item must include: "
             "subject, predicate, object, confidence (0-1), qualifiers (object). "
             "Only include stable user or system preferences. Return [] if none.\n\n"
-            f"State: f={state.f:.2f}, v={state.v:.2f}, e={state.e:.2f}, a={state.a:.2f}\n"
+            f"Emotional State: fatigue={state.f:.2f}, valence={state.v:.2f}, energy={state.e:.2f}, arousal={state.a:.2f}\n"
             f"Items: {self._items_payload(items)}"
         )
         text = await self._invoke(prompt)
@@ -112,7 +112,7 @@ class LLMConsolidationJudge(ConsolidationJudge):
         prompt = (
             "Compose 1-2 vivid dream-like sentences that weave together these memory gists. "
             "Do not mention that this is a dream; write it as if experienced.\n\n"
-            f"State: f={state.f:.2f}, v={state.v:.2f}, e={state.e:.2f}, a={state.a:.2f}\n"
+            f"Emotional State: fatigue={state.f:.2f}, valence={state.v:.2f}, energy={state.e:.2f}, arousal={state.a:.2f}\n"
             f"Gists: {gists}"
         )
         return await self._invoke(prompt, temperature=self.dream_temperature)

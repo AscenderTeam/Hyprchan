@@ -11,12 +11,15 @@ from ascender.core import Inject
 
 from core.hypraios.constants import Phases
 from core.hypraios.kernel.main_loop import MainKernelLoop
+from core.hypraios.kernel.memory.buffer import MemoryBuffer
+from core.hypraios.kernel.memory.memory_gate import MemoryGate
 from core.hypraios.kernel.states import KernelStates
 from core.hypraios.linguistic.linguistic_engine import LinguisticEngine
 from core.hypraios.mood.phase_engine import PhaseEngine
 from core.hypraios.perception.watcher import PerceptionWatcher
 from core.hypraios.utils.dynamic_variable import DynamicVariable
 from core.hypraios.utils.fault_adaptive_parameter import FaultAdaptiveParameter
+from core.hyprmemory.models import MemoryState
 
 
 @Injectable(provided_in="root")
@@ -73,6 +76,7 @@ class HyprAIOSKernel:
         self.phase_engine = PhaseEngine(self.states)
         self.linguistic_engine = LinguisticEngine()
         self.perception_watcher = PerceptionWatcher(self.main_loop.perception_signal)
+        self.memory_gate = MemoryGate()
 
         self._loop_task: asyncio.Task | None = None
         self._sleep_task: asyncio.Task | None = None
@@ -108,6 +112,34 @@ class HyprAIOSKernel:
     @staticmethod
     def _clamp(value: float, lo: float, hi: float) -> float:
         return max(lo, min(hi, value))
+
+    def _memory_state(self) -> MemoryState:
+        return MemoryState(
+            f=float(self.states.f.value),
+            v=float(self.states.v.value),
+            e=float(self.states.e.value),
+            a=float(self.states.a.value),
+        )
+
+    @staticmethod
+    def _memory_query_text(inputs: list[dict[str, Any]]) -> str:
+        for event in reversed(inputs):
+            if not isinstance(event, dict):
+                continue
+            if str(event.get("origin", "")) != "communication_controller":
+                continue
+            description = str(event.get("description", "")).strip()
+            if description:
+                return description[:600]
+
+        for event in reversed(inputs):
+            if not isinstance(event, dict):
+                continue
+            description = str(event.get("description", "")).strip()
+            if description:
+                return description[:400]
+
+        return ""
 
     def _compute_passive_ponder_interval(self) -> float:
         interval = self.passive_ponder_idle_threshold_sec
@@ -378,8 +410,31 @@ class HyprAIOSKernel:
     async def _run_inference_cycle(
         self, inputs: list[dict[str, Any]]
     ) -> dict[str, Any] | None:
+        memory_system_prompt = ""
+        buffer_messages: list[dict[str, Any]] | None = None
+        memory_state: MemoryState | None = None
+        if self.memory_gate.enabled:
+            memory_state = self._memory_state()
+            query_text = self._memory_query_text(inputs)
+            try:
+                memory_system_prompt = await self.memory_gate.build_system_prompt_injection(
+                    query_text=query_text,
+                    state=memory_state,
+                    phase=self.states.phase,
+                )
+            except Exception as err:
+                self.logger.warning("Memory recall failed: %s", err)
+                memory_system_prompt = ""
+
+            buffer_messages = self.memory_gate.buffer_messages()
+
         try:
-            inference_result = await self.linguistic_engine.feed(inputs, self.states)
+            inference_result = await self.linguistic_engine.feed(
+                inputs,
+                self.states,
+                memory_system=memory_system_prompt or None,
+                buffer_messages=buffer_messages,
+            )
         except RuntimeError as err:
             self.logger.warning("Inference skipped: %s", err)
             self.last_inference_error = str(err)
@@ -457,7 +512,63 @@ class HyprAIOSKernel:
 
                 self._remember_event(event_payload)
 
+                if (
+                    self.memory_gate.enabled
+                    and memory_state is not None
+                    and str(event_payload.get("description", "")).strip()
+                ):
+                    try:
+                        await self.memory_gate.store_message(
+                            role="tool",
+                            content=str(event_payload.get("description", "")).strip(),
+                            state=memory_state,
+                            meta={
+                                "event_id": event_payload.get("id"),
+                                "origin": event_payload.get("origin"),
+                                "type": event_payload.get("type"),
+                                "tool_name": event_payload.get("tool_name"),
+                            },
+                            kind="tool.observation",
+                        )
+                    except Exception as exc:
+                        self.logger.warning("Memory store tool failed: %s", exc)
+
         self._remember_response(payload)
+
+        if self.memory_gate.enabled and memory_state is not None:
+            output_text = str(payload.get("output", "")).strip()
+            if output_text:
+                try:
+                    await self.memory_gate.store_message(
+                        role="assistant",
+                        content=output_text,
+                        state=memory_state,
+                        meta={
+                            "response_id": (
+                                self.response_log[-1].get("response_id")
+                                if self.response_log
+                                else None
+                            ),
+                            "origin": "hyprchan_agent",
+                            "type": "agent_response",
+                        },
+                        kind="chat.message",
+                    )
+                    response_id = (
+                        int(self.response_log[-1].get("response_id", 0))
+                        if self.response_log
+                        else 0
+                    )
+                    self.memory_gate.append_buffer(
+                        MemoryBuffer(
+                            index=response_id,
+                            role="assistant",
+                            content=output_text,
+                        )
+                    )
+                except Exception as exc:
+                    self.logger.warning("Memory store assistant failed: %s", exc)
+
         self._schedule_next_passive_ponder()
         return payload
 
@@ -595,6 +706,13 @@ class HyprAIOSKernel:
     async def _sleep_worker(self):
         total = max(self.pending_memory_units, 1.0)
         processed = 0.0
+        consolidation_task: asyncio.Task | None = None
+
+        if self.memory_gate.enabled and self.memory_gate.sleep_enabled:
+            sleep_budget = max(self.pending_memory_units, 1.0)
+            consolidation_task = asyncio.create_task(
+                self.memory_gate.sleep_consolidate(budget_f=sleep_budget)
+            )
 
         while not self._shutting_down and self.states.f.value > 0 and processed < total:
             delta_m = min(self.memory_step, total - processed)
@@ -603,6 +721,19 @@ class HyprAIOSKernel:
 
             self.states.f.value -= self.k_sleep.value * delta_m
             await asyncio.sleep(self.sleep_dt)
+
+        if consolidation_task is not None:
+            try:
+                await consolidation_task
+            except Exception as exc:
+                self.logger.warning("Memory consolidation failed: %s", exc)
+
+        if self.memory_gate.enabled and self.memory_gate.sleep_enabled:
+            try:
+                dreams = await self.memory_gate.fetch_dream_log()
+                self.memory_gate.queue_dream_log(dreams)
+            except Exception as exc:
+                self.logger.warning("Dream log fetch failed: %s", exc)
 
         self.phase_engine.reset_after_sleep()
 
@@ -646,6 +777,44 @@ class HyprAIOSKernel:
 
         event_for_log = {**payload, **signal}
         self._remember_event(event_for_log)
+
+        if self.memory_gate.enabled:
+            memory_state = self._memory_state()
+            try:
+                await self.memory_gate.observe_event(
+                    event_type=event_type,
+                    payload=event_for_log,
+                    state=memory_state,
+                )
+            except Exception as exc:
+                self.logger.warning("Memory observe failed: %s", exc)
+
+            if (
+                payload["is_user"]
+                and event_type == "communication_message"
+                and description.strip()
+            ):
+                try:
+                    await self.memory_gate.store_message(
+                        role="user",
+                        content=description.strip(),
+                        state=memory_state,
+                        meta={
+                            "event_id": event_id,
+                            "origin": origin,
+                            "type": event_type,
+                        },
+                        kind="chat.message",
+                    )
+                    self.memory_gate.append_buffer(
+                        MemoryBuffer(
+                            index=event_id,
+                            role="user",
+                            content=description.strip(),
+                        )
+                    )
+                except Exception as exc:
+                    self.logger.warning("Memory store user failed: %s", exc)
 
         if payload["is_user"]:
             self.last_user_input_at = time.monotonic()

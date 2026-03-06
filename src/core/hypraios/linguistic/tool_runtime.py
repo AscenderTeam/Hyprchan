@@ -1,6 +1,7 @@
 import asyncio
 import base64
 import mimetypes
+import os
 from dataclasses import dataclass
 from pathlib import Path
 import subprocess
@@ -12,7 +13,10 @@ from langchain_core.tools import StructuredTool
 from pydantic import BaseModel, Field
 
 from core.animations.engine import AnimationEngine
+from core.hypraios.constants import Phases
 from core.hypraios.perception.opencv_module import OpenCVPerceptionModule
+from core.hyprmemory import HyprMemoryService
+from core.hyprmemory.models import MemoryState
 from settings import (
     WEBCAM_AUTO_FIND_DEVICE,
     WEBCAM_DEVICE_INDEX,
@@ -69,6 +73,17 @@ class CameraInput(BaseModel):
     pass
 
 
+class MemoryRecallInput(BaseModel):
+    query: str = Field(
+        description=(
+            "Recall prompt for HyprMemory. Use a short phrase or question to retrieve "
+            "relevant episodes, facts, and concepts."
+        ),
+        min_length=1,
+        max_length=400,
+    )
+
+
 @dataclass
 class ToolExecutionResult:
     answer_user_called: bool
@@ -88,12 +103,15 @@ class LinguisticToolRuntime:
         self.last_answer_text = ""
         self._camera_fallback_last_attempt_at = 0.0
         self._camera_fallback_cooldown_sec = 5.0
+        self._memory_state: MemoryState | None = None
+        self._memory_phase: Phases | None = None
+        self._memory_service: HyprMemoryService | None = None
 
     def build_tools(self) -> list[StructuredTool]:
         available = self.available_animations()
         available_text = ", ".join(available) if available else "none"
 
-        return [
+        tools = [
             StructuredTool.from_function(
                 coroutine=self._set_animation_pose,
                 name="set_animation_pose",
@@ -135,11 +153,79 @@ class LinguisticToolRuntime:
             ),
         ]
 
+        if self._memory_is_enabled():
+            tools.append(
+                StructuredTool.from_function(
+                    coroutine=self._memory_recall,
+                    name="memory_recall",
+                    description=(
+                        "Recall relevant episodic, semantic, and associative memories "
+                        "from HyprMemory using a short query."
+                    ),
+                    args_schema=MemoryRecallInput,
+                )
+            )
+
+        return tools
+
     def available_animations(self) -> list[str]:
         engine = self._resolve_animation_engine()
         if engine is None:
             return []
         return engine.available_animation_names()
+
+    def update_memory_context(
+        self,
+        *,
+        memory_state: MemoryState | None,
+        phase: Phases | None,
+    ) -> None:
+        self._memory_state = memory_state
+        self._memory_phase = phase
+
+    @staticmethod
+    def _memory_is_enabled() -> bool:
+        return os.getenv("HYPRMEMORY_ENABLED", "0").strip().lower() == "1"
+
+    def _resolve_memory_service(self) -> HyprMemoryService | None:
+        if not self._memory_is_enabled():
+            return None
+        if self._memory_service is not None:
+            return self._memory_service
+        fallback = object()
+        try:
+            service = inject(HyprMemoryService, fallback=fallback)
+        except Exception:
+            return None
+        if service is fallback:
+            return None
+        self._memory_service = service
+        return service
+
+    async def _memory_recall(self, query: str) -> str:
+        if not self._memory_is_enabled():
+            return "hyprmemory disabled"
+
+        memory = self._resolve_memory_service()
+        if memory is None:
+            return "hyprmemory unavailable"
+
+        state = self._memory_state or MemoryState(f=0.0, v=0.0, e=0.0, a=0.0)
+        phase = self._memory_phase
+        try:
+            blocks = await memory.recall_working_memory(
+                query_text=query.strip(),
+                state=state,
+                phase=phase,
+            )
+        except Exception as exc:
+            return f"hyprmemory recall failed: {type(exc).__name__}: {exc}"
+
+        if not blocks:
+            return "no relevant memories found"
+
+        rendered = "\n\n".join(blocks)
+        return f"HyprMemory recall:\n{rendered}"
 
     async def execute_tool_calls(
         self,
@@ -233,6 +319,21 @@ class LinguisticToolRuntime:
                     tool_name=name,
                     summary=summary,
                     images=images,
+                )
+                executed += 1
+                continue
+
+            if name == "memory_recall":
+                query = str(args.get("query", "")).strip()
+                if not query:
+                    continue
+                summary = await self._memory_recall(query)
+                self._append_followup_message(
+                    followup_messages,
+                    followup_events,
+                    tool_name=name,
+                    summary=summary,
+                    images=[],
                 )
                 executed += 1
 
