@@ -1,17 +1,52 @@
 from __future__ import annotations
 
+from collections import deque
 import json
+import logging
 import os
+from importlib import import_module
 from typing import Any
 
 from ascender.core import inject
-from redis.asyncio import Redis
+from ascender.core.database import DatabaseEngine
+
+
+def _resolve_redis_client_type() -> Any:
+    try:
+        module = import_module("redis.asyncio")
+        return getattr(module, "Redis")
+    except Exception:
+
+        class _FallbackRedisClient:
+            async def delete(self, *args: Any, **kwargs: Any) -> Any:
+                return None
+
+            async def rpush(self, *args: Any, **kwargs: Any) -> Any:
+                return None
+
+            async def llen(self, *args: Any, **kwargs: Any) -> int:
+                return 0
+
+            async def lrange(self, *args: Any, **kwargs: Any) -> list[Any]:
+                return []
+
+            async def ltrim(self, *args: Any, **kwargs: Any) -> Any:
+                return None
+
+        return _FallbackRedisClient
+
+
+RedisClient: Any = _resolve_redis_client_type()
+
 
 from core.hypraios.constants import Phases
 from core.hypraios.kernel.memory.buffer import MemoryBuffer
 from core.hyprmemory import HyprMemoryService
-from core.hyprmemory.models import DreamEntry, MemoryState
+from core.hyprmemory.models import ConsolidationReport, DreamEntry, MemoryState
 from core.hyprmemory.utils.serialization import state_from_dict, state_to_dict
+
+
+logger = logging.getLogger(__name__)
 
 
 class MemoryGate:
@@ -28,26 +63,39 @@ class MemoryGate:
         self.buffer_limit = max(1, int(os.getenv("HYPRMEMORY_BUFFER_LIMIT", "3")))
         self.buffer_key = os.getenv("HYPRMEMORY_BUFFER_KEY", "hyprchan:wm_buffer")
         self.wm_buffer = []
-        self._memory_service: HyprMemoryService | None = None
-        self._redis: Redis | None = None
+        self._memory_service: Any | None = None
+        self._redis: Any | None = None
         self._pending_dream_log: str | None = None
         self._last_error: str | None = None
+        self._last_sleep_report: ConsolidationReport | None = None
+        self._seen_dream_ids: set[str] = set()
+        self._seen_dream_order: deque[str] = deque()
+        self._persist_event_types = {
+            "communication_message",
+            "communication_summon",
+            "agent_response",
+            "tool_observation",
+            "context_compaction",
+        }
 
-    def _resolve_redis(self) -> Redis | None:
+    def _resolve_redis(self) -> Any | None:
         if self._redis is not None:
             return self._redis
         fallback = object()
         try:
-            client = inject(Redis, fallback=fallback)
+            client = inject(RedisClient, fallback=fallback)
         except Exception as exc:
             self._last_error = f"{type(exc).__name__}: {exc}"
             return None
         if client is fallback:
             return None
+        required_methods = ("delete", "rpush", "llen", "lrange", "ltrim")
+        if not all(hasattr(client, name) for name in required_methods):
+            return None
         self._redis = client
         return client
 
-    def _resolve_memory_service(self) -> HyprMemoryService | None:
+    def _resolve_memory_service(self) -> Any | None:
         if not self.enabled:
             return None
         if self._memory_service is not None:
@@ -57,10 +105,44 @@ class MemoryGate:
             service = inject(HyprMemoryService, fallback=fallback)
         except Exception as exc:
             self._last_error = f"{type(exc).__name__}: {exc}"
-            return None
+            service = fallback
         if service is fallback:
+            service = self._build_memory_service_manually()
+            if service is None:
+                return None
+        required_methods = (
+            "observe",
+            "store_message",
+            "recall_working_memory",
+            "sleep_consolidate",
+            "fetch_dream_log",
+        )
+        if not all(hasattr(service, name) for name in required_methods):
+            self._last_error = "HyprMemoryService provider unresolved"
             return None
         self._memory_service = service
+        self._last_error = None
+        return service
+
+    def _build_memory_service_manually(self) -> Any | None:
+        fallback = object()
+        try:
+            database = inject(DatabaseEngine, fallback=fallback)
+        except Exception as exc:
+            self._last_error = f"{type(exc).__name__}: {exc}"
+            return None
+        if database is fallback:
+            self._last_error = "DatabaseEngine unresolved for HyprMemoryService"
+            return None
+
+        try:
+            service = HyprMemoryService(
+                database=database,
+                logger=logging.getLogger("HyprMemoryService"),
+            )
+        except Exception as exc:
+            self._last_error = f"{type(exc).__name__}: {exc}"
+            return None
         return service
 
     def _clamp_buffer(self):
@@ -68,7 +150,7 @@ class MemoryGate:
             self.wm_buffer = self.wm_buffer[-self.buffer_limit :]
 
     @property
-    def memory(self) -> HyprMemoryService | None:
+    def memory(self) -> Any | None:
         return self._resolve_memory_service()
 
     async def reset_buffer(self):
@@ -214,6 +296,9 @@ class MemoryGate:
             return
         memory = self._resolve_memory_service()
         if memory is None:
+            self._last_error = (
+                "HyprMemoryService unavailable while HYPRMEMORY_ENABLED=1"
+            )
             return
         await memory.observe(
             event_type=event_type,
@@ -222,6 +307,28 @@ class MemoryGate:
             session_id=session_id,
             flags=flags,
         )
+
+        description = str(payload.get("description", "")).strip()
+        if not description or event_type not in self._persist_event_types:
+            return
+
+        role = self._role_for_event(event_type=event_type, payload=payload)
+        meta = {
+            "event_id": int(payload.get("id", 0) or 0),
+            "origin": str(payload.get("origin", "")),
+            "type": event_type,
+        }
+        try:
+            await memory.store_message(
+                role=role,
+                content=description,
+                state=state,
+                meta=meta,
+                kind="perception.event",
+            )
+        except Exception as exc:
+            self._last_error = f"{type(exc).__name__}: {exc}"
+            logger.warning("Memory event persistence failed: %s", exc)
 
     async def store_message(
         self,
@@ -287,13 +394,19 @@ class MemoryGate:
 
         return "\n\n".join(parts).strip()
 
-    async def sleep_consolidate(self, budget_f: float) -> None:
+    async def sleep_consolidate(self, budget_f: float) -> ConsolidationReport | None:
         if not self.enabled or not self.sleep_enabled:
-            return
+            return None
         memory = self._resolve_memory_service()
         if memory is None:
-            return
-        await memory.sleep_consolidate(budget_f=budget_f)
+            self._last_error = (
+                "HyprMemoryService unavailable during sleep consolidation"
+            )
+            return None
+
+        report = await memory.sleep_consolidate(budget_f=budget_f)
+        self._last_sleep_report = report
+        return report
 
     async def fetch_dream_log(self) -> list[DreamEntry]:
         if not self.enabled or not self.sleep_enabled:
@@ -301,7 +414,21 @@ class MemoryGate:
         memory = self._resolve_memory_service()
         if memory is None:
             return []
-        return await memory.fetch_dream_log(clear=True, limit=8)
+        dreams = await memory.fetch_dream_log(clear=False, limit=32)
+        fresh: list[DreamEntry] = []
+        for dream in dreams:
+            dream_id = str(getattr(dream, "dream_id", "")).strip()
+            if not dream_id:
+                continue
+            if dream_id in self._seen_dream_ids:
+                continue
+            self._seen_dream_ids.add(dream_id)
+            self._seen_dream_order.append(dream_id)
+            while len(self._seen_dream_order) > 256:
+                stale = self._seen_dream_order.popleft()
+                self._seen_dream_ids.discard(stale)
+            fresh.append(dream)
+        return fresh
 
     def queue_dream_log(self, dreams: list[DreamEntry]) -> None:
         if not dreams:
@@ -316,3 +443,18 @@ class MemoryGate:
     @property
     def last_error(self) -> str | None:
         return self._last_error
+
+    @property
+    def last_sleep_report(self) -> ConsolidationReport | None:
+        return self._last_sleep_report
+
+    @staticmethod
+    def _role_for_event(*, event_type: str, payload: dict[str, Any]) -> str:
+        if bool(payload.get("is_user", False)):
+            return "user"
+        if (
+            event_type == "agent_response"
+            or str(payload.get("origin", "")).strip() == "hyprchan_agent"
+        ):
+            return "assistant"
+        return "system"

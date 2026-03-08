@@ -1,5 +1,6 @@
 import asyncio
 import inspect
+import logging
 import math
 import time
 from collections import deque
@@ -15,8 +16,18 @@ from core.hypraios.contracts import (
 )
 
 
+logger = logging.getLogger(__name__)
+
+
 class SpeechTranscriber(Protocol):
-    def transcribe(self, audio: np.ndarray) -> str: ...
+    def transcribe(self, audio: np.ndarray) -> "SpeechTranscription | str": ...
+
+
+@dataclass(slots=True)
+class SpeechTranscription:
+    text: str
+    language: str | None = None
+    language_confidence: float | None = None
 
 
 @dataclass(slots=True)
@@ -35,7 +46,7 @@ class SpeechPerceptionConfig:
     noise_floor_alpha: float = 0.95
     queue_max_frames: int = 256
     input_device: str = ""
-    language: str = "en"
+    language: str = "auto"
     model_name: str = "Systran/faster-whisper-large-v3"
     event_type: str = "communication_message"
     origin: str = "communication_controller"
@@ -62,10 +73,26 @@ class FasterWhisperSpeechTranscriber:
         self.model = WhisperModel(model_name, device="cpu", compute_type="int8")
         self.language = language
 
-    def transcribe(self, audio: np.ndarray) -> str:
-        segments, _info = self.model.transcribe(audio, language=self.language)
+    def transcribe(self, audio: np.ndarray) -> SpeechTranscription:
+        normalized_language = str(self.language or "").strip().lower()
+        language_arg = (
+            None
+            if normalized_language in {"", "auto", "autodetect", "detect"}
+            else self.language
+        )
+        segments, info = self.model.transcribe(audio, language=language_arg)
         parts = [segment.text.strip() for segment in segments if segment.text.strip()]
-        return " ".join(parts).strip()
+        detected_language = str(getattr(info, "language", "") or "").strip() or None
+        raw_confidence = getattr(info, "language_probability", None)
+        try:
+            confidence = float(raw_confidence) if raw_confidence is not None else None
+        except (TypeError, ValueError):
+            confidence = None
+        return SpeechTranscription(
+            text=" ".join(parts).strip(),
+            language=detected_language,
+            language_confidence=confidence,
+        )
 
 
 class SpeechSegmenter:
@@ -225,6 +252,7 @@ class SpeechPerceptionSource:
 
     async def start(self) -> None:
         if self._task and not self._task.done():
+            logger.debug("Speech source start ignored; already running")
             return
 
         sd = self._sounddevice_module
@@ -239,6 +267,11 @@ class SpeechPerceptionSource:
                 model_name=self.config.model_name,
                 language=self.config.language,
             )
+            logger.debug(
+                "Speech transcriber initialized model=%s language=%s",
+                self.config.model_name,
+                self.config.language,
+            )
 
         self._loop = asyncio.get_running_loop()
         device_id, device_name, device_default_sample_rate = self._resolve_input_device(
@@ -246,6 +279,7 @@ class SpeechPerceptionSource:
         )
         self._active_device_id = device_id
         self._active_device_name = device_name
+        logger.info("Speech source using input device: %s", device_name)
 
         preferred_sample_rate = int(self.config.sample_rate)
         try:
@@ -270,6 +304,7 @@ class SpeechPerceptionSource:
                 sample_rate=fallback_sample_rate,
             )
             self._stream_sample_rate = fallback_sample_rate
+            logger.warning(self._last_error)
 
         runtime_config = replace(self.config, sample_rate=self._stream_sample_rate)
         self.segmenter = SpeechSegmenter(runtime_config)
@@ -280,9 +315,15 @@ class SpeechPerceptionSource:
 
         self._running = True
         self._task = asyncio.create_task(self._worker())
+        logger.info(
+            "Speech source started stream_sample_rate=%s frame_size=%s",
+            self._stream_sample_rate,
+            self.segmenter.config.frame_size,
+        )
 
     async def stop(self) -> None:
         self._running = False
+        logger.debug("Speech source stop requested")
 
         if self._task and not self._task.done():
             self._task.cancel()
@@ -303,6 +344,7 @@ class SpeechPerceptionSource:
                 stream.close()
             except Exception:
                 pass
+        logger.info("Speech source stopped")
 
     async def scan_once(self, *, emit: bool = True) -> PerceptionEvent | None:
         try:
@@ -333,6 +375,7 @@ class SpeechPerceptionSource:
                 raise
             except Exception as exc:
                 self._last_error = str(exc)
+                logger.warning("Speech worker frame processing failed: %s", exc)
 
     async def _consume_frame(
         self,
@@ -362,10 +405,20 @@ class SpeechPerceptionSource:
             source_sample_rate=self._stream_sample_rate,
             target_sample_rate=self._transcribe_sample_rate,
         )
-        text = await asyncio.to_thread(transcriber.transcribe, transcribe_audio)
-        cleaned = text.strip()
+        raw_transcription = await asyncio.to_thread(
+            transcriber.transcribe, transcribe_audio
+        )
+        transcription = self._normalize_transcription(raw_transcription)
+        cleaned = transcription.text.strip()
         if not cleaned:
             return None
+
+        logger.debug(
+            "Speech utterance finalized chars=%s duration=%.3fs language=%s",
+            len(cleaned),
+            float(utterance.shape[0]) / max(1, self._stream_sample_rate),
+            transcription.language,
+        )
 
         event: PerceptionEvent = {
             "type": self.config.event_type,
@@ -378,6 +431,12 @@ class SpeechPerceptionSource:
             "transcript": cleaned,
             "input_device_name": self._active_device_name,
         }
+        if transcription.language:
+            event["speech_language"] = transcription.language
+        if transcription.language_confidence is not None:
+            event["speech_language_confidence"] = round(
+                float(transcription.language_confidence), 4
+            )
 
         if emit:
             callback_result = self.event_callback(event)
@@ -388,8 +447,15 @@ class SpeechPerceptionSource:
             **(self._last_observation or {}),
             "last_transcript": cleaned,
             "last_transcript_sec": event["speech_duration_sec"],
+            "last_speech_language": transcription.language,
         }
         return event
+
+    @staticmethod
+    def _normalize_transcription(raw: SpeechTranscription | str) -> SpeechTranscription:
+        if isinstance(raw, SpeechTranscription):
+            return raw
+        return SpeechTranscription(text=str(raw or ""))
 
     def _audio_callback(
         self,
@@ -412,6 +478,11 @@ class SpeechPerceptionSource:
                 except asyncio.QueueEmpty:
                     pass
                 self._dropped_frames += 1
+                if self._dropped_frames % 50 == 0:
+                    logger.warning(
+                        "Speech frame queue saturated dropped_frames=%s",
+                        self._dropped_frames,
+                    )
             self._queue.put_nowait(frame)
 
         loop.call_soon_threadsafe(_enqueue)

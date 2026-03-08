@@ -38,6 +38,7 @@ class WindowsService(ServiceLifecycle):
         self.logger = logger
 
     async def _on_workspace_burst(self):
+        self.logger.debug("Workspace burst detected; notifying user and kernel")
         await self.hyprland.send_command(
             "notify 0 5000 0 You're switching your workspace very fast!"
         )
@@ -49,6 +50,7 @@ class WindowsService(ServiceLifecycle):
         )
 
     async def _on_window_burst(self):
+        self.logger.debug("Window burst detected; notifying user and kernel")
         await self.hyprland.send_command("notify 4 5000 0 What are you doing?")
         await self.kernel.record_perception(
             event_type="window_toggle_burst",
@@ -58,6 +60,7 @@ class WindowsService(ServiceLifecycle):
         )
 
     async def _on_monitor_burst(self):
+        self.logger.debug("Monitor burst detected; notifying user and kernel")
         await self.hyprland.send_command(
             "notify 1 5000 0 Monitors are quite... Overwhelmed don't you think?"
         )
@@ -70,6 +73,12 @@ class WindowsService(ServiceLifecycle):
 
     async def on_startup(self):
         self.logger.info("[cyan bold] Initiating all sensors... [/]")
+        self.logger.debug(
+            "Sensor sensitivities workspace=%s monitor=%s window=%s",
+            self.workspace_sensitivity,
+            self.monitor_sensitivity,
+            self.window_sensitivity,
+        )
         self.workspace_sensor = AsyncToggleDetector.from_sensitivity_param(
             self.workspace_sensitivity, self._on_workspace_burst, cooldown=5
         )
@@ -85,9 +94,15 @@ class WindowsService(ServiceLifecycle):
         self.logger.info("[green bold] All sensors are active! [/]")
 
     async def on_shutdown(self):
+        self.logger.debug("WindowsService shutdown requested")
         await self.kernel.shutdown()
 
     async def workspace_change(self, workspace_id: str, workspace_name: str):
+        self.logger.debug(
+            "Workspace changed id=%s name=%s",
+            workspace_id,
+            workspace_name,
+        )
         await self.workspace_sensor.toggle()
         await self.kernel.record_perception(
             event_type="workspace_switch",
@@ -97,6 +112,7 @@ class WindowsService(ServiceLifecycle):
         )
 
     async def monitor_focus_change(self):
+        self.logger.debug("Monitor focus change detected")
         await self.monitor_sensor.toggle()
         await self.kernel.record_perception(
             event_type="monitor_focus",
@@ -106,6 +122,7 @@ class WindowsService(ServiceLifecycle):
         )
 
     async def active_window_change(self):
+        self.logger.debug("Active window change detected")
         await self.window_sensor.toggle()
         await self.kernel.record_perception(
             event_type="window_focus",

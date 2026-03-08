@@ -11,6 +11,12 @@ from ascender.core import Inject
 
 from core.animations.engine import AnimationEngine
 from core.hypraios.constants import Phases
+from core.hypraios.kernel.event_compaction import (
+    EventCompacter,
+    EventCompactionRequest,
+    EventCompactionResult,
+    GPT5NanoEventCompacter,
+)
 from core.hypraios.kernel.main_loop import MainKernelLoop
 from core.hypraios.kernel.memory.buffer import MemoryBuffer
 from core.hypraios.kernel.memory.memory_gate import MemoryGate
@@ -21,6 +27,12 @@ from core.hypraios.perception.watcher import PerceptionWatcher
 from core.hypraios.utils.dynamic_variable import DynamicVariable
 from core.hypraios.utils.fault_adaptive_parameter import FaultAdaptiveParameter
 from core.hyprmemory.models import MemoryState
+from settings import (
+    EVENT_COMPACTION_BATCH_SIZE,
+    EVENT_COMPACTION_ENABLED,
+    EVENT_COMPACTION_KEEP_TAIL,
+    EVENT_COMPACTION_MODEL,
+)
 
 
 @Injectable(provided_in="root")
@@ -115,6 +127,13 @@ class HyprAIOSKernel:
         self._last_memory_save_at = 0.0
         self.memory_autosave_interval_sec = 300.0
 
+        self.event_compaction_enabled = bool(EVENT_COMPACTION_ENABLED)
+        self.event_compaction_batch_size = max(10, int(EVENT_COMPACTION_BATCH_SIZE))
+        self.event_compaction_keep_tail = max(0, int(EVENT_COMPACTION_KEEP_TAIL))
+        self.event_compacter: EventCompacter | None = None
+        if self.event_compaction_enabled:
+            self.event_compacter = GPT5NanoEventCompacter(model=EVENT_COMPACTION_MODEL)
+
     @staticmethod
     def _clamp(value: float, lo: float, hi: float) -> float:
         return max(lo, min(hi, value))
@@ -158,6 +177,10 @@ class HyprAIOSKernel:
         self.next_passive_ponder_at = (
             time.monotonic() + self.passive_ponder_interval_sec
         )
+        self.logger.debug(
+            "Next passive ponder scheduled in %.2fs",
+            self.passive_ponder_interval_sec,
+        )
 
     def _next_event_id(self) -> int:
         self._event_seq += 1
@@ -190,6 +213,141 @@ class HyprAIOSKernel:
         self.context_events.append(dict(response_event))
         self.event_log.append(response_event)
         self._memory_dirty = True
+
+    @staticmethod
+    def _is_protected_event_for_compaction(event: dict[str, Any]) -> bool:
+        if bool(event.get("is_user", False)):
+            return True
+
+        event_type = str(event.get("type", "")).strip().lower()
+        origin = str(event.get("origin", "")).strip().lower()
+
+        protected_types = {
+            "communication_message",
+            "communication_summon",
+            "agent_response",
+            "tool_observation",
+            "context_compaction",
+        }
+        protected_origins = {
+            "communication_controller",
+            "hyprchan_agent",
+            "linguistic_tools",
+            "memory_compacter",
+        }
+
+        if event_type in protected_types:
+            return True
+        if origin in protected_origins:
+            return True
+        return False
+
+    def _next_compaction_batch(self) -> tuple[int, int, list[dict[str, Any]]] | None:
+        events = list(self.context_events)
+        if not events:
+            return None
+
+        batch_size = max(10, int(self.event_compaction_batch_size))
+        keep_tail = max(0, int(self.event_compaction_keep_tail))
+        eligible_end = max(0, len(events) - keep_tail)
+        if eligible_end < batch_size:
+            return None
+
+        run_start: int | None = None
+        run_len = 0
+
+        for idx in range(eligible_end):
+            event = events[idx]
+            if self._is_protected_event_for_compaction(event):
+                run_start = None
+                run_len = 0
+                continue
+
+            if run_start is None:
+                run_start = idx
+                run_len = 1
+            else:
+                run_len += 1
+
+            if run_start is not None and run_len >= batch_size:
+                start = run_start
+                end = start + batch_size - 1
+                return start, end, events[start : end + 1]
+
+        return None
+
+    def _build_compaction_event(
+        self,
+        *,
+        source_events: list[dict[str, Any]],
+        summary: EventCompactionResult,
+    ) -> dict[str, Any]:
+        from_event_id = int(source_events[0].get("id", 0) or 0)
+        to_event_id = int(source_events[-1].get("id", 0) or 0)
+        amplitude_total = 0.0
+        for item in source_events:
+            try:
+                amplitude_total += max(0.0, float(item.get("amplitude", 0.0) or 0.0))
+            except (TypeError, ValueError):
+                continue
+
+        return {
+            "id": self._next_event_id(),
+            "timestamp": time.time(),
+            "type": "context_compaction",
+            "description": str(summary.summary).strip(),
+            "origin": "memory_compacter",
+            "amplitude": round(amplitude_total, 6),
+            "is_user": False,
+            "activity_level": 0.0,
+            "attention_required": False,
+            "compacted_count": int(summary.compacted_count),
+            "from_event_id": from_event_id,
+            "to_event_id": to_event_id,
+            "compaction_model": str(summary.model or "gpt-5-nano"),
+        }
+
+    async def _maybe_compact_context_events(self) -> None:
+        if not self.event_compaction_enabled:
+            return
+        compacter = self.event_compacter
+        if compacter is None:
+            return
+
+        batches = 0
+        while True:
+            batch = self._next_compaction_batch()
+            if batch is None:
+                return
+
+            start, end, source_events = batch
+            request = EventCompactionRequest(
+                events=source_events,
+                max_sentence_chars=220,
+            )
+
+            try:
+                summary = await compacter.compact(request)
+            except Exception as exc:
+                self.logger.warning("Event compaction failed: %s", exc)
+                return
+
+            if summary is None or not str(summary.summary).strip():
+                return
+
+            compacted_event = self._build_compaction_event(
+                source_events=source_events,
+                summary=summary,
+            )
+
+            events = list(self.context_events)
+            replaced = events[:start] + [compacted_event] + events[end + 1 :]
+            self.context_events = deque(replaced, maxlen=self.context_events.maxlen)
+            self._memory_dirty = True
+            batches += 1
+
+            if batches >= 8:
+                return
 
     def _agent_memory_payload(self) -> dict[str, Any]:
         return {
@@ -328,11 +486,17 @@ class HyprAIOSKernel:
         if isinstance(latest_visual_event, dict):
             payload.append(dict(latest_visual_event))
 
+        self.logger.debug("Built passive input payload size=%s", len(payload))
         return payload
 
     async def _run_inference_cycle(
         self, inputs: list[dict[str, Any]]
     ) -> dict[str, Any] | None:
+        self.logger.debug(
+            "Inference cycle start phase=%s events=%s",
+            self.states.phase.name,
+            len(inputs),
+        )
         memory_system_prompt = ""
         buffer_messages: list[dict[str, Any]] | None = None
         memory_state: MemoryState | None = None
@@ -370,6 +534,7 @@ class HyprAIOSKernel:
             return None
 
         if not inference_result:
+            self.logger.debug("Inference cycle produced no result")
             return None
 
         self.last_inference_error = None
@@ -396,6 +561,7 @@ class HyprAIOSKernel:
             self.states.phase = Phases.PASSIVE
 
         if self.states.f.value >= self.f_max.value:
+            self.logger.debug("Fatigue reached max; entering sleep loop")
             await self.start_sleep_loop()
 
         payload = {
@@ -491,6 +657,12 @@ class HyprAIOSKernel:
                     self.logger.warning("Memory buffer assistant failed: %s", exc)
 
         self._schedule_next_passive_ponder()
+        self.logger.debug(
+            "Inference cycle complete phase=%s mood=%s tokens=%s",
+            payload["phase"],
+            payload["mood"],
+            payload["total_tokens"],
+        )
         return payload
 
     async def communicate(
@@ -499,6 +671,10 @@ class HyprAIOSKernel:
         message = text.strip()
         if not message:
             return {"status": "invalid", "error": "message is empty"}
+
+        self.logger.debug(
+            "Communicate called chars=%s timeout=%s", len(message), timeout_sec
+        )
 
         loop = asyncio.get_running_loop()
         waiter: asyncio.Future[dict[str, Any]] = loop.create_future()
@@ -544,6 +720,8 @@ class HyprAIOSKernel:
             if int(item.get("response_id", 0) or 0) > low
         ][-cap:]
         latest_event_id = int(self.event_log[-1].get("id", 0)) if self.event_log else 0
+        memory_service_ready = self.memory_gate.memory is not None
+        sleep_report = self.memory_gate.last_sleep_report
         return {
             "latest_event_id": latest_event_id,
             "phase": self.states.phase.name,
@@ -555,6 +733,24 @@ class HyprAIOSKernel:
             "responses": responses,
             "last_inference": self.last_inference,
             "last_inference_error": self.last_inference_error,
+            "memory_gate": {
+                "enabled": self.memory_gate.enabled,
+                "sleep_enabled": self.memory_gate.sleep_enabled,
+                "service_ready": memory_service_ready,
+                "last_error": self.memory_gate.last_error,
+                "last_sleep_report": (
+                    {
+                        "processed_items": sleep_report.processed_items,
+                        "episodes_written": sleep_report.episodes_written,
+                        "facts_written": sleep_report.facts_written,
+                        "edges_written": sleep_report.edges_written,
+                        "dreams_written": sleep_report.dreams_written,
+                        "fatigue_spent": sleep_report.fatigue_spent,
+                    }
+                    if sleep_report is not None
+                    else None
+                ),
+            },
         }
 
     async def bootup(self):
@@ -600,16 +796,20 @@ class HyprAIOSKernel:
 
     async def start_awake_loop(self):
         if self._loop_task and not self._loop_task.done():
+            self.logger.debug("Awake loop already running")
             return
 
         if self.states.phase == Phases.SLEEP:
             self.states.phase = Phases.PASSIVE
+        self.logger.debug("Starting awake loop")
         self._loop_task = asyncio.create_task(self.main_loop.loop(self.on_loop))
 
     async def start_sleep_loop(self):
         if self.states.phase == Phases.SLEEP:
+            self.logger.debug("Sleep loop requested while already sleeping")
             return
         if self._sleep_task and not self._sleep_task.done():
+            self.logger.debug("Sleep loop already active")
             return
 
         self.states.phase = Phases.SLEEP
@@ -623,7 +823,27 @@ class HyprAIOSKernel:
                 pass
 
         self._sleep_task = asyncio.create_task(self._sleep_worker())
-        self.animations.load_animation("sit.falling_asleep")
+        self.logger.info(
+            "Entering sleep loop pending_memory_units=%.2f", self.pending_memory_units
+        )
+        try:
+            self.animations.load_animation("sit.falling_asleep")
+        except Exception as exc:
+            self.logger.warning("Sleep transition animation unavailable: %s", exc)
+            try:
+                self.animations.load_animation("sit.sleeping")
+            except Exception:
+                pass
+
+    def _play_wakeup_animation(self) -> None:
+        try:
+            self.animations.load_animation("sit.startle_wakeup")
+        except Exception as exc:
+            self.logger.warning("Wake transition animation unavailable: %s", exc)
+            try:
+                self.animations.load_animation("sit.idle")
+            except Exception:
+                pass
 
     async def _sleep_worker(self):
         total = max(self.pending_memory_units, 1.0)
@@ -642,11 +862,27 @@ class HyprAIOSKernel:
             self.pending_memory_units = max(0.0, self.pending_memory_units - delta_m)
 
             self.states.f.value -= self.k_sleep.value * delta_m
+            self.logger.debug(
+                "Sleep worker progress processed=%.2f/%.2f fatigue=%.2f",
+                processed,
+                total,
+                self.states.f.value,
+            )
             await asyncio.sleep(self.sleep_dt)
 
         if consolidation_task is not None:
             try:
-                await consolidation_task
+                report = await consolidation_task
+                if report is not None:
+                    self.logger.info(
+                        "Sleep consolidation report items=%s episodes=%s facts=%s edges=%s dreams=%s fatigue_spent=%.2f",
+                        report.processed_items,
+                        report.episodes_written,
+                        report.facts_written,
+                        report.edges_written,
+                        report.dreams_written,
+                        report.fatigue_spent,
+                    )
             except Exception as exc:
                 self.logger.warning("Memory consolidation failed: %s", exc)
 
@@ -661,6 +897,8 @@ class HyprAIOSKernel:
 
         if not self._shutting_down:
             self.states.phase = Phases.PASSIVE
+            self.logger.info("Sleep loop finished; returning to PASSIVE")
+            self._play_wakeup_animation()
             await self.start_awake_loop()
 
     async def record_perception(
@@ -687,6 +925,15 @@ class HyprAIOSKernel:
         }
         if metadata:
             payload.update(metadata)
+
+        self.logger.debug(
+            "Record perception id=%s type=%s origin=%s amplitude=%.3f force_active=%s",
+            event_id,
+            event_type,
+            origin,
+            amplitude,
+            force_active,
+        )
 
         if response_future is not None:
             self._response_waiters[event_id] = response_future
@@ -743,6 +990,7 @@ class HyprAIOSKernel:
             self.states.phase = Phases.ACTIVE
             self.active_reason = "USER"
             self._self_active_idle_ticks = 0
+            self.logger.debug("Force active applied from origin=%s", origin)
 
             if prior_phase == Phases.SLEEP:
                 if self._sleep_task and not self._sleep_task.done():
@@ -751,6 +999,7 @@ class HyprAIOSKernel:
                         await self._sleep_task
                     except asyncio.CancelledError:
                         pass
+                self._play_wakeup_animation()
                 await self.start_awake_loop()
 
         return {**signal, "event_id": event_id}
@@ -766,6 +1015,12 @@ class HyprAIOSKernel:
         if weight > 0:
             self.states.f.value += self.k_evt.value * weight
             self.pending_memory_units += weight
+            self.logger.debug(
+                "Passive fatigue applied weight=%.3f fatigue=%.3f pending_memory=%.3f",
+                weight,
+                self.states.f.value,
+                self.pending_memory_units,
+            )
 
     def _apply_inference_fatigue(self, token_count: int):
         fatigue_delta = (self.k_tok.value * max(token_count, 0)) + self.k_inf.value
@@ -777,6 +1032,13 @@ class HyprAIOSKernel:
 
         self.states.f.value += fatigue_delta
         self.pending_memory_units += max(1.0, token_count / 40.0)
+        self.logger.debug(
+            "Inference fatigue delta=%.3f tokens=%s fatigue=%.3f pending_memory=%.3f",
+            fatigue_delta,
+            token_count,
+            self.states.f.value,
+            self.pending_memory_units,
+        )
 
     async def _apply_idle_dynamics(self):
         self.states.a.value *= 0.92
@@ -798,7 +1060,13 @@ class HyprAIOSKernel:
         """
         async with self._on_loop_lock:
             events = await self.perception_watcher.drain_events(limit=128)
+            self.logger.debug(
+                "Kernel loop tick phase=%s drained_events=%s",
+                self.states.phase.name,
+                len(events),
+            )
             self._apply_passive_fatigue(events)
+            await self._maybe_compact_context_events()
 
             user_events = [
                 event
@@ -821,8 +1089,14 @@ class HyprAIOSKernel:
                 self.active_reason = "USER"
                 self._self_active_idle_ticks = 0
                 inputs_for_inference = list(self.context_events)[-90:]
+                self.logger.debug(
+                    "User events detected count=%s; using context window=%s",
+                    len(user_events),
+                    len(inputs_for_inference),
+                )
             elif should_run_passive_ponder:
                 inputs_for_inference = self._build_passive_inputs()
+                self.logger.debug("Passive ponder triggered")
 
             if not inputs_for_inference:
                 await self._apply_idle_dynamics()
@@ -831,6 +1105,7 @@ class HyprAIOSKernel:
 
             response = await self._run_inference_cycle(inputs_for_inference)
             if response is None:
+                self.logger.debug("Inference cycle returned None")
                 if user_events:
                     skipped_ids = sorted(
                         {
@@ -895,5 +1170,9 @@ class HyprAIOSKernel:
                         waiter = self._response_waiters.pop(trigger_id, None)
                         if waiter is not None and not waiter.done():
                             waiter.set_result(dict(response_payload))
+                    self.logger.debug(
+                        "Delivered response to %s waiter(s)",
+                        len(trigger_ids),
+                    )
 
             self._maybe_autosave_agent_memory()

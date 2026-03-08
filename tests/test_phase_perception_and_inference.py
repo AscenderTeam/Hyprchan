@@ -1,5 +1,4 @@
 import asyncio
-from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
 import pytest
@@ -7,7 +6,7 @@ from langchain_core.messages import AIMessage
 
 from core.hypraios.constants import Phases
 from core.hypraios.kernel.states import KernelStates
-from core.hypraios.linguistic.inference_engine import InferenceEngine
+from core.hypraios.linguistic.inference_engine import InferenceEngine, InferenceResult
 from core.hypraios.mood.phase_engine import PhaseEngine
 from core.hypraios.perception.activity_detector import AsyncActivityDetector
 from core.hypraios.perception.watcher import PerceptionWatcher
@@ -73,19 +72,17 @@ async def test_perception_watcher_triggers_attention_callback():
 @pytest.mark.asyncio
 async def test_inference_engine_fallback_with_mock_llm_outputs():
     engine = InferenceEngine(model="gpt-4o-mini")
-    engine._invoke_chat_model = AsyncMock(
+    engine.provider.inference = AsyncMock(
         side_effect=[
             RuntimeError("model rejected logit_bias"),
-            AIMessage(
-                content="Mock fallback answer",
-                response_metadata={
-                    "model_name": "gpt-4o-mini",
-                    "token_usage": {
-                        "prompt_tokens": 12,
-                        "completion_tokens": 6,
-                        "total_tokens": 18,
-                    },
-                },
+            InferenceResult(
+                output="Mock fallback answer",
+                model="gpt-4o-mini",
+                input_tokens=12,
+                output_tokens=6,
+                total_tokens=18,
+                tool_calls=[],
+                raw={},
             ),
         ]
     )
@@ -99,27 +96,23 @@ async def test_inference_engine_fallback_with_mock_llm_outputs():
 
     assert result.output == "Mock fallback answer"
     assert result.total_tokens == 18
-    assert engine._invoke_chat_model.await_count == 2
-    assert engine._invoke_chat_model.await_args_list[0].kwargs["logit_bias"] == {
-        "42": 5
-    }
-    assert engine._invoke_chat_model.await_args_list[1].kwargs["logit_bias"] is None
+    assert engine.provider.inference.await_count == 2
+    assert engine.provider.inference.await_args_list[0].args[0].logit_bias == {"42": 5}
+    assert engine.provider.inference.await_args_list[1].args[0].logit_bias is None
 
 
 @pytest.mark.asyncio
 async def test_inference_engine_uses_chat_path_when_logit_bias_provided():
     engine = InferenceEngine(model="gpt-4o-mini")
-    engine._invoke_chat_model = AsyncMock(
-        return_value=AIMessage(
-            content="Biased response",
-            response_metadata={
-                "model_name": "gpt-4o-mini",
-                "token_usage": {
-                    "prompt_tokens": 5,
-                    "completion_tokens": 3,
-                    "total_tokens": 8,
-                },
-            },
+    engine.provider.inference = AsyncMock(
+        return_value=InferenceResult(
+            output="Biased response",
+            model="gpt-4o-mini",
+            input_tokens=5,
+            output_tokens=3,
+            total_tokens=8,
+            tool_calls=[],
+            raw={},
         )
     )
 
@@ -131,26 +124,23 @@ async def test_inference_engine_uses_chat_path_when_logit_bias_provided():
     )
 
     assert result.output == "Biased response"
-    assert engine._invoke_chat_model.await_count == 1
-    kwargs = engine._invoke_chat_model.await_args_list[0].kwargs
-    assert kwargs["logit_bias"] == {"42": 5}
+    assert engine.provider.inference.await_count == 1
+    request = engine.provider.inference.await_args_list[0].args[0]
+    assert request.logit_bias == {"42": 5}
 
 
 @pytest.mark.asyncio
 async def test_inference_engine_allows_empty_output_when_tool_calls_present():
     engine = InferenceEngine(model="gpt-4o-mini")
-    engine._invoke_chat_model = AsyncMock(
-        return_value=SimpleNamespace(
-            content="",
+    engine.provider.inference = AsyncMock(
+        return_value=InferenceResult(
+            output="",
+            model="gpt-4o-mini",
+            input_tokens=3,
+            output_tokens=1,
+            total_tokens=4,
             tool_calls=[{"name": "answer_user", "args": {"text": "hi"}}],
-            response_metadata={
-                "model_name": "gpt-4o-mini",
-                "token_usage": {
-                    "prompt_tokens": 3,
-                    "completion_tokens": 1,
-                    "total_tokens": 4,
-                },
-            },
+            raw={},
         )
     )
 
@@ -175,3 +165,37 @@ def test_inference_engine_disables_logit_bias_for_gpt5_models():
     assert InferenceEngine._supports_logit_bias("gpt-4o-mini") is True
     assert InferenceEngine._supports_logit_bias("gpt-5-nano") is False
     assert InferenceEngine._supports_logit_bias("openai/gpt-5") is False
+
+
+@pytest.mark.asyncio
+async def test_inference_engine_invocation_uses_max_tokens_not_max_completion_tokens(
+    monkeypatch,
+):
+    captured_kwargs: dict[str, object] = {}
+
+    class _DummyLLM:
+        def __init__(self, **kwargs):
+            captured_kwargs.update(kwargs)
+
+        async def ainvoke(self, _messages):
+            return AIMessage(content="ok")
+
+    monkeypatch.setattr(
+        "core.hypraios.linguistic.inference_engine.ChatOpenAI",
+        _DummyLLM,
+    )
+    monkeypatch.setenv("OPENAI_API_KEY", "token")
+
+    engine = InferenceEngine(model="gpt-4o-mini")
+    result = await engine.infer(
+        messages=[{"role": "user", "content": "hi"}],
+        temperature=0.1,
+        top_p=0.8,
+        max_output_tokens=120,
+    )
+
+    assert result.output == "ok"
+    assert captured_kwargs.get("max_tokens") == 120
+    model_kwargs = captured_kwargs.get("model_kwargs")
+    if isinstance(model_kwargs, dict):
+        assert "max_completion_tokens" not in model_kwargs

@@ -8,7 +8,7 @@ from core.animations.renderer.window import HyprchanWindow
 from core.hyprland.socket import HyprlandSocket
 
 gi.require_version("Gtk", "4.0")
-from gi.repository import GdkPixbuf, GLib, Gtk
+from gi.repository import GdkPixbuf, GLib, Gtk  # type: ignore[attr-defined]
 
 
 class HyprchanApp(Gtk.Application):
@@ -29,7 +29,7 @@ class HyprchanApp(Gtk.Application):
         self.win.set_title(title)
         self._apply_overlay_window_rules(title)
         self.win.present()
-        return super().do_activate()
+        return None
 
     def start_sprite(self):
         GLib.timeout_add(1000 // self.target_fps, self.update_loop)

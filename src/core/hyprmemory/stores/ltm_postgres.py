@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 from ascender.core.database import DatabaseEngine
 from sqlalchemy import delete, or_, select
 
@@ -94,22 +96,24 @@ class PostgresLTMStore(LTMStore):
     async def recent_episodes(self, limit: int) -> list[Episode]:
         async with self._context() as session:
             stmt = (
-                select(EpisodeEntity)
-                .order_by(EpisodeEntity.ts_end.desc())
-                .limit(limit)
+                select(EpisodeEntity).order_by(EpisodeEntity.ts_end.desc()).limit(limit)
             )
             result = await session.execute(stmt)
             return [self.episode_from_entity(row[0]) for row in result.all()]
 
     async def list_concepts(self, limit: int) -> list[ConceptNode]:
         async with self._context() as session:
-            stmt = select(ConceptEntity).order_by(ConceptEntity.prior.desc()).limit(limit)
+            stmt = (
+                select(ConceptEntity).order_by(ConceptEntity.prior.desc()).limit(limit)
+            )
             result = await session.execute(stmt)
             return [self.concept_from_entity(row[0]) for row in result.all()]
 
     async def list_facts(self, limit: int) -> list[SemanticFact]:
         async with self._context() as session:
-            stmt = select(FactEntity).order_by(FactEntity.confidence.desc()).limit(limit)
+            stmt = (
+                select(FactEntity).order_by(FactEntity.confidence.desc()).limit(limit)
+            )
             result = await session.execute(stmt)
             return [self.fact_from_entity(row[0]) for row in result.all()]
 
@@ -160,7 +164,7 @@ class PostgresLTMStore(LTMStore):
             emotion_vec=state_from_dict(entity.emotion_vec or {}),
             semantic_feeling=feeling_from_dict(entity.semantic_feeling or {}),
             source_trace_ids=list(entity.source_trace_ids or []),
-            embedding=list(entity.embedding or []),
+            embedding=PostgresLTMStore._coerce_embedding(entity.embedding),
             salience=float(entity.salience or 0.0),
             version=int(entity.version or 1),
         )
@@ -171,7 +175,7 @@ class PostgresLTMStore(LTMStore):
             concept_id=entity.id,
             kind=entity.kind,
             name=entity.name,
-            embedding=list(entity.embedding or []),
+            embedding=PostgresLTMStore._coerce_embedding(entity.embedding),
             prior=float(entity.prior or 0.0),
         )
 
@@ -210,3 +214,9 @@ class PostgresLTMStore(LTMStore):
             episode_ids=list(entity.episode_ids or []),
             source=entity.source,
         )
+
+    @staticmethod
+    def _coerce_embedding(value: Any) -> list[float]:
+        if value is None:
+            return []
+        return [float(item) for item in list(value)]

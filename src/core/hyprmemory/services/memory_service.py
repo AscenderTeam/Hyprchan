@@ -191,7 +191,7 @@ class HyprMemoryService:
         return await self.stm_layer.pending_count()
 
     async def fetch_dream_log(
-        self, *, clear: bool = True, limit: int = 8
+        self, *, clear: bool = False, limit: int = 8
     ) -> list[DreamEntry]:
         """Fetch dream log entries accumulated during sleep consolidation."""
         dreams = await self.ltm_layer.list_dreams(limit=limit)

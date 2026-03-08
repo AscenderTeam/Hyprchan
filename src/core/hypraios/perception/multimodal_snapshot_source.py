@@ -1,5 +1,6 @@
 import asyncio
 import inspect
+import logging
 import subprocess
 import time
 from dataclasses import dataclass
@@ -11,6 +12,9 @@ from core.hypraios.contracts import (
     PerceptionEventCallback,
     PerceptionStatus,
 )
+
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(slots=True)
@@ -69,12 +73,18 @@ class MultimodalSnapshotPerceptionSource:
 
     async def start(self) -> None:
         if self._task and not self._task.done():
+            logger.debug("Snapshot source start ignored; already running")
             return
 
         self._started_at = time.monotonic()
         self._webcam_ready_at = self._started_at + self.config.webcam_warmup_sec
         self._running = True
         self._task = asyncio.create_task(self._worker())
+        logger.info(
+            "Snapshot source started interval=%.2fs webcam_warmup=%.2fs",
+            self.config.interval_sec,
+            self.config.webcam_warmup_sec,
+        )
 
     async def stop(self) -> None:
         self._running = False
@@ -85,6 +95,7 @@ class MultimodalSnapshotPerceptionSource:
             except asyncio.CancelledError:
                 pass
         self._task = None
+        logger.info("Snapshot source stopped")
 
     async def scan_once(self, *, emit: bool = True) -> PerceptionEvent | None:
         screenshot = await asyncio.to_thread(self._capture_screenshot)
@@ -121,6 +132,7 @@ class MultimodalSnapshotPerceptionSource:
             await callback_result
 
         self._last_emit_at = time.monotonic()
+        logger.debug("Snapshot event emitted images=%s", len(images))
         return event
 
     def status(self) -> PerceptionStatus:
@@ -141,6 +153,7 @@ class MultimodalSnapshotPerceptionSource:
                 raise
             except Exception as exc:
                 self._last_error = str(exc)
+                logger.warning("Snapshot worker failed: %s", exc)
             await asyncio.sleep(self.config.interval_sec)
 
     def _capture_screenshot(self) -> dict[str, Any] | None:

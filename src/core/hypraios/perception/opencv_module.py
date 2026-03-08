@@ -1,5 +1,6 @@
 import asyncio
 import inspect
+import logging
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -10,6 +11,9 @@ from core.hypraios.contracts import (
     PerceptionEventCallback,
     PerceptionStatus,
 )
+
+
+logger = logging.getLogger(__name__)
 
 
 class FrameSource(Protocol):
@@ -313,14 +317,21 @@ class OpenCVPerceptionModule:
 
     async def start(self) -> None:
         if self._task and not self._task.done():
+            logger.debug("OpenCV perception start ignored; already running")
             return
 
         await self.scan_once(emit=False)
         self._running = True
         self._task = asyncio.create_task(self._worker())
+        logger.info(
+            "OpenCV perception started device=%s poll_interval=%.2fs",
+            self.config.device_index,
+            self.config.poll_interval_sec,
+        )
 
     async def stop(self) -> None:
         self._running = False
+        logger.debug("OpenCV perception stop requested")
 
         if self._task and not self._task.done():
             self._task.cancel()
@@ -333,6 +344,7 @@ class OpenCVPerceptionModule:
         self._previous_frame = None
         self._last_frame = None
         self.frame_source.release()
+        logger.info("OpenCV perception stopped")
 
     async def scan_once(self, *, emit: bool = True) -> PerceptionEvent | None:
         ok, frame = self.frame_source.read()
@@ -373,6 +385,12 @@ class OpenCVPerceptionModule:
             await callback_result
 
         self._last_emit_at = time.monotonic()
+        logger.debug(
+            "OpenCV emitted event type=%s face_count=%s motion=%.3f",
+            event.get("type", "vision_motion"),
+            event.get("face_count", 0),
+            motion_ratio,
+        )
         return event
 
     def status(self) -> PerceptionStatus:
@@ -437,6 +455,7 @@ class OpenCVPerceptionModule:
                 raise
             except Exception as exc:
                 self._last_error = str(exc)
+                logger.warning("OpenCV worker failed: %s", exc)
                 self._running = False
                 self.frame_source.release()
                 break

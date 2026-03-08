@@ -1,5 +1,6 @@
 import asyncio
 import base64
+import logging
 import mimetypes
 import os
 from dataclasses import dataclass
@@ -24,6 +25,9 @@ from settings import (
     WEBCAM_DEVICE_INDEX,
     WEBCAM_MAX_DEVICE_INDEX,
 )
+
+
+logger = logging.getLogger(__name__)
 
 
 class SetAnimationPoseInput(BaseModel):
@@ -110,7 +114,7 @@ class LinguisticToolRuntime:
         self._camera_fallback_cooldown_sec = 5.0
         self._memory_state: MemoryState | None = None
         self._memory_phase: Phases | None = None
-        self._memory_service: HyprMemoryService | None = None
+        self._memory_service = None
 
     def build_tools(self) -> list[StructuredTool]:
         available = self.available_animations()
@@ -178,7 +182,19 @@ class LinguisticToolRuntime:
         engine = self._resolve_animation_engine()
         if engine is None:
             return []
-        return engine.available_animation_names()
+
+        list_available = getattr(engine, "available_animation_names", None)
+        if not callable(list_available):
+            return []
+
+        try:
+            names = list_available()
+        except Exception:
+            return []
+
+        if not isinstance(names, list):
+            return []
+        return [str(name) for name in names]
 
     def update_memory_context(
         self,
@@ -213,7 +229,9 @@ class LinguisticToolRuntime:
         }
         return mapping.get(direction, (0, 0))
 
-    async def _find_overlay_client(self, hyprland: HyprlandSocket) -> dict[str, Any] | None:
+    async def _find_overlay_client(
+        self, hyprland: HyprlandSocket
+    ) -> dict[str, Any] | None:
         try:
             clients = await hyprland.send_command("clients", is_json=True)
         except Exception:
@@ -281,7 +299,9 @@ class LinguisticToolRuntime:
         cmd_base = f"dispatch movewindowpixel exact {new_x} {new_y}"
         candidates = [
             f"{cmd_base},{target}" if target else cmd_base,
-            f"dispatch movewindowpixel {new_x} {new_y},{target}" if target else f"dispatch movewindowpixel {new_x} {new_y}",
+            f"dispatch movewindowpixel {new_x} {new_y},{target}"
+            if target
+            else f"dispatch movewindowpixel {new_x} {new_y}",
             cmd_base,
             f"dispatch movewindowpixel {new_x} {new_y}",
         ]
@@ -310,7 +330,7 @@ class LinguisticToolRuntime:
     def _memory_is_enabled() -> bool:
         return os.getenv("HYPRMEMORY_ENABLED", "0").strip().lower() == "1"
 
-    def _resolve_memory_service(self) -> HyprMemoryService | None:
+    def _resolve_memory_service(self):
         if not self._memory_is_enabled():
             return None
         if self._memory_service is not None:
@@ -354,6 +374,7 @@ class LinguisticToolRuntime:
         self,
         tool_calls: list[dict[str, Any]],
     ) -> ToolExecutionResult:
+        logger.debug("Executing tool calls count=%s", len(tool_calls))
         answer_called = False
         executed = 0
         followup_messages: list[dict[str, Any]] = []
@@ -378,6 +399,7 @@ class LinguisticToolRuntime:
                     images=[],
                 )
                 executed += 1
+                logger.debug("Tool executed name=%s", name)
                 continue
 
             if name == "answer_user":
@@ -394,6 +416,7 @@ class LinguisticToolRuntime:
                     images=[],
                 )
                 executed += 1
+                logger.debug("Tool executed name=%s", name)
                 continue
 
             if name == "move_self":
@@ -420,6 +443,7 @@ class LinguisticToolRuntime:
                     images=images,
                 )
                 executed += 1
+                logger.debug("Tool executed name=%s", name)
                 continue
 
             if name == "screenshot":
@@ -432,6 +456,7 @@ class LinguisticToolRuntime:
                     images=images,
                 )
                 executed += 1
+                logger.debug("Tool executed name=%s", name)
                 continue
 
             if name == "camera":
@@ -444,6 +469,7 @@ class LinguisticToolRuntime:
                     images=images,
                 )
                 executed += 1
+                logger.debug("Tool executed name=%s", name)
                 continue
 
             if name == "memory_recall":
@@ -459,7 +485,13 @@ class LinguisticToolRuntime:
                     images=[],
                 )
                 executed += 1
+                logger.debug("Tool executed name=%s", name)
 
+        logger.debug(
+            "Tool call execution complete executed=%s answer_called=%s",
+            executed,
+            answer_called,
+        )
         return ToolExecutionResult(
             answer_user_called=answer_called,
             executed_calls=executed,
@@ -475,6 +507,10 @@ class LinguisticToolRuntime:
         if engine is None:
             return "animation engine unavailable"
 
+        set_pose = getattr(engine, "enqueue_set_pose", None)
+        if not callable(set_pose):
+            return "animation engine unavailable"
+
         normalized = pose.strip()
         if not normalized:
             return "pose is empty"
@@ -483,7 +519,7 @@ class LinguisticToolRuntime:
         if normalized not in available:
             return f"invalid pose. available poses: {', '.join(available)}"
 
-        engine.enqueue_set_pose(normalized)
+        set_pose(normalized)
         return f"pose set to {normalized}"
 
     async def _answer_user(self, text: str) -> str:
@@ -496,7 +532,11 @@ class LinguisticToolRuntime:
         if engine is None:
             return "animation engine unavailable"
 
-        engine.enqueue_answer_text(message)
+        answer_user = getattr(engine, "enqueue_answer_text", None)
+        if not callable(answer_user):
+            return "animation engine unavailable"
+
+        answer_user(message)
         return "answer rendered"
 
     async def _move_self(
@@ -529,8 +569,9 @@ class LinguisticToolRuntime:
 
         if not moved and not hyprland_available:
             engine = self._resolve_animation_engine()
-            if engine is not None:
-                engine.enqueue_move_self(
+            move_self = getattr(engine, "enqueue_move_self", None) if engine else None
+            if callable(move_self):
+                move_self(
                     direction=normalized_direction,
                     delta=safe_delta,
                     scale=safe_scale,
@@ -541,9 +582,7 @@ class LinguisticToolRuntime:
 
         await asyncio.sleep(0.35)
         screenshot = await asyncio.to_thread(self._capture_screenshot_file)
-        summary = (
-            f"{move_summary}; scale set to {safe_scale:.2f}"
-        )
+        summary = f"{move_summary}; scale set to {safe_scale:.2f}"
         images = [screenshot] if screenshot else []
         return summary, images
 

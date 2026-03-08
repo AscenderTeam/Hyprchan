@@ -1,5 +1,22 @@
 # Ascender Framework Project
 
+## LLM Provider Target (single env var)
+
+Use `INFERENCE_TARGET` with the format `provider:model`.
+
+Examples:
+
+```bash
+INFERENCE_TARGET=openai:gpt-4o-mini
+INFERENCE_TARGET=gemini:gemini-2.5-flash
+INFERENCE_TARGET=openrouter:anthropic/claude-3.5-sonnet
+```
+
+Provider keys:
+- `OPENAI_OAUTH_TOKEN` (or `OPENAI_API_KEY`) for `openai`
+- `GEMINI_API_KEY` (or `GOOGLE_API_KEY`) for `gemini`
+- `OPENROUTER_API_KEY` for `openrouter`
+
 ## Overview
 
 This project is built using the **Ascender Framework**, a structured FastAPI-based framework designed for modular and scalable applications.
@@ -37,9 +54,27 @@ Ensure you have the following dependencies installed:
    ```
 
 4. **Run development server**:
-    
+     
     ```bash
     ascender run serve
+    ```
+
+    On `ascender run serve`, the app now auto-manages storage:
+    - If Docker is available, it auto-starts an embedded Postgres container (`pgvector/pgvector:pg16`).
+    - If Docker is unavailable, it falls back to SQLite (`database.db`) automatically.
+
+    Optional env overrides:
+
+    ```bash
+    HYPRCHAN_DB_AUTOSTART=true
+    HYPRCHAN_PG_CONTAINER=hyprchan-embedded-postgres
+    HYPRCHAN_PG_IMAGE=pgvector/pgvector:pg16
+    HYPRCHAN_PG_HOST=127.0.0.1
+    HYPRCHAN_PG_PORT=55432
+    HYPRCHAN_PG_USER=postgres
+    HYPRCHAN_PG_PASSWORD=mysecretpassword
+    HYPRCHAN_PG_DB=hyprchan
+    HYPRCHAN_SQLITE_PATH=database.db
     ```
 
 If everything works, you're done!
@@ -51,11 +86,23 @@ HyprAI OS now uses OpenAI bearer-token authorization (OAuth style) for inference
 Create a `.env` file in the project root with:
 
 ```bash
+INFERENCE_TARGET=openai:gpt-4o-mini
+OPENAI_TIMEOUT_SECONDS=30
+
+# OPENAI provider
 OPENAI_OAUTH_TOKEN=your_oauth_bearer_token
 # or OPENAI_API_KEY=... as fallback
-OPENAI_MODEL=gpt-4o-mini
 OPENAI_API_BASE_URL=https://api.openai.com/v1
-OPENAI_TIMEOUT_SECONDS=30
+
+# GEMINI provider (OpenAI-compatible endpoint)
+GEMINI_API_KEY=your_gemini_api_key
+GEMINI_API_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai
+
+# OPENROUTER provider
+OPENROUTER_API_KEY=your_openrouter_api_key
+OPENROUTER_API_BASE_URL=https://openrouter.ai/api/v1
+OPENROUTER_HTTP_REFERER=https://your.site
+OPENROUTER_X_TITLE=Hyprchan
 ```
 
 The kernel loop is booted by the window events service on startup. You can also force USER-active state via:
@@ -105,7 +152,7 @@ MULTIMODAL_SNAPSHOT_ENABLED=true
 MULTIMODAL_SNAPSHOT_INTERVAL_SEC=120
 SPEECH_PERCEPTION_ENABLED=true
 SPEECH_INPUT_DEVICE=
-SPEECH_LANGUAGE=en
+SPEECH_LANGUAGE=auto
 SPEECH_FRAME_DURATION_MS=30
 SPEECH_MIN_SPEECH_SEC=0.4
 SPEECH_END_SILENCE_SEC=0.8
@@ -114,6 +161,9 @@ SPEECH_PRE_ROLL_SEC=0.3
 SPEECH_MIN_START_DBFS=-38
 SPEECH_MIN_CONTINUE_DBFS=-43
 ```
+
+When `SPEECH_LANGUAGE=auto`, Whisper auto-detects spoken language and passes a
+language hint into ACTIVE inference so replies follow the user's spoken language.
 
 API endpoints:
 

@@ -1,5 +1,6 @@
 import base64
 import json
+import logging
 import mimetypes
 from pathlib import Path
 import re
@@ -13,6 +14,9 @@ from core.hypraios.linguistic.tool_runtime import LinguisticToolRuntime
 from core.hypraios.kernel.states import KernelStates
 from core.hypraios.utils.dynamic_variable import DynamicVariable
 from core.hyprmemory.models import MemoryState
+
+
+logger = logging.getLogger(__name__)
 
 
 class LinguisticEngine:
@@ -40,7 +44,11 @@ class LinguisticEngine:
         self.top_p.value = 0.8 + (states.e.value * 0.15)
 
     def _build_system_prompt(
-        self, mode: str, *, memory_injection: str | None = None
+        self,
+        mode: str,
+        *,
+        memory_injection: str | None = None,
+        response_language_hint: str | None = None,
     ) -> str:
         persona_block = self.persona_memory.build_primary_persona_prompt(mode)
 
@@ -106,6 +114,12 @@ class LinguisticEngine:
         )
 
         prompt = f"{core_spec}\n\n{active_mode if mode == 'ACTIVE' else passive_mode}"
+        if response_language_hint:
+            prompt = (
+                f"{prompt}\n"
+                "- Language steering: the latest spoken user message was detected as "
+                f"`{response_language_hint}`; respond in that language unless the user asks otherwise."
+            )
         if memory_injection:
             cleaned = memory_injection.strip()
             if cleaned:
@@ -199,7 +213,14 @@ class LinguisticEngine:
         inputs: list[dict[str, Any]],
         messages: list[dict[str, Any]] | None = None,
         memory_system: str | None = None,
+        response_language_hint: str | None = None,
     ):
+        logger.debug(
+            "Linguistic inference start mode=%s inputs=%s has_memory=%s",
+            mode,
+            len(inputs),
+            bool(memory_system and memory_system.strip()),
+        )
         memory_state = MemoryState(
             f=float(states.f.value),
             v=float(states.v.value),
@@ -211,7 +232,11 @@ class LinguisticEngine:
             phase=states.phase,
         )
 
-        system_prompt = self._build_system_prompt(mode, memory_injection=memory_system)
+        system_prompt = self._build_system_prompt(
+            mode,
+            memory_injection=memory_system,
+            response_language_hint=response_language_hint,
+        )
 
         conversation_messages: list[dict[str, Any]]
         if messages is None:
@@ -246,6 +271,11 @@ class LinguisticEngine:
         )
 
         tool_result = await self.tool_runtime.execute_tool_calls(result.tool_calls)
+        logger.debug(
+            "Tool runtime finished executed_calls=%s answer_user_called=%s",
+            tool_result.executed_calls,
+            tool_result.answer_user_called,
+        )
 
         output_text = result.output.strip()
         total_input_tokens = int(result.input_tokens)
@@ -253,6 +283,10 @@ class LinguisticEngine:
         total_tokens = int(result.total_tokens)
 
         if tool_result.followup_messages:
+            logger.debug(
+                "Running follow-up inference messages=%s",
+                len(tool_result.followup_messages),
+            )
             followup_messages = list(conversation_messages)
             if output_text:
                 followup_messages.append({"role": "assistant", "content": output_text})
@@ -286,6 +320,12 @@ class LinguisticEngine:
 
         self.inference_count += 1
         self.persona_memory.remember_turn(prompt, output_text)
+        logger.debug(
+            "Linguistic inference complete mode=%s inference_count=%s total_tokens=%s",
+            mode,
+            self.inference_count,
+            total_tokens,
+        )
 
         return {
             "input": prompt,
@@ -309,6 +349,8 @@ class LinguisticEngine:
     ):
         if not inputs:
             return None
+
+        logger.debug("Passive feed received events=%s", len(inputs))
 
         self._update_sampling_params(states)
         include_system_intro = not self._passive_system_intro_sent
@@ -338,6 +380,8 @@ class LinguisticEngine:
         if not inputs:
             return None
 
+        logger.debug("Active feed received events=%s", len(inputs))
+
         self._update_sampling_params(states)
         user_events = [
             item
@@ -348,6 +392,10 @@ class LinguisticEngine:
         ]
 
         if user_events:
+            logger.debug("Active feed identified user_events=%s", len(user_events))
+            response_language_hint = self._resolve_response_language_hint(
+                user_events[-1]
+            )
             chat_messages, latest_message = await self._build_active_chat_messages(
                 inputs,
                 buffer_messages=buffer_messages,
@@ -365,8 +413,10 @@ class LinguisticEngine:
                 inputs=inputs,
                 messages=chat_messages,
                 memory_system=memory_system,
+                response_language_hint=response_language_hint,
             )
         else:
+            logger.debug("Active feed falling back to passive-style digest")
             prompt = await PassiveProcessor(inputs).process_inputs(self.inference_count)
 
         return await self._run_inference(
@@ -376,6 +426,26 @@ class LinguisticEngine:
             inputs=inputs,
             memory_system=memory_system,
         )
+
+    @staticmethod
+    def _resolve_response_language_hint(event: dict[str, Any]) -> str | None:
+        raw_language = str(event.get("speech_language", "")).strip().lower()
+        if not raw_language:
+            return None
+        if len(raw_language) > 16:
+            return None
+
+        raw_confidence = event.get("speech_language_confidence")
+        confidence: float | None = None
+        try:
+            if raw_confidence is not None:
+                confidence = float(raw_confidence)
+        except (TypeError, ValueError):
+            confidence = None
+
+        if confidence is not None and confidence < 0.4:
+            return None
+        return raw_language
 
     async def _build_active_chat_messages(
         self,
@@ -468,7 +538,9 @@ class LinguisticEngine:
 
         if latest_user_message:
             if ("user", latest_user_message) not in dedup:
-                history_messages.append({"role": "user", "content": latest_user_message})
+                history_messages.append(
+                    {"role": "user", "content": latest_user_message}
+                )
 
         passive_style_digest = await PassiveProcessor(
             inputs,
@@ -486,6 +558,11 @@ class LinguisticEngine:
             inputs=inputs,
         )
         context_message = {"role": "user", "content": context_content}
+        logger.debug(
+            "Built active chat messages history=%s latest_user_present=%s",
+            len(history_messages),
+            bool(latest_user_message),
+        )
         return [context_message, *history_messages], latest_user_message
 
     def _build_multimodal_content_for_event(
@@ -562,6 +639,7 @@ class LinguisticEngine:
         memory_system: str | None = None,
         buffer_messages: list[dict[str, Any]] | None = None,
     ):
+        logger.debug("Feed dispatch phase=%s events=%s", states.phase.name, len(inputs))
         if states.phase == Phases.PASSIVE:
             return await self.feed_passive(
                 inputs,

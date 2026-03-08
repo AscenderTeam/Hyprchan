@@ -68,7 +68,7 @@ async def test_feed_active_uses_mock_llm_and_communication_prompt():
     assert isinstance(context_blob, str)
     assert "Supporting perception context (passive inference format):" in context_blob
     assert "type=window_focus" in context_blob
-    assert "Full event context window (last 90 events, raw data):" in context_blob
+    assert "Full event context window (last 10 events, raw data):" in context_blob
     assert '"origin":"windows_controller"' in context_blob
     assert messages[2]["role"] == "user"
     assert messages[2]["content"] == "Please respond now"
@@ -80,6 +80,42 @@ async def test_feed_active_uses_mock_llm_and_communication_prompt():
         "angry",
         "neutral",
     }
+
+
+@pytest.mark.asyncio
+async def test_feed_active_adds_language_hint_for_detected_speech_language() -> None:
+    engine = LinguisticEngine()
+    engine.inference_engine.infer = AsyncMock(
+        return_value=InferenceResult(
+            output="Entendido.",
+            model="openai/gpt-5.3",
+            input_tokens=8,
+            output_tokens=3,
+            total_tokens=11,
+            tool_calls=[],
+            raw={},
+        )
+    )
+
+    states = _build_states(Phases.ACTIVE)
+    inputs = [
+        {
+            "id": 1,
+            "type": "communication_message",
+            "amplitude": 1.0,
+            "description": "hola",
+            "origin": "communication_controller",
+            "speech_language": "es",
+            "speech_language_confidence": 0.92,
+        }
+    ]
+
+    await engine.feed(inputs, states)
+
+    infer_call = engine.inference_engine.infer.await_args
+    assert infer_call is not None
+    system_prompt = infer_call.kwargs["messages"][0]["content"]
+    assert "latest spoken user message was detected as `es`" in system_prompt
 
 
 @pytest.mark.asyncio

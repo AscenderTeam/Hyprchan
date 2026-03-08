@@ -1,4 +1,5 @@
 import pytest
+from unittest.mock import AsyncMock
 
 from core.hypraios.linguistic.tool_runtime import LinguisticToolRuntime
 
@@ -33,6 +34,9 @@ async def test_tool_runtime_executes_pose_and_answer_tools() -> None:
         "mime": "image/jpeg",
         "path": "/tmp/tool_move.jpg",
     }
+    runtime._move_overlay_window = AsyncMock(
+        return_value=(False, "hyprland socket unavailable", False)
+    )
     runtime._image_path_to_data_url = (
         lambda path_value, mime_hint: "data:image/jpeg;base64,AAA="
     )
@@ -85,6 +89,9 @@ async def test_tool_runtime_clamps_move_self_scale_and_delta() -> None:
     runtime = LinguisticToolRuntime(animation_engine_resolver=lambda: engine)
 
     runtime._capture_screenshot_file = lambda: None
+    runtime._move_overlay_window = AsyncMock(
+        return_value=(False, "hyprland socket unavailable", False)
+    )
 
     message = await runtime._move_self(direction="down", delta=-5, scale=3.4)
 

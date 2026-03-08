@@ -1,3 +1,4 @@
+import os
 from typing import Any, cast
 
 from ascender.common.api_docs import DefineAPIDocs
@@ -31,6 +32,24 @@ except ModuleNotFoundError:
 from attp_core.rs_api import Limits
 
 from shared.attp import provideAttpClient
+from shared.database_runtime import resolve_database_connection
+
+runtime_database_connection = resolve_database_connection(
+    cast(dict[str, Any], DATABASE_CONNECTION)
+)
+
+if os.getenv("PRODUCTION") is None:
+    os.environ["PRODUCTION"] = "0"
+
+if os.getenv("ASCENDER_ENV") is None and os.getenv(
+    "PRODUCTION", "0"
+).strip().lower() in {
+    "0",
+    "false",
+    "no",
+    "off",
+}:
+    os.environ["ASCENDER_ENV"] = "development"
 
 providers = [
     {
@@ -38,7 +57,7 @@ providers = [
         "value": DefineAPIDocs(swagger_url="/docs", redoc_url="/redoc"),
     },
     provideRouter(routes),
-    provideDatabase(ORMEnum.SQLALCHEMY, cast(Any, DATABASE_CONNECTION)),
+    provideDatabase(ORMEnum.SQLALCHEMY, cast(Any, runtime_database_connection)),
     useCLI(AnimationCLI),
     provideAttpClient(
         AGENTHUB_TOKEN,

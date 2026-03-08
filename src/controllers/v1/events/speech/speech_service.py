@@ -42,6 +42,7 @@ class SpeechService(ServiceLifecycle):
     async def on_startup(self) -> None:
         self._source = None
         self._startup_error = None
+        self.logger.debug("SpeechService startup begin")
 
         if not SPEECH_PERCEPTION_ENABLED:
             self.logger.info("Speech perception disabled by configuration")
@@ -68,12 +69,14 @@ class SpeechService(ServiceLifecycle):
             self.logger.warning("Speech perception unavailable: %s", exc)
             return
 
+        self.logger.debug("Speech perception source started successfully")
         self.logger.info(
             "Speech perception active on input %s",
             self._source.status().get("input_device_name"),
         )
 
     async def on_shutdown(self) -> None:
+        self.logger.debug("SpeechService shutdown begin")
         if self._source is not None:
             await self._source.stop()
 
@@ -81,6 +84,11 @@ class SpeechService(ServiceLifecycle):
         transcript = str(event.get("description", "")).strip()
         if not transcript:
             return
+
+        self.logger.debug(
+            "Speech transcript event accepted chars=%s",
+            len(transcript),
+        )
 
         metadata = {
             key: value
@@ -98,6 +106,7 @@ class SpeechService(ServiceLifecycle):
         )
 
     def status(self) -> dict[str, Any]:
+        self.logger.debug("SpeechService status requested")
         if not SPEECH_PERCEPTION_ENABLED:
             return {
                 "enabled": False,

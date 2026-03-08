@@ -49,7 +49,7 @@
         "environments": {
             "development": {
                 "debug": true,
-                "logging": "info"
+                "logging": "debug"
             },
             "production": {
                 "debug": false,

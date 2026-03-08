@@ -60,6 +60,7 @@ class VisionService(ServiceLifecycle):
         self._snapshot_source = None
         self._active_device_index = None
         self._startup_error = None
+        self.logger.debug("VisionService startup begin")
 
         if not WEBCAM_VISION_ENABLED:
             self.logger.info("Webcam perception disabled by configuration")
@@ -71,6 +72,13 @@ class VisionService(ServiceLifecycle):
             min_motion_ratio=WEBCAM_MIN_MOTION_RATIO,
             min_face_ratio=WEBCAM_MIN_FACE_RATIO,
             min_emit_interval_sec=WEBCAM_MIN_EMIT_INTERVAL_SEC,
+        )
+        self.logger.debug(
+            "Vision config device=%s poll=%s min_motion=%s min_face=%s",
+            config.device_index,
+            config.poll_interval_sec,
+            config.min_motion_ratio,
+            config.min_face_ratio,
         )
 
         active_config: OpenCVPerceptionConfig | None = None
@@ -104,6 +112,10 @@ class VisionService(ServiceLifecycle):
             snapshot_config = MultimodalSnapshotConfig(
                 interval_sec=MULTIMODAL_SNAPSHOT_INTERVAL_SEC
             )
+            self.logger.debug(
+                "Starting multimodal snapshot source interval=%s",
+                snapshot_config.interval_sec,
+            )
             self._snapshot_source = MultimodalSnapshotPerceptionSource(
                 self._record_event,
                 config=snapshot_config,
@@ -128,6 +140,7 @@ class VisionService(ServiceLifecycle):
                 preferred=base_config.device_index,
                 max_index=WEBCAM_MAX_DEVICE_INDEX,
             )
+        self.logger.debug("Vision candidate device indices=%s", candidate_indices)
 
         last_error: OpenCVFrameSourceError | None = None
         for index in candidate_indices:
@@ -160,6 +173,9 @@ class VisionService(ServiceLifecycle):
         return candidates
 
     async def _start_module(self, config: OpenCVPerceptionConfig) -> None:
+        self.logger.debug(
+            "Starting OpenCV module on device index %s", config.device_index
+        )
         module = OpenCVPerceptionModule(self._record_event, config=config)
         try:
             await module.start()
@@ -213,12 +229,18 @@ class VisionService(ServiceLifecycle):
         return True
 
     async def on_shutdown(self) -> None:
+        self.logger.debug("VisionService shutdown begin")
         if self._snapshot_source is not None:
             await self._snapshot_source.stop()
         if self._module is not None:
             await self._module.stop()
 
     async def _record_event(self, event: PerceptionEvent) -> None:
+        self.logger.debug(
+            "Vision event received type=%s origin=%s",
+            event.get("type", "vision_motion"),
+            event.get("origin", "opencv_perception"),
+        )
         amplitude_raw = event.get("amplitude", 0.0)
         try:
             amplitude = max(0.0, float(amplitude_raw))
@@ -240,6 +262,7 @@ class VisionService(ServiceLifecycle):
         )
 
     def status(self) -> dict[str, Any]:
+        self.logger.debug("VisionService status requested")
         if not WEBCAM_VISION_ENABLED:
             return {
                 "enabled": False,
@@ -268,6 +291,7 @@ class VisionService(ServiceLifecycle):
         }
 
     async def scan_once(self) -> dict[str, Any]:
+        self.logger.debug("VisionService manual scan requested")
         if self._module is None:
             return {
                 "status": "unavailable",

@@ -7,7 +7,7 @@ from shared.utils.animations import load_animation_frames
 
 class FallingAsleepSitAnimation(Animation):
     def __init__(self):
-        self.next = "sit.fall_asleep"
+        self.next = "sit.sleeping"
         frames = load_animation_frames(
             os.path.join(SPRITES_BASE_DIR, "sit_fall_asleep.png")
         )
@@ -25,7 +25,6 @@ class FallingAsleepSitAnimation(Animation):
 
         self.tick_counter = 0
 
-        print(self.current_frame, len(self.frames))
         # is last frame?
         if self.current_frame == len(self.frames) - 1:
             self.load_animation(self.next)
