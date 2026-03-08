@@ -474,11 +474,11 @@ class LinguisticEngine:
             inputs,
             include_system_intro=False,
         ).process_inputs(self.inference_count)
-        full_event_block = self._build_full_event_context(inputs, limit=90)
+        full_event_block = self._build_full_event_context(inputs, limit=10)
         context_blob = (
             "Supporting perception context (passive inference format):\n"
             f"{passive_style_digest}\n\n"
-            "Full event context window (last 90 events, raw data):\n"
+            "Full event context window (last 10 events, raw data):\n"
             f"{full_event_block}"
         )
         context_content = self._build_multimodal_user_content(

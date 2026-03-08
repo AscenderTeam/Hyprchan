@@ -36,6 +36,7 @@ HYPRMEMORY_ENABLED=1
 HYPRMEMORY_READ_ACTIVE=1        # optional, recall during ACTIVE
 HYPRMEMORY_SLEEP_ENABLED=1      # enable sleep consolidation + dreams
 HYPRMEMORY_BUFFER_LIMIT=3       # last N messages injected into chat history
+HYPRMEMORY_BUFFER_KEY=hyprchan:wm_buffer
 ```
 
 HyprMemory still requires pgvector + embeddings per:
@@ -111,6 +112,7 @@ as a tool result.
 ## Maintenance Notes
 
 - Memory buffering is bounded by `HYPRMEMORY_BUFFER_LIMIT`.
+- Buffer storage uses Redis when available (`HYPRMEMORY_BUFFER_KEY`), falling back to in-memory list.
 - Buffered chat messages are written to STM only on eviction (no collision with STM).
 - Recall during ACTIVE is gated by `HYPRMEMORY_READ_ACTIVE`.
 - Dream logs are injected once per wake cycle.

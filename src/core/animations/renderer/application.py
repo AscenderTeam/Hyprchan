@@ -70,3 +70,6 @@ class HyprchanApp(Gtk.Application):
             return
 
         running_loop.create_task(_apply_rules())
+
+    def set_overlay_text(self, text: str) -> None:
+        self.win.set_overlay_text(text)

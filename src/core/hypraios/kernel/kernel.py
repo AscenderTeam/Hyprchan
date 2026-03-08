@@ -1,14 +1,15 @@
 import asyncio
-from collections import deque
 import json
-from logging import Logger
 import time
+from collections import deque
+from logging import Logger
 from pathlib import Path
 from typing import Annotated, Any
 
 from ascender.common import Injectable
 from ascender.core import Inject
 
+from core.animations.engine import AnimationEngine
 from core.hypraios.constants import Phases
 from core.hypraios.kernel.main_loop import MainKernelLoop
 from core.hypraios.kernel.memory.buffer import MemoryBuffer
@@ -26,8 +27,13 @@ from core.hyprmemory.models import MemoryState
 class HyprAIOSKernel:
     MEMORY_FILE = Path(__file__).resolve().parents[4] / "agent_memory.json"
 
-    def __init__(self, logger: Annotated[Logger, Inject("ASC_LOGGER")]) -> None:
+    def __init__(
+        self,
+        logger: Annotated[Logger, Inject("ASC_LOGGER")],
+        animations: AnimationEngine,
+    ) -> None:
         self.logger = logger
+        self.animations = animations
 
         self.gamma = FaultAdaptiveParameter(
             value=1.0, min_delta=0.5, max_delta=3.0, step=0.05, cache_key="gamma"
@@ -186,9 +192,8 @@ class HyprAIOSKernel:
         self._memory_dirty = True
 
     def _agent_memory_payload(self) -> dict[str, Any]:
-        persona = self.linguistic_engine.persona_memory
         return {
-            "version": 1,
+            "version": 2,
             "saved_at": time.time(),
             "kernel": {
                 "phase": self.states.phase.name,
@@ -201,21 +206,6 @@ class HyprAIOSKernel:
                 "v": self.states.v.value,
                 "e": self.states.e.value,
                 "a": self.states.a.value,
-            },
-            "context_events": list(self.context_events),
-            "event_log": list(self.event_log),
-            "response_log": list(self.response_log),
-            "last_inference": self.last_inference,
-            "last_inference_error": self.last_inference_error,
-            "persona_memory": {
-                "entries": list(persona.entries),
-                "traits": {
-                    "playfulness": persona.traits.playfulness,
-                    "warmth": persona.traits.warmth,
-                    "curiosity": persona.traits.curiosity,
-                    "dramatic_intensity": persona.traits.dramatic_intensity,
-                    "composure": persona.traits.composure,
-                },
             },
         }
 
@@ -254,45 +244,6 @@ class HyprAIOSKernel:
         if not isinstance(data, dict):
             return
 
-        loaded_context = data.get("context_events", [])
-        if isinstance(loaded_context, list):
-            self.context_events.clear()
-            context_max = self.context_events.maxlen or len(loaded_context)
-            for item in loaded_context[-context_max:]:
-                if isinstance(item, dict):
-                    self.context_events.append(item)
-
-        loaded_event_log = data.get("event_log", [])
-        if isinstance(loaded_event_log, list):
-            self.event_log.clear()
-            max_id = 0
-            event_max = self.event_log.maxlen or len(loaded_event_log)
-            for item in loaded_event_log[-event_max:]:
-                if not isinstance(item, dict):
-                    continue
-                self.event_log.append(item)
-                try:
-                    max_id = max(max_id, int(item.get("id", 0)))
-                except (TypeError, ValueError):
-                    continue
-            self._event_seq = max(self._event_seq, max_id)
-
-        loaded_response_log = data.get("response_log", [])
-        if isinstance(loaded_response_log, list):
-            self.response_log.clear()
-            response_max = self.response_log.maxlen or len(loaded_response_log)
-            for item in loaded_response_log[-response_max:]:
-                if isinstance(item, dict):
-                    self.response_log.append(item)
-
-        last_inference = data.get("last_inference")
-        if isinstance(last_inference, dict):
-            self.last_inference = last_inference
-
-        last_inference_error = data.get("last_inference_error")
-        if isinstance(last_inference_error, str):
-            self.last_inference_error = last_inference_error
-
         kernel_payload = data.get("kernel")
         if isinstance(kernel_payload, dict):
             active_reason = kernel_payload.get("active_reason")
@@ -318,34 +269,6 @@ class HyprAIOSKernel:
                 state_var = getattr(self.states, key, None)
                 if state_var is not None:
                     state_var.value = value
-
-        persona_payload = data.get("persona_memory")
-        if isinstance(persona_payload, dict):
-            persona = self.linguistic_engine.persona_memory
-            entries = persona_payload.get("entries")
-            if isinstance(entries, list) and entries:
-                persona.entries.clear()
-                entries_max = persona.entries.maxlen or len(entries)
-                for entry in entries[-entries_max:]:
-                    if isinstance(entry, str):
-                        persona.entries.append(entry)
-
-            traits = persona_payload.get("traits")
-            if isinstance(traits, dict):
-                for trait_name in (
-                    "playfulness",
-                    "warmth",
-                    "curiosity",
-                    "dramatic_intensity",
-                    "composure",
-                ):
-                    raw_val = traits.get(trait_name)
-                    if raw_val is None:
-                        continue
-                    try:
-                        setattr(persona.traits, trait_name, float(raw_val))
-                    except (TypeError, ValueError):
-                        continue
 
         self.logger.info("Loaded agent memory from %s", self.MEMORY_FILE.name)
         self._memory_dirty = False
@@ -417,16 +340,18 @@ class HyprAIOSKernel:
             memory_state = self._memory_state()
             query_text = self._memory_query_text(inputs)
             try:
-                memory_system_prompt = await self.memory_gate.build_system_prompt_injection(
-                    query_text=query_text,
-                    state=memory_state,
-                    phase=self.states.phase,
+                memory_system_prompt = (
+                    await self.memory_gate.build_system_prompt_injection(
+                        query_text=query_text,
+                        state=memory_state,
+                        phase=self.states.phase,
+                    )
                 )
             except Exception as err:
                 self.logger.warning("Memory recall failed: %s", err)
                 memory_system_prompt = ""
 
-            buffer_messages = self.memory_gate.buffer_messages()
+            buffer_messages = await self.memory_gate.buffer_messages()
 
         try:
             inference_result = await self.linguistic_engine.feed(
@@ -698,6 +623,7 @@ class HyprAIOSKernel:
                 pass
 
         self._sleep_task = asyncio.create_task(self._sleep_worker())
+        self.animations.load_animation("sit.falling_asleep")
 
     async def _sleep_worker(self):
         total = max(self.pending_memory_units, 1.0)

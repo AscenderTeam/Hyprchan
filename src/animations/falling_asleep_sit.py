@@ -7,7 +7,7 @@ from shared.utils.animations import load_animation_frames
 
 class FallingAsleepSitAnimation(Animation):
     def __init__(self):
-        self.next = "sit.sleeping"
+        self.next = "sit.fall_asleep"
         frames = load_animation_frames(
             os.path.join(SPRITES_BASE_DIR, "sit_fall_asleep.png")
         )

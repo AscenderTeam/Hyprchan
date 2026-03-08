@@ -15,6 +15,8 @@ from pydantic import BaseModel, Field
 from core.animations.engine import AnimationEngine
 from core.hypraios.constants import Phases
 from core.hypraios.perception.opencv_module import OpenCVPerceptionModule
+from core.hyprland.exceptions import UnknownRequestError
+from core.hyprland.socket import HyprlandSocket
 from core.hyprmemory import HyprMemoryService
 from core.hyprmemory.models import MemoryState
 from settings import (
@@ -93,6 +95,9 @@ class ToolExecutionResult:
 
 
 class LinguisticToolRuntime:
+    OVERLAY_TITLE = "hyprchan-overlay"
+    OVERLAY_CLASS = "org.hyprland.hyprchan"
+
     def __init__(
         self,
         animation_engine_resolver: Callable[[], AnimationEngine | None] | None = None,
@@ -134,7 +139,8 @@ class LinguisticToolRuntime:
                 coroutine=self._move_self,
                 name="move_self",
                 description=(
-                    "Move Hyprchan by a directional delta and set sprite scale. "
+                    "Move Hyprchan overlay window by a directional delta using Hyprland, "
+                    "and set sprite scale when supported. "
                     "Scale is a direct multiplier in [0,2], where 1.2 means +20% size."
                 ),
                 args_schema=MoveSelfInput,
@@ -182,6 +188,123 @@ class LinguisticToolRuntime:
     ) -> None:
         self._memory_state = memory_state
         self._memory_phase = phase
+
+    def _resolve_hyprland(self) -> HyprlandSocket | None:
+        fallback = object()
+        try:
+            socket = inject(HyprlandSocket, fallback=fallback)
+        except Exception:
+            return None
+        if socket is fallback:
+            return None
+        return socket
+
+    @staticmethod
+    def _direction_delta(direction: str, delta: int) -> tuple[int, int]:
+        mapping = {
+            "up": (0, -delta),
+            "down": (0, delta),
+            "left": (-delta, 0),
+            "right": (delta, 0),
+            "up_left": (-delta, -delta),
+            "up_right": (delta, -delta),
+            "down_left": (-delta, delta),
+            "down_right": (delta, delta),
+        }
+        return mapping.get(direction, (0, 0))
+
+    async def _find_overlay_client(self, hyprland: HyprlandSocket) -> dict[str, Any] | None:
+        try:
+            clients = await hyprland.send_command("clients", is_json=True)
+        except Exception:
+            return None
+
+        if isinstance(clients, dict):
+            payload = clients.get("data", clients.get("clients", []))
+        else:
+            payload = clients
+
+        if not isinstance(payload, list):
+            return None
+
+        title_target = self.OVERLAY_TITLE.lower()
+        class_target = self.OVERLAY_CLASS.lower()
+        for client in payload:
+            if not isinstance(client, dict):
+                continue
+            title = str(client.get("title", "")).strip().lower()
+            initial_title = str(client.get("initialTitle", "")).strip().lower()
+            clazz = str(client.get("class", "")).strip().lower()
+            if title == title_target or initial_title == title_target:
+                return client
+            if clazz == class_target:
+                return client
+            if title_target and title_target in title:
+                return client
+        return None
+
+    async def _move_overlay_window(
+        self,
+        *,
+        direction: str,
+        delta: int,
+    ) -> tuple[bool, str, bool]:
+        hyprland = self._resolve_hyprland()
+        if hyprland is None:
+            return False, "hyprland socket unavailable", False
+
+        client = await self._find_overlay_client(hyprland)
+        if not client:
+            return False, "overlay window not found", True
+
+        at = client.get("at")
+        if not (isinstance(at, list) and len(at) >= 2):
+            return False, "overlay position unavailable", True
+
+        try:
+            base_x, base_y = int(at[0]), int(at[1])
+        except (TypeError, ValueError):
+            return False, "overlay position invalid", True
+
+        dx, dy = self._direction_delta(direction, delta)
+        new_x, new_y = base_x + dx, base_y + dy
+
+        target = ""
+        address = client.get("address")
+        if isinstance(address, str) and address.strip():
+            target = f"address:{address.strip()}"
+        else:
+            title = client.get("title") or self.OVERLAY_TITLE
+            if isinstance(title, str) and title.strip():
+                target = f"title:{title.strip()}"
+
+        cmd_base = f"dispatch movewindowpixel exact {new_x} {new_y}"
+        candidates = [
+            f"{cmd_base},{target}" if target else cmd_base,
+            f"dispatch movewindowpixel {new_x} {new_y},{target}" if target else f"dispatch movewindowpixel {new_x} {new_y}",
+            cmd_base,
+            f"dispatch movewindowpixel {new_x} {new_y}",
+        ]
+
+        last_err: Exception | None = None
+        for cmd in candidates:
+            try:
+                await hyprland.send_command(cmd)
+                return True, f"moved overlay to {new_x},{new_y}", True
+            except UnknownRequestError as exc:
+                last_err = exc
+                continue
+            except Exception as exc:
+                last_err = exc
+                continue
+
+        if last_err is not None:
+            return (
+                False,
+                f"hyprland move failed: {type(last_err).__name__}: {last_err}",
+                True,
+            )
+        return False, "hyprland move failed", True
 
     @staticmethod
     def _memory_is_enabled() -> bool:
@@ -382,10 +505,6 @@ class LinguisticToolRuntime:
         delta: int,
         scale: float,
     ) -> tuple[str, list[dict[str, Any]]]:
-        engine = self._resolve_animation_engine()
-        if engine is None:
-            return "animation engine unavailable", []
-
         normalized_direction = direction.strip().lower()
         allowed = {
             "up",
@@ -402,16 +521,28 @@ class LinguisticToolRuntime:
 
         safe_delta = max(0, int(delta))
         safe_scale = max(0.0, min(2.0, float(scale)))
-        engine.enqueue_move_self(
+
+        moved, move_summary, hyprland_available = await self._move_overlay_window(
             direction=normalized_direction,
             delta=safe_delta,
-            scale=safe_scale,
         )
+
+        if not moved and not hyprland_available:
+            engine = self._resolve_animation_engine()
+            if engine is not None:
+                engine.enqueue_move_self(
+                    direction=normalized_direction,
+                    delta=safe_delta,
+                    scale=safe_scale,
+                )
+                move_summary = "moved via animation engine fallback"
+            else:
+                move_summary = f"{move_summary}; animation engine unavailable"
+
         await asyncio.sleep(0.35)
         screenshot = await asyncio.to_thread(self._capture_screenshot_file)
         summary = (
-            f"moved {normalized_direction} by {safe_delta}px, "
-            f"scale set to {safe_scale:.2f}"
+            f"{move_summary}; scale set to {safe_scale:.2f}"
         )
         images = [screenshot] if screenshot else []
         return summary, images

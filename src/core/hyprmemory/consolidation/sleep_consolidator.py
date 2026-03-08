@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from datetime import timedelta
-import re
 
 from core.hyprmemory.interfaces import (
     ConsolidationJudge,
@@ -29,8 +29,9 @@ from core.hyprmemory.utils.math import clamp
 from core.hyprmemory.utils.text import tokenize
 from core.hyprmemory.utils.time import utc_now
 
-
-_USER_PREF_RE = re.compile(r"\b(i|i\s+really)\s+(like|love|prefer)\s+(?P<pref>[^.?!]+)", re.I)
+_USER_PREF_RE = re.compile(
+    r"\b(i|i\s+really)\s+(like|love|prefer)\s+(?P<pref>[^.?!]+)", re.I
+)
 
 
 @dataclass(slots=True)
@@ -100,7 +101,9 @@ class SleepConsolidator:
                 await self.ltm_store.store_edge(edge)
             edges_written += len(edges)
 
-        dream = await self._dream_from_episodes([episode for episode, _ in episodes], sleep_state)
+        dream = await self._dream_from_episodes(
+            [episode for episode, _ in episodes], sleep_state
+        )
         if dream:
             await self.ltm_store.store_dream(dream)
             dreams_written = 1
@@ -206,12 +209,18 @@ class SleepConsolidator:
         gist = " | ".join(part for part in parts if part)
         return gist[: self.config.max_gist_chars]
 
-    def _extract_entities_topics(self, items: list[STMItem]) -> tuple[list[str], list[str]]:
+    def _extract_entities_topics(
+        self, items: list[STMItem]
+    ) -> tuple[list[str], list[str]]:
         entities: list[str] = []
         topics: list[str] = []
         for item in items:
-            meta_entities = item.meta.get("entities") if isinstance(item.meta, dict) else None
-            meta_topics = item.meta.get("topics") if isinstance(item.meta, dict) else None
+            meta_entities = (
+                item.meta.get("entities") if isinstance(item.meta, dict) else None
+            )
+            meta_topics = (
+                item.meta.get("topics") if isinstance(item.meta, dict) else None
+            )
             if isinstance(meta_entities, list):
                 entities.extend(str(ent) for ent in meta_entities if ent)
             if isinstance(meta_topics, list):
@@ -256,7 +265,9 @@ class SleepConsolidator:
             user_importance=user_importance,
         )
 
-    def _extract_facts(self, episode: Episode, items: list[STMItem]) -> list[SemanticFact]:
+    def _extract_facts(
+        self, episode: Episode, items: list[STMItem]
+    ) -> list[SemanticFact]:
         facts: list[SemanticFact] = []
         for item in items:
             match = _USER_PREF_RE.search(item.content)
@@ -282,9 +293,14 @@ class SleepConsolidator:
         self, episode: Episode, items: list[STMItem], state: MemoryState
     ) -> list[SemanticFact]:
         if self.consolidation_judge:
-            candidates = await self.consolidation_judge.extract_facts(items, state=state)
+            candidates = await self.consolidation_judge.extract_facts(
+                items, state=state
+            )
             if candidates:
-                return [self._fact_from_candidate(episode, candidate) for candidate in candidates]
+                return [
+                    self._fact_from_candidate(episode, candidate)
+                    for candidate in candidates
+                ]
         return self._extract_facts(episode, items)
 
     def _fact_from_candidate(
@@ -315,5 +331,5 @@ class SleepConsolidator:
             ts=utc_now(),
             content=fragment.strip(),
             episode_ids=[episode.episode_id for episode in episodes],
-            source=\"llm_judge\",
+            source="llm_judge",
         )

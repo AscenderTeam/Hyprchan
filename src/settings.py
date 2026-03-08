@@ -44,7 +44,7 @@ DATABASE_CONNECTION = {
     "type": "dbstring",
     "content": os.getenv(
         "DATABASE_URL",
-        "postgresql+asyncpg://postgres:postgres@localhost:5432/hyprchan",
+        "postgresql+asyncpg://postgres:mysecretpassword@localhost:5432/hyprchan",
     ),
     "entities": [
         "entities.episode",

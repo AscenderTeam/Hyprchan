@@ -19,7 +19,7 @@ class AnimationEngine:
         self.application = HyprchanApp(self.on_frame_update, self.target_fps)
         self._thread: Thread | None = None
 
-        self.load_animation("sit.falling_asleep")
+        self.load_animation("sit.idle")
 
         self.start()
 
