@@ -15,6 +15,7 @@ from animations.startle_wakeup_sit import StartleWakeupSitAnimation
 from core.animations.provider import provideAnimations
 from routes import routes
 from scripts.animation_cli import AnimationCLI
+from scripts.tui.cli import HyprTuiCLI
 from settings import (
     AGENTHUB_MAX_PAYLOAD,
     AGENTHUB_ORG,
@@ -59,6 +60,7 @@ providers = [
     provideRouter(routes),
     provideDatabase(ORMEnum.SQLALCHEMY, cast(Any, runtime_database_connection)),
     useCLI(AnimationCLI),
+    useCLI(HyprTuiCLI),
     provideAttpClient(
         AGENTHUB_TOKEN,
         AGENTHUB_ORG,
