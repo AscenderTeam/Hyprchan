@@ -1012,6 +1012,7 @@ class HyprAIOSKernel:
         except Exception:
             self._response_waiters.pop(event_id, None)
             raise
+        signal["event_id"] = event_id
 
         event_for_log = {**payload, **signal}
         self._remember_event(event_for_log)
