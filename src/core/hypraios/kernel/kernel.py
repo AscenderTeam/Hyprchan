@@ -20,6 +20,8 @@ from core.hypraios.kernel.event_compaction import (
 from core.hypraios.kernel.main_loop import MainKernelLoop
 from core.hypraios.kernel.memory.buffer import MemoryBuffer
 from core.hypraios.kernel.memory.memory_gate import MemoryGate
+from core.hypraios.kernel.memory.stm_payload import build_stm_payload, parse_stm_payload
+from core.hypraios.kernel.memory.stm_snapshot import StmSnapshotStore
 from core.hypraios.kernel.states import KernelStates
 from core.hypraios.linguistic.linguistic_engine import LinguisticEngine
 from core.hypraios.mood.phase_engine import PhaseEngine
@@ -100,6 +102,7 @@ class HyprAIOSKernel:
         self._sleep_task: asyncio.Task | None = None
         self._booted = False
         self._shutting_down = False
+        self._crash_recovered = False
 
         self.active_reason = "SELF"
         self._self_active_idle_ticks = 0
@@ -133,6 +136,11 @@ class HyprAIOSKernel:
         self.event_compacter: EventCompacter | None = None
         if self.event_compaction_enabled:
             self.event_compacter = GPT5NanoEventCompacter(model=EVENT_COMPACTION_MODEL)
+
+        self._stm_store = StmSnapshotStore(
+            base_dir=self.MEMORY_FILE.parent,
+            logger=self.logger,
+        )
 
     @staticmethod
     def _clamp(value: float, lo: float, hi: float) -> float:
@@ -366,6 +374,60 @@ class HyprAIOSKernel:
                 "a": self.states.a.value,
             },
         }
+
+    def _save_stm_snapshot(self) -> None:
+        payload = build_stm_payload(
+            context_events=list(self.context_events),
+            event_log=list(self.event_log),
+            response_log=list(self.response_log),
+            last_inference=self.last_inference,
+            last_inference_error=self.last_inference_error,
+        )
+        self._stm_store.save(payload)
+
+    def _load_stm_snapshot(self) -> None:
+        data = self._stm_store.load()
+        if not data:
+            return
+        parsed = parse_stm_payload(
+            data,
+            context_events_maxlen=self.context_events.maxlen,
+            event_log_maxlen=self.event_log.maxlen,
+            response_log_maxlen=self.response_log.maxlen,
+        )
+        self.context_events = parsed["context_events"]
+        self.event_log = parsed["event_log"]
+        self.response_log = parsed["response_log"]
+        self.last_inference = parsed["last_inference"]
+        self.last_inference_error = parsed["last_inference_error"]
+
+    def _detect_crash_marker(self) -> bool:
+        return self._stm_store.detect_crash_marker()
+
+    def _touch_crash_marker(self) -> None:
+        self._stm_store.touch_crash_marker()
+
+    def _clear_crash_marker(self) -> None:
+        self._stm_store.clear_crash_marker()
+
+    def _mark_crash_recovery(self) -> None:
+        if self._crash_recovered:
+            return
+        self._crash_recovered = True
+        self._remember_event(
+            {
+                "id": self._next_event_id(),
+                "timestamp": time.time(),
+                "type": "system_notice",
+                "description": (
+                    "System recovery notice: previous session ended abruptly. "
+                    "Hyprchan reports a fainting blackout; short-term memory may feel hazy."
+                ),
+                "origin": "kernel",
+                "amplitude": 0.0,
+                "is_user": False,
+            }
+        )
 
     def _save_agent_memory(self) -> None:
         try:
@@ -758,7 +820,12 @@ class HyprAIOSKernel:
             return
 
         self._last_memory_save_at = time.monotonic()
+        crashed = self._detect_crash_marker()
         self._load_agent_memory()
+        self._load_stm_snapshot()
+        if crashed:
+            self._mark_crash_recovery()
+        self._touch_crash_marker()
         self._schedule_next_passive_ponder()
         self.logger.info("Booting HyprAI OS kernel")
         self._booted = True
@@ -792,7 +859,9 @@ class HyprAIOSKernel:
 
         self._booted = False
         self.states.phase = Phases.MAINT
+        self._save_stm_snapshot()
         self._maybe_autosave_agent_memory(force=True)
+        self._clear_crash_marker()
 
     async def start_awake_loop(self):
         if self._loop_task and not self._loop_task.done():
