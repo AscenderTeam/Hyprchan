@@ -4,6 +4,8 @@ Please do not store sensitive information in this file, this file is not for sto
 """
 
 import os
+
+from config.personalization import load_personalization_config
 from pathlib import Path
 
 
@@ -82,13 +84,17 @@ AGENTHUB_TOKEN = os.getenv("AGENTHUB_TOKEN", "unspecified")
 AGENTHUB_ORG = int(os.getenv("AGENTHUB_ORG", "1"))
 AGENTHUB_MAX_PAYLOAD = 10 * 1024 * 1024
 
+_PERSONALIZATION = load_personalization_config()
+
 OPENAI_OAUTH_TOKEN = os.getenv("OPENAI_OAUTH_TOKEN", os.getenv("OPENAI_API_KEY", ""))
-OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+OPENAI_MODEL = os.getenv("OPENAI_MODEL", _PERSONALIZATION.ai.model)
 OPENAI_EMBEDDING_MODEL = os.getenv("OPENAI_EMBEDDING_MODEL", "text-embedding-3-small")
 OPENAI_API_BASE_URL = os.getenv("OPENAI_API_BASE_URL", "https://api.openai.com/v1")
 OPENAI_TIMEOUT_SECONDS = float(os.getenv("OPENAI_TIMEOUT_SECONDS", "30"))
 
-INFERENCE_TARGET = os.getenv("INFERENCE_TARGET", f"openai:{OPENAI_MODEL}")
+INFERENCE_TARGET = os.getenv(
+    "INFERENCE_TARGET", f"{_PERSONALIZATION.ai.provider}:{OPENAI_MODEL}"
+)
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", os.getenv("GOOGLE_API_KEY", ""))
 GEMINI_API_BASE_URL = os.getenv(

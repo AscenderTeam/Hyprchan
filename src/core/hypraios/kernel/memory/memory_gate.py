@@ -10,6 +10,7 @@ from typing import Any
 from ascender.core import inject
 from ascender.core.database import DatabaseEngine
 
+from config.personalization import load_personalization_config
 
 def _resolve_redis_client_type() -> Any:
     try:
@@ -53,14 +54,12 @@ class MemoryGate:
     wm_buffer: list[MemoryBuffer]
 
     def __init__(self) -> None:
-        self.enabled = os.getenv("HYPRMEMORY_ENABLED", "0").strip().lower() == "1"
-        self.read_active = (
-            os.getenv("HYPRMEMORY_READ_ACTIVE", "0").strip().lower() == "1"
-        )
-        self.sleep_enabled = (
-            os.getenv("HYPRMEMORY_SLEEP_ENABLED", "0").strip().lower() == "1"
-        )
-        self.buffer_limit = max(1, int(os.getenv("HYPRMEMORY_BUFFER_LIMIT", "3")))
+        config = load_personalization_config()
+        self.enabled = bool(config.memory.enabled)
+        self.read_active = bool(config.memory.read_active)
+        self.sleep_enabled = bool(config.memory.sleep_enabled)
+        self.buffer_limit = max(1, int(config.memory.buffer_limit))
+        self.stm_mode = str(config.memory.stm.mode).strip().lower() or "redis"
         self.buffer_key = os.getenv("HYPRMEMORY_BUFFER_KEY", "hyprchan:wm_buffer")
         self.wm_buffer = []
         self._memory_service: Any | None = None
@@ -79,6 +78,8 @@ class MemoryGate:
         }
 
     def _resolve_redis(self) -> Any | None:
+        if self.stm_mode != "redis":
+            return None
         if self._redis is not None:
             return self._redis
         fallback = object()

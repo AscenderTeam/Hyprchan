@@ -10,6 +10,7 @@ from textual.containers import Container, Horizontal, Vertical
 from textual.reactive import reactive
 from textual.widgets import Footer, Header, TextArea
 
+from config.personalization import load_personalization_config
 from scripts.tui.api import HyprApiClient, ServerSnapshot
 from scripts.tui.widgets import ChatLog, GlowHeader, StatusPanel, SystemLog
 
@@ -105,10 +106,13 @@ class HyprTUI(App):
 
     mode = reactive("INSERT")
 
-    def __init__(self, *, api_url: str, poll_interval: float = 1.0) -> None:
+    def __init__(
+        self, *, api_url: str, poll_interval: float = 1.0, vi_mode: bool = True
+    ) -> None:
         super().__init__()
         self.api_url = api_url.rstrip("/")
         self.poll_interval = poll_interval
+        self.vi_mode = vi_mode
         logging.getLogger("httpx").setLevel(logging.WARNING)
         logging.getLogger("httpcore").setLevel(logging.WARNING)
         self.api = HyprApiClient(self.api_url)
@@ -323,7 +327,7 @@ class HyprTUI(App):
                 self._set_insert_mode()
                 await self._log_system("Mode: INSERT")
                 event.stop()
-        elif event.key == "escape":
+        elif event.key == "escape" and self.vi_mode:
             self._set_normal_mode()
             await self._log_system("Mode: NORMAL")
 
@@ -363,4 +367,9 @@ def _read_poll_interval() -> float:
 
 def run_tui(api_url: str | None = None) -> None:
     resolved = api_url or os.getenv("HYPRCHAN_API_URL") or "http://localhost:8000/v1"
-    HyprTUI(api_url=resolved, poll_interval=_read_poll_interval()).run()
+    config = load_personalization_config()
+    poll_interval = _read_poll_interval()
+    if not os.getenv("HYPRCHAN_TUI_POLL_INTERVAL"):
+        poll_interval = float(config.tui.poll_interval)
+    vi_mode = bool(config.tui.vi_mode)
+    HyprTUI(api_url=resolved, poll_interval=poll_interval, vi_mode=vi_mode).run()
