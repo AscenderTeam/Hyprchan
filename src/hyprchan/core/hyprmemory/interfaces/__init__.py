@@ -2,6 +2,8 @@ from core.hyprmemory.interfaces.judges import ConsolidationJudge, LinkingJudge
 from core.hyprmemory.interfaces.stores import (
     EmbeddingProvider,
     LTMStore,
+    ProceduralMemory,
+    ProceduralMemoryStore,
     SalienceJudge,
     SemanticFeelingJudge,
     STMStore,
@@ -17,4 +19,6 @@ __all__ = [
     "SemanticFeelingJudge",
     "STMStore",
     "VectorStore",
+    "ProceduralMemory",
+    "ProceduralMemoryStore",
 ]

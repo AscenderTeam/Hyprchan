@@ -5,12 +5,12 @@ from dataclasses import dataclass, field
 from logging import Logger
 from typing import Annotated, Any
 
+import settings
 from ascender.common import Injectable
 from ascender.core import Inject, inject
 from ascender.core.database import DatabaseEngine
 from redis.asyncio import Redis
 
-import settings
 from core.hypraios.constants import Phases
 from core.hyprmemory.consolidation.sleep_consolidator import SleepConsolidator
 from core.hyprmemory.interfaces import ConsolidationJudge, EmbeddingProvider
@@ -32,6 +32,8 @@ from core.hyprmemory.models import (
     STMItem,
 )
 from core.hyprmemory.services.retriever import HybridRetriever
+from core.hyprmemory.skills import PostgresProceduralStore, SqliteProceduralStore
+from core.hyprmemory.skills.memory import ProceduralMemory
 from core.hyprmemory.stores.embedding_provider import OpenAIEmbeddingProvider
 from core.hyprmemory.stores.ltm_postgres import PostgresLTMStore
 from core.hyprmemory.stores.stm_memory import InMemorySTMStore
@@ -77,6 +79,12 @@ class HyprMemoryService:
         embedder = self._resolve_embedder()
         vector_store = self._resolve_vector_store(ltm_store, embedder, database)
 
+        if database.engine.engine.dialect.name == "postgresql":  # pyright: ignore[reportOptionalMemberAccess, reportAttributeAccessIssue]
+            skill_store = PostgresProceduralStore(database)
+
+        else:
+            skill_store = SqliteProceduralStore(database)
+
         self.stm_layer = ShortTermMemoryLayer(stm_store)
         self.ltm_layer = LongTermMemoryLayer(ltm_store)
         self.wm_layer = WorkingMemoryLayer()
@@ -100,6 +108,11 @@ class HyprMemoryService:
         )
 
         self.config = MemoryServiceConfig()
+        self.__procedural_memory = ProceduralMemory(skill_store, embedder)
+
+    @property
+    def procedural_memory(self):
+        return self.__procedural_memory
 
     async def observe(
         self,

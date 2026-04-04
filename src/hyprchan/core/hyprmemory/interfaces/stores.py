@@ -9,6 +9,7 @@ from core.hyprmemory.models import (
     GraphEdge,
     MemoryQuery,
     PerceptionTrace,
+    ProceduralMemory,
     SemanticFact,
     STMItem,
 )
@@ -58,6 +59,22 @@ class VectorStore(Protocol):
     async def search_episodes(self, query: MemoryQuery, top_k: int) -> list[Episode]: ...
 
     async def search_concepts(self, query: MemoryQuery, top_k: int) -> list[ConceptNode]: ...
+
+
+class ProceduralMemoryStore(Protocol):
+    async def upsert(self, memory: ProceduralMemory) -> None: ...
+
+    async def fetch_by_id(self, memory_id: str) -> ProceduralMemory | None: ...
+
+    async def fetch_by_name(self, name: str) -> ProceduralMemory | None: ...
+
+    async def list_recent(self, limit: int) -> list[ProceduralMemory]: ...
+
+    async def search_by_embedding(
+        self, query_embedding: list[float], top_k: int
+    ) -> list[ProceduralMemory]: ...
+
+    async def query(self, term: str, limit: int) -> list[ProceduralMemory]: ...
 
 
 class EmbeddingProvider(Protocol):
