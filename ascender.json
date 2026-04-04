@@ -2,10 +2,10 @@
     "project": {
         "name": "hyprchan",
         "version": "0.1.0",
-        "description": "hyprchan"
+        "description": "An anime girl that lives in your Hyprland and chills."
     },
     "paths": {
-        "source": "src",
+        "source": "src/hyprchan",
         "output": "build",
         "static": "public",
         "logs": "logs"

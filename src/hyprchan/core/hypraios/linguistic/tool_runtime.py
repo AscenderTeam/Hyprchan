@@ -272,7 +272,6 @@ class LinguisticToolRuntime:
                     args_schema=HyprctlCommandInput,
                 ),
                 priority=25,
-                predicate=lambda _ctx: self._resolve_hyprland() is not None,
             ),
             replace=True,
         )
@@ -474,27 +473,88 @@ class LinguisticToolRuntime:
         if hyprland is None:
             return "hyprland socket unavailable"
 
-        normalized = " ".join(command.split()).strip()
+        normalized = self._normalize_hyprctl_input(command)
         if not normalized:
             return "hyprctl command is empty"
 
+        candidates = [normalized]
+        if normalized.startswith("/"):
+            candidates.append(normalized.lstrip("/"))
+        else:
+            candidates.append(f"/{normalized}")
+
+        response: str | Any = ""
+        last_exc: Exception | None = None
         try:
-            response = await hyprland.send_command(normalized)
+            for candidate in candidates:
+                try:
+                    response = await hyprland.send_command(candidate)
+                    normalized = candidate
+                    last_exc = None
+                    break
+                except Exception as exc:
+                    last_exc = exc
+                    continue
+            if last_exc is not None:
+                raise last_exc
         except Exception as exc:
             return f"hyprctl command failed: {type(exc).__name__}: {exc}"
 
-        notice = "Hypr-chan made modifications to Hyprland Runtime"
-        notify_command = f'notify 1 3000 "rgb(00ffaa)" "{notice}"'
-        try:
-            await hyprland.send_command(notify_command)
-        except Exception:
-            # Best-effort UX signal for local user; command already succeeded.
-            pass
+        if self._hyprctl_modifies_runtime(normalized):
+            notice = "Hypr-chan made modifications to Hyprland Runtime"
+            notify_command = f'notify 1 3000 "rgb(00ffaa)" "{notice}"'
+            try:
+                await hyprland.send_command(notify_command)
+            except Exception:
+                # Best-effort UX signal for local user; command already succeeded.
+                pass
 
         output = str(response).strip() or "ok"
         if len(output) > 450:
             output = f"{output[:450]}..."
         return f"hyprctl executed: {normalized}\nresult: {output}"
+
+    @staticmethod
+    def _normalize_hyprctl_input(command: str) -> str:
+        normalized = " ".join(command.split()).strip()
+        if not normalized:
+            return ""
+
+        if normalized.lower().startswith("hyprctl "):
+            normalized = normalized[8:].strip()
+
+        while normalized.startswith("-"):
+            parts = normalized.split(maxsplit=1)
+            if len(parts) == 1:
+                return ""
+            normalized = parts[1].strip()
+
+        return normalized
+
+    @staticmethod
+    def _hyprctl_modifies_runtime(command: str) -> bool:
+        normalized = " ".join(command.split()).strip().lower()
+        if not normalized:
+            return False
+
+        if "--help" in normalized or normalized == "help":
+            return False
+
+        # Be conservative: notify only for known mutating operations.
+        mutating_prefixes = (
+            "dispatch",
+            "keyword",
+            "reload",
+            "output",
+            "setcursor",
+            "seterror",
+            "switchxkblayout",
+        )
+        for prefix in mutating_prefixes:
+            if normalized == prefix or normalized.startswith(f"{prefix} "):
+                return True
+
+        return False
 
     async def execute_tool_calls(
         self,
@@ -617,6 +677,20 @@ class LinguisticToolRuntime:
             if name == "hyprctl_command":
                 command = str(args.get("command", "")).strip()
                 if not command:
+                    summary = (
+                        "hyprctl_command failed: missing required argument `command`"
+                    )
+                    self._append_followup_message(
+                        followup_messages,
+                        followup_events,
+                        tool_name=name,
+                        summary=summary,
+                        images=[],
+                    )
+                    executed += 1
+                    logger.debug(
+                        "Tool executed name=%s with invalid args=%s", name, args
+                    )
                     continue
                 summary = await self._hyprctl_command(command)
                 self._append_followup_message(

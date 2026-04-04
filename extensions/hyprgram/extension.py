@@ -43,6 +43,9 @@ class HyprgramExtension(HyprchanExtension):
         if not self.bot_username:
             self.logger.info("[cyan]HYPRGRAM[/] Hyprgram bot username not found")
 
+        self.dispatcher = Dispatcher()
+        self.bot = Bot(self.bot_token)
+
         self.kv = ExtensionKV(extension_kv_path("hyprgram"))
         self.storage = DataStorage(self.kv)
         self.media_store = TelegramMediaStore(
@@ -50,10 +53,8 @@ class HyprgramExtension(HyprchanExtension):
             root_dir=get_extension_data_dir("hyprgram") / "incoming_images",
         )
 
-        self.dispatcher = Dispatcher()
-        self.bot = Bot(self.bot_token)
-
         self.__executor = None
+        self._polling_task: asyncio.Task[None] | None = None
 
     async def on_init(self, executor: ExtensionExecutor) -> None:
         self.logger.info("[cyan]HYPRGRAM[/] Hyprgram extension initialized")
@@ -67,9 +68,10 @@ class HyprgramExtension(HyprchanExtension):
             admin_id=int(self.bot_debug_channel) if self.bot_debug_channel else None,
         )
 
-        asyncio.create_task(
+        self._polling_task = asyncio.create_task(
             self.dispatcher.start_polling(self.bot, handle_signals=False)
         )
+        self._polling_task.add_done_callback(self._on_polling_done)
 
         if self.bot_debug_channel:
             await self.bot.send_message(int(self.bot_debug_channel), "Hypr-chan is up!")
@@ -156,8 +158,23 @@ class HyprgramExtension(HyprchanExtension):
         return self.__executor
 
     async def on_shutdown(self) -> None:
+        if self._polling_task and not self._polling_task.done():
+            self._polling_task.cancel()
+            try:
+                await self._polling_task
+            except asyncio.CancelledError:
+                pass
+        self._polling_task = None
         await self.dispatcher.stop_polling()
         await self.kv.close()
+
+    def _on_polling_done(self, task: asyncio.Task[None]) -> None:
+        if task.cancelled():
+            return
+        error = task.exception()
+        if error is None:
+            return
+        self.logger.exception("[cyan]HYPRGRAM[/] Polling loop crashed: %s", error)
 
     async def _send_message(
         self, chat_id: int, text: str, source_message_id: int | None = None
