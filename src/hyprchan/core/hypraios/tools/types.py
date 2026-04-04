@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Callable
+from typing import Callable, Literal
 
 from langchain_core.tools import StructuredTool
 
@@ -16,6 +16,7 @@ class ToolContext:
 
 
 ToolPredicate = Callable[[ToolContext], bool]
+ToolMarker = Literal["mandatory", "optional"]
 
 
 @dataclass(slots=True)
@@ -23,4 +24,5 @@ class ToolSpec:
     name: str
     tool: StructuredTool
     priority: int = 0
+    marker: ToolMarker = "optional"
     predicate: ToolPredicate | None = None

@@ -162,6 +162,16 @@ class ProceduralMemory:
     success_score: float
     embedding: list[float]
 
+    def as_narrative(self) -> str:
+        tags = ", ".join(self.tags) if self.tags else "none"
+        failures = "; ".join(self.failure_notes) if self.failure_notes else "none"
+        return (
+            f"skill={self.name} | score={self.success_score:.2f}\n"
+            f"description={self.description}\n"
+            f"tags={tags}\n"
+            f"failure_notes={failures}"
+        )
+
     def to_dict(self):
         return {
             "memory_id": self.memory_id,
@@ -172,24 +182,6 @@ class ProceduralMemory:
             "failure_notes": self.failure_notes,
             "success_score": self.success_score,
         }
-
-    def as_narrative(self):
-        sequence_schema = " -> ".join(
-            [f"{seq['name']} (args={seq['arguments']})" for seq in self.tool_sequence]
-        )
-
-        response = (
-            f"Hmm... I had experience with what I call `{self.name}` skill"
-            f"\n\n{self.description}"
-            f"\n\nAs I remember, I used "
-            f"{sequence_schema}"
-            " Sequence of tools to perform this task."
-            f"\n\nAs I remember, I had {self.success_score} success for following this example"
-        )
-        if self.failure_notes:
-            response += f"Oh! I also remember that I had failure notes related to this experience: {self.failure_notes}"
-
-        return response
 
 
 @dataclass(slots=True)

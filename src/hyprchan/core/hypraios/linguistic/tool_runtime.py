@@ -3,16 +3,13 @@ import base64
 import logging
 import mimetypes
 import os
-from dataclasses import dataclass
-from pathlib import Path
 import subprocess
 import time
+from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, Callable, Literal
 
 from ascender.core import inject
-from langchain_core.tools import StructuredTool
-from pydantic import BaseModel, Field
-
 from core.animations.engine import AnimationEngine
 from core.hypraios.constants import Phases
 from core.hypraios.perception.opencv_module import OpenCVPerceptionModule
@@ -20,8 +17,12 @@ from core.hypraios.tools.constants import (
     TOOL_ANSWER_USER,
     TOOL_CAMERA,
     TOOL_HYPRCTL_COMMAND,
+    TOOL_LIST_SKILLS,
     TOOL_MEMORY_RECALL,
     TOOL_MOVE_SELF,
+    TOOL_PATCH_SKILL,
+    TOOL_RECALL_SKILL,
+    TOOL_SAVE_SKILL,
     TOOL_SCREENSHOT,
     TOOL_SET_ANIMATION_POSE,
 )
@@ -31,12 +32,13 @@ from core.hyprland.exceptions import UnknownRequestError
 from core.hyprland.socket import HyprlandSocket
 from core.hyprmemory import HyprMemoryService
 from core.hyprmemory.models import MemoryState
+from langchain_core.tools import StructuredTool
+from pydantic import BaseModel, Field
 from settings import (
     WEBCAM_AUTO_FIND_DEVICE,
     WEBCAM_DEVICE_INDEX,
     WEBCAM_MAX_DEVICE_INDEX,
 )
-
 
 logger = logging.getLogger(__name__)
 
@@ -112,6 +114,56 @@ class HyprctlCommandInput(BaseModel):
     )
 
 
+class SaveSkillInput(BaseModel):
+    name: str = Field(
+        description="Stable unique skill name.", min_length=1, max_length=160
+    )
+    content: str = Field(
+        description="Skill description with how/when to use it.",
+        min_length=1,
+        max_length=2000,
+    )
+    tags: list[str] = Field(default_factory=list, description="Optional lookup tags.")
+    success_score: float = Field(default=0.0, ge=0.0, le=1.0)
+    tool_sequence: list[dict[str, Any]] = Field(
+        default_factory=list,
+        description="Optional ordered tool calls used by this skill.",
+    )
+
+
+class RecallSkillInput(BaseModel):
+    query: str = Field(
+        description="Lexical query for skill name, description, or tags.",
+        min_length=1,
+        max_length=400,
+    )
+    max: int = Field(default=20, ge=1, le=50)
+
+
+class ListSkillsInput(BaseModel):
+    max: int = Field(default=20, ge=1, le=50)
+
+
+class PatchSkillInput(BaseModel):
+    name: str = Field(
+        description="Existing skill name to patch.", min_length=1, max_length=160
+    )
+    content: str = Field(
+        description="Updated/corrected skill narrative.",
+        min_length=1,
+        max_length=2000,
+    )
+    failure_notes: list[str] = Field(
+        default_factory=list,
+        description="Known failures and what to avoid.",
+    )
+    success_score: float | None = Field(default=None, ge=0.0, le=1.0)
+    tool_sequence: list[dict[str, Any]] = Field(
+        default_factory=list,
+        description="Optional updated tool sequence.",
+    )
+
+
 @dataclass
 class ToolExecutionResult:
     answer_user_called: bool
@@ -175,6 +227,7 @@ class LinguisticToolRuntime:
                     args_schema=SetAnimationPoseInput,
                 ),
                 priority=50,
+                marker="mandatory",
             ),
             replace=True,
         )
@@ -191,6 +244,7 @@ class LinguisticToolRuntime:
                     args_schema=AnswerUserInput,
                 ),
                 priority=40,
+                marker="mandatory",
             ),
             replace=True,
         )
@@ -208,6 +262,7 @@ class LinguisticToolRuntime:
                     args_schema=MoveSelfInput,
                 ),
                 priority=30,
+                marker="mandatory",
             ),
             replace=True,
         )
@@ -223,6 +278,7 @@ class LinguisticToolRuntime:
                     args_schema=ScreenshotInput,
                 ),
                 priority=20,
+                marker="optional",
             ),
             replace=True,
         )
@@ -238,6 +294,7 @@ class LinguisticToolRuntime:
                     args_schema=CameraInput,
                 ),
                 priority=20,
+                marker="optional",
             ),
             replace=True,
         )
@@ -254,6 +311,7 @@ class LinguisticToolRuntime:
                     args_schema=MemoryRecallInput,
                 ),
                 priority=10,
+                marker="optional",
             ),
             replace=True,
         )
@@ -272,6 +330,75 @@ class LinguisticToolRuntime:
                     args_schema=HyprctlCommandInput,
                 ),
                 priority=25,
+                marker="optional",
+            ),
+            replace=True,
+        )
+        self.tool_registry.register(
+            ToolSpec(
+                name=TOOL_SAVE_SKILL,
+                tool=StructuredTool.from_function(
+                    coroutine=self._save_skill,
+                    name=TOOL_SAVE_SKILL,
+                    description=(
+                        "Save a procedural skill in HyprMemory with optional tags and tool sequence."
+                        "If you are defining tool sequence, define it in this schema: {'name': (name of the tool), 'arguments': (what arguments you passed)}"
+                    ),
+                    args_schema=SaveSkillInput,
+                ),
+                priority=15,
+                marker="mandatory",
+                predicate=lambda ctx: ctx.memory_enabled,
+            ),
+            replace=True,
+        )
+        self.tool_registry.register(
+            ToolSpec(
+                name=TOOL_RECALL_SKILL,
+                tool=StructuredTool.from_function(
+                    coroutine=self._recall_skill,
+                    name=TOOL_RECALL_SKILL,
+                    description=(
+                        "Find your procedural skills by lexical query over name, description, and tags."
+                        " Use this EVERYTIME when you have no clue what to do."
+                    ),
+                    args_schema=RecallSkillInput,
+                ),
+                priority=15,
+                marker="mandatory",
+                predicate=lambda ctx: ctx.memory_enabled,
+            ),
+            replace=True,
+        )
+        self.tool_registry.register(
+            ToolSpec(
+                name=TOOL_LIST_SKILLS,
+                tool=StructuredTool.from_function(
+                    coroutine=self._list_skills,
+                    name=TOOL_LIST_SKILLS,
+                    description="List most relevant saved procedural skills added by you or user.",
+                    args_schema=ListSkillsInput,
+                ),
+                priority=15,
+                marker="mandatory",
+                predicate=lambda ctx: ctx.memory_enabled,
+            ),
+            replace=True,
+        )
+        self.tool_registry.register(
+            ToolSpec(
+                name=TOOL_PATCH_SKILL,
+                tool=StructuredTool.from_function(
+                    coroutine=self._patch_skill,
+                    name=TOOL_PATCH_SKILL,
+                    description=(
+                        "Patch an existing procedural skill with corrected guidance and failure notes."
+                    ),
+                    args_schema=PatchSkillInput,
+                ),
+                priority=15,
+                marker="mandatory",
+                predicate=lambda ctx: ctx.memory_enabled,
             ),
             replace=True,
         )
@@ -467,6 +594,84 @@ class LinguisticToolRuntime:
 
         rendered = "\n\n".join(blocks)
         return f"HyprMemory recall:\n{rendered}"
+
+    async def _save_skill(
+        self,
+        name: str,
+        content: str,
+        tags: list[str],
+        success_score: float,
+        tool_sequence: list[dict[str, Any]],
+    ) -> str:
+        memory = self._resolve_memory_service()
+        if memory is None:
+            return "hyprmemory unavailable"
+        procedural = getattr(memory, "procedural_memory", None)
+        if procedural is None:
+            return "procedural memory unavailable"
+        try:
+            result = await procedural.save_skill(
+                name=name.strip(),
+                content=content.strip(),
+                tags=tags,
+                success_score=success_score,
+                tool_sequence=tool_sequence,
+            )
+        except Exception as exc:
+            return f"save_skill failed: {type(exc).__name__}: {exc}"
+        return str(result)
+
+    async def _recall_skill(self, query: str, max: int = 20) -> str:
+        memory = self._resolve_memory_service()
+        if memory is None:
+            return "hyprmemory unavailable"
+        procedural = getattr(memory, "procedural_memory", None)
+        if procedural is None:
+            return "procedural memory unavailable"
+        try:
+            result = await procedural.recall_skill(query=query.strip(), max=max)
+        except Exception as exc:
+            return f"recall_skill failed: {type(exc).__name__}: {exc}"
+        return str(result)
+
+    async def _list_skills(self, max: int = 20) -> str:
+        memory = self._resolve_memory_service()
+        if memory is None:
+            return "hyprmemory unavailable"
+        procedural = getattr(memory, "procedural_memory", None)
+        if procedural is None:
+            return "procedural memory unavailable"
+        try:
+            result = await procedural.list_skills(max=max)
+        except Exception as exc:
+            return f"list_skills failed: {type(exc).__name__}: {exc}"
+        return str(result)
+
+    async def _patch_skill(
+        self,
+        name: str,
+        content: str,
+        failure_notes: list[str],
+        success_score: float | None = None,
+        tool_sequence: list[dict[str, Any]] | None = None,
+    ) -> str:
+        memory = self._resolve_memory_service()
+        if memory is None:
+            return "hyprmemory unavailable"
+        procedural = getattr(memory, "procedural_memory", None)
+        if procedural is None:
+            return "procedural memory unavailable"
+        try:
+            result = await procedural.patch_skill(
+                name=name.strip(),
+                content=content.strip(),
+                failure_notes=failure_notes,
+                success_score=success_score,
+                tool_sequence=tool_sequence,
+            )
+        except Exception as exc:
+            return f"patch_skill failed: {type(exc).__name__}: {exc}"
+        return str(result)
 
     async def _hyprctl_command(self, command: str) -> str:
         hyprland = self._resolve_hyprland()

@@ -222,6 +222,39 @@ class BaseChatInferenceProvider:
                     if not name:
                         continue
                     normalized.append({"name": name, "args": args})
+
+            # Legacy OpenAI-compatible single function call shape.
+            single_function = additional_kwargs.get("function_call")
+            if isinstance(single_function, dict):
+                name = str(single_function.get("name", "")).strip()
+                args = BaseChatInferenceProvider._parse_tool_args(
+                    single_function.get("arguments")
+                )
+                if name:
+                    normalized.append({"name": name, "args": args})
+            if normalized:
+                return normalized
+
+        # Some providers emit tool calls as structured content blocks.
+        content = getattr(response, "content", None)
+        if isinstance(content, list):
+            for item in content:
+                if not isinstance(item, dict):
+                    continue
+                block_type = str(item.get("type", "")).strip().lower()
+                if block_type in {"tool_use", "tool_call"}:
+                    name = str(item.get("name", "")).strip()
+                    args = BaseChatInferenceProvider._parse_tool_args(item.get("input"))
+                    if name:
+                        normalized.append({"name": name, "args": args})
+                    continue
+                if block_type in {"function_call", "function"}:
+                    name = str(item.get("name", "")).strip()
+                    args = BaseChatInferenceProvider._parse_tool_args(
+                        item.get("arguments")
+                    )
+                    if name:
+                        normalized.append({"name": name, "args": args})
         return normalized
 
     @staticmethod

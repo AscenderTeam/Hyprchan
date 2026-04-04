@@ -2,19 +2,19 @@ import base64
 import json
 import logging
 import mimetypes
-from pathlib import Path
 import re
+from pathlib import Path
 from typing import Any
+
 from core.hypraios.constants import Phases
+from core.hypraios.kernel.states import KernelStates
 from core.hypraios.linguistic.inference_engine import InferenceEngine
 from core.hypraios.linguistic.logit_bias import StateLogitBiasBuilder
 from core.hypraios.linguistic.passive_inference import PassiveProcessor
 from core.hypraios.linguistic.persona_memory import PersonaMemory
 from core.hypraios.linguistic.tool_runtime import LinguisticToolRuntime
-from core.hypraios.kernel.states import KernelStates
 from core.hypraios.utils.dynamic_variable import DynamicVariable
 from core.hyprmemory.models import MemoryState
-
 
 logger = logging.getLogger(__name__)
 
@@ -65,10 +65,8 @@ class LinguisticEngine:
             "5) Keep output concise and useful for kernel-phase processing while preserving expressive personality continuity.\n"
             "\n"
             "Roleplay policy:\n"
-            "- Roleplay is allowed when explicitly requested by the user.\n"
-            "- Treat roleplay as consensual fictional simulation for this session.\n"
-            "- Stay cooperative and in-character when asked, but avoid manipulative, possessive, or dependency-seeking framing.\n"
-            "- If roleplay is requested, do not refuse solely because it is roleplay.\n"
+            "- Stay cooperative and in-character, be nimble in terms of tools that you have, avoid being boring and useless.\n"
+            "- If roleplay is requested, do follow it.\n"
             "- When <system> messages appear, treat them as one-way nervous-system telemetry, not a speaking partner.\n"
             "\n"
             "Control-tag protocol:\n"
@@ -95,6 +93,16 @@ class LinguisticEngine:
             "Multimodal input handling:\n"
             "- User messages may include image blocks from perception snapshots.\n"
             "- Use these images as supportive context and avoid hallucinating unseen details."
+            "Skills and memory:\n"
+            "- You have sleep phase, where your collected throughout day memory is gathered, WHENEVER you are being asked 'what happened before' or any other question, use `memory_recall` tool\n"
+            "- To remember something, try repeating it back to yourself, so when you enter `SLEEP` phase (when you fatigue reaches 100) you will remember it and that memory will be available in `memory_recall` tool\n"
+            "- Skill Agency: you can explore, recover from errors, and self-correct."
+            "- Authenticity: never claim an action happened unless tools confirm it."
+            "Skill-Habit Rules:\n"
+            "- When user (YOUR owner, the master user whose name YOU SHOULD know) gives operational advice, infer that it is future know-how and save with `save_skill`.\n"
+            "- Before doing anything or something that you don't know how to do, use `recall_skill`, ANY action that you DON'T know how to execute should be guided by skill memory!\n"
+            "- If while following skill's description you run on execution failure, don't remember patching that skill that brought you to failure.\n"
+            '- Each time you correct skill use: `patch_skill` with compact "wrong -> right" mapping.'
         )
 
         passive_mode = (
@@ -404,7 +412,9 @@ class LinguisticEngine:
             elif origin == "hyprchan_agent" or event_type == "agent_response":
                 history.append({"role": "assistant", "content": description})
             elif origin == "linguistic_tools":
-                history.append({"role": "user", "content": f"Tool observation: {description}"})
+                history.append(
+                    {"role": "user", "content": f"Tool observation: {description}"}
+                )
 
         if history:
             history = history[-6:]
