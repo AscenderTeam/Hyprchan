@@ -5,6 +5,7 @@ from typing import Any, Sequence
 from langchain.agents import AgentExecutor, create_react_agent
 from langchain_openai import ChatOpenAI
 from langchain_core.language_models.chat_models import BaseChatModel
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.tools import StructuredTool
 
 import settings
@@ -18,9 +19,24 @@ class ReActAgentExecutor:
         self,
         llm: BaseChatModel | None,
         tools: Sequence[StructuredTool],
+        *,
+        system_prompt: str,
     ) -> None:
         self._llm = llm or self._build_default_llm()
-        agent = create_react_agent(self._llm, tools=list(tools))
+        prompt = ChatPromptTemplate.from_messages(
+            [
+                ("system", system_prompt),
+                (
+                    "human",
+                    "You may use tools when helpful.\n\nAvailable tools:\n{tools}\n\n"
+                    "Use ReAct format: Thought / Action / Action Input / Observation.\n"
+                    "You must pick an Action from tool_names: {tool_names}",
+                ),
+                ("human", "{input}"),
+                MessagesPlaceholder("agent_scratchpad"),
+            ]
+        )
+        agent = create_react_agent(self._llm, tools=list(tools), prompt=prompt)
         self._executor = AgentExecutor(agent=agent, tools=list(tools), verbose=False)
 
     async def ainvoke(self, *, user_input: str, **kwargs: Any) -> dict[str, Any]:
