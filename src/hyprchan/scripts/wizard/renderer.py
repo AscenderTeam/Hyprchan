@@ -42,6 +42,7 @@ class RichWizardRenderer:
     def __init__(self, console: Console | None = None) -> None:
         self.console = console or Console()
         self._started = False
+        self._last_rendered_index = -1
 
     # ------------------------------------------------------------------
     # Lifecycle
@@ -49,15 +50,34 @@ class RichWizardRenderer:
 
     def start(self, config: WizardDisplayConfig, steps: list[StepState]) -> None:
         self._started = True
+        self._last_rendered_index = 0
         self._print_header(config, steps)
 
     def stop(self) -> None:
         self._started = False
 
-    def refresh(self, _config: WizardDisplayConfig, _steps: list[StepState]) -> None:
-        # Scroll-forward renderer intentionally does nothing on generic
-        # refresh — each element is printed once by the orchestrator.
-        pass
+    def refresh(
+        self,
+        config: WizardDisplayConfig,
+        steps: list[StepState],
+        force: bool = False,
+    ) -> None:
+        """Re-render the wizard state.
+
+        In scroll-forward mode, this re-prints the header and overview.
+        To support the 'clear' use case, we re-print this whenever
+        called at the start of a step.
+        """
+        if not self._started:
+            return
+
+        # Calculate "progress index" based on non-pending steps
+        current_index = sum(1 for s in steps if s.status != StepStatus.PENDING)
+
+        # Re-print if index changed or forced (e.g. retry after error)
+        if current_index != self._last_rendered_index or force:
+            self._print_header(config, steps)
+            self._last_rendered_index = current_index
 
     # ------------------------------------------------------------------
     # Display helpers called by the wizard orchestrator

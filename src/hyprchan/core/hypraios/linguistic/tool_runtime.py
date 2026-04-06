@@ -360,7 +360,7 @@ class LinguisticToolRuntime:
                     name=TOOL_RECALL_SKILL,
                     description=(
                         "Find your procedural skills by lexical query over name, description, and tags."
-                        " Use this EVERYTIME when you have no clue what to do."
+                        " Use this EVERYTIME when you have no clue what to do or if you failing to do something."
                     ),
                     args_schema=RecallSkillInput,
                 ),
@@ -599,9 +599,9 @@ class LinguisticToolRuntime:
         self,
         name: str,
         content: str,
-        tags: list[str],
-        success_score: float,
-        tool_sequence: list[dict[str, Any]],
+        tags: list[str] | None = None,
+        success_score: float = 0.1,
+        tool_sequence: list[dict[str, Any]] | None = None,
     ) -> str:
         memory = self._resolve_memory_service()
         if memory is None:

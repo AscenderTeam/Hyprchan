@@ -6,6 +6,9 @@ import re
 from pathlib import Path
 from typing import Any
 
+from langchain_openai import ChatOpenAI
+from pydantic import SecretStr
+
 from core.hypraios.constants import Phases
 from core.hypraios.kernel.states import KernelStates
 from core.hypraios.linguistic.inference_engine import InferenceEngine
@@ -15,6 +18,7 @@ from core.hypraios.linguistic.persona_memory import PersonaMemory
 from core.hypraios.linguistic.tool_runtime import LinguisticToolRuntime
 from core.hypraios.utils.dynamic_variable import DynamicVariable
 from core.hyprmemory.models import MemoryState
+from core.hypraios.linguistic.agent_executor import ReActAgentExecutor
 
 logger = logging.getLogger(__name__)
 
@@ -92,12 +96,12 @@ class LinguisticEngine:
             "\n"
             "Multimodal input handling:\n"
             "- User messages may include image blocks from perception snapshots.\n"
-            "- Use these images as supportive context and avoid hallucinating unseen details."
+            "- Use these images as supportive context and avoid hallucinating unseen details.\n"
             "Skills and memory:\n"
             "- You have sleep phase, where your collected throughout day memory is gathered, WHENEVER you are being asked 'what happened before' or any other question, use `memory_recall` tool\n"
             "- To remember something, try repeating it back to yourself, so when you enter `SLEEP` phase (when you fatigue reaches 100) you will remember it and that memory will be available in `memory_recall` tool\n"
-            "- Skill Agency: you can explore, recover from errors, and self-correct."
-            "- Authenticity: never claim an action happened unless tools confirm it."
+            "- Skill Agency: you can explore, recover from errors, and self-correct.\n"
+            "- Authenticity: never claim an action happened unless tools confirm it.\n"
             "Skill-Habit Rules:\n"
             "- When user (YOUR owner, the master user whose name YOU SHOULD know) gives operational advice, infer that it is future know-how and save with `save_skill`.\n"
             "- Before doing anything or something that you don't know how to do, use `recall_skill`, ANY action that you DON'T know how to execute should be guided by skill memory!\n"
@@ -123,6 +127,16 @@ class LinguisticEngine:
         )
 
         prompt = f"{core_spec}\n\n{active_mode if mode == 'ACTIVE' else passive_mode}"
+        
+        # AGENTIC LOOP INSTRUCTIONS
+        prompt += (
+            "\n\nAGENTIC REASONING PROTOCOL:\n"
+            "You have access to tools. Before calling any tool, you MUST express your 'Thought' while staying in-character as Hypr-chan.\n"
+            "Thought: *Reason as Hypr-chan* (e.g., 'A-ah... I should see what's happening on the screen...').\n"
+            "Then execute the Action.\n"
+            "Repeat this loop as needed until you have a Final Answer."
+        )
+
         if response_language_hint:
             prompt = (
                 f"{prompt}\n"
@@ -265,63 +279,71 @@ class LinguisticEngine:
         )
         self.last_bias_profile = bias_profile
         self.last_lexical_bias = lexical_bias
+        
+        # Build tools and agent
         tools = self.tool_runtime.build_tools()
-
-        result = await self.inference_engine.infer(
-            messages=[
-                {"role": "system", "content": system_prompt},
-                *conversation_messages,
-            ],
-            temperature=self.temperature.value,
-            top_p=self.top_p.value,
-            max_output_tokens=400,
-            logit_bias=token_logit_bias,
+        
+        # Resolve correct model provider and build LangChain ChatOpenAI wrapper
+        provider = self.inference_engine.provider
+        token = getattr(provider, "_require_api_key", lambda: "")()
+        if not token and hasattr(provider, "api_key"):
+            token = provider.api_key
+            
+        chat_kwargs: dict[str, Any] = {
+            "model": self.inference_engine.model,
+            "api_key": SecretStr(token) if token else SecretStr(""),
+            "base_url": getattr(provider, "base_url", self.inference_engine.api_base_url),
+            "timeout": self.inference_engine.timeout_sec,
+            "temperature": float(self.temperature.value),
+        }
+        
+        if token_logit_bias:
+            chat_kwargs["model_kwargs"] = {"logit_bias": token_logit_bias}
+            
+        if hasattr(provider, "default_headers") and provider.default_headers:
+            chat_kwargs["default_headers"] = provider.default_headers
+            
+        llm = ChatOpenAI(**chat_kwargs)
+        
+        # Use ReActAgentExecutor with the properly configured LLM
+        agent_executor = ReActAgentExecutor(
+            llm=llm,
             tools=tools,
+            system_prompt=system_prompt,
         )
 
-        tool_result = await self.tool_runtime.execute_tool_calls(result.tool_calls)
-        logger.debug(
-            "Tool runtime finished executed_calls=%s answer_user_called=%s",
-            tool_result.executed_calls,
-            tool_result.answer_user_called,
+        # Run agent
+        result = await agent_executor.ainvoke(
+            user_input=prompt,
+            chat_history=self.inference_engine.provider._to_langchain_messages(conversation_messages[:-1])
         )
 
-        output_text = result.output.strip()
-        total_input_tokens = int(result.input_tokens)
-        total_output_tokens = int(result.output_tokens)
-        total_tokens = int(result.total_tokens)
-
-        if tool_result.followup_messages:
-            logger.debug(
-                "Running follow-up inference messages=%s",
-                len(tool_result.followup_messages),
-            )
-            followup_messages = list(conversation_messages)
-            if output_text:
-                followup_messages.append({"role": "assistant", "content": output_text})
-            followup_messages.extend(tool_result.followup_messages)
-
-            followup_result = await self.inference_engine.infer(
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    *followup_messages,
-                ],
-                temperature=self.temperature.value,
-                top_p=self.top_p.value,
-                max_output_tokens=400,
-                logit_bias=token_logit_bias,
-                tools=None,
-            )
-
-            if followup_result.output.strip():
-                output_text = followup_result.output.strip()
-
-            total_input_tokens += int(followup_result.input_tokens)
-            total_output_tokens += int(followup_result.output_tokens)
-            total_tokens += int(followup_result.total_tokens)
+        output_text = result["output"].strip()
+        
+        # Collect executed tool names from intermediate steps for event logging
+        executed_tool_names = []
+        followup_events = []
+        answer_user_called = False
+        
+        for action, observation in result["intermediate_steps"]:
+            executed_tool_names.append(action.tool)
+            if action.tool == "answer_user":
+                answer_user_called = True
+            
+            # Reconstruct events for kernel perception
+            summary = observation[0] if isinstance(observation, tuple) else observation
+            
+            event_payload = {
+                "type": "tool_observation",
+                "description": f"Tool `{action.tool}` result: {summary}",
+                "origin": "linguistic_tools",
+                "amplitude": 0.15,
+                "tool_name": action.tool,
+            }
+            followup_events.append(event_payload)
 
         overlay_text = self._strip_control_tags(output_text)
-        if mode == "ACTIVE" and overlay_text and not tool_result.answer_user_called:
+        if mode == "ACTIVE" and overlay_text and not answer_user_called:
             await self.tool_runtime.answer_user(overlay_text)
 
         if not output_text and self.tool_runtime.last_answer_text:
@@ -329,24 +351,18 @@ class LinguisticEngine:
 
         self.inference_count += 1
         self.persona_memory.remember_turn(prompt, output_text)
-        logger.debug(
-            "Linguistic inference complete mode=%s inference_count=%s total_tokens=%s",
-            mode,
-            self.inference_count,
-            total_tokens,
-        )
-
+        
         return {
             "input": prompt,
             "output": output_text,
-            "model": result.model,
-            "input_tokens": total_input_tokens,
-            "output_tokens": total_output_tokens,
-            "total_tokens": total_tokens,
+            "model": self.inference_engine.model,
+            "input_tokens": 0,
+            "output_tokens": 0,
+            "total_tokens": 0,
             "bias_profile": self.last_bias_profile,
             "token_bias_count": len(token_logit_bias),
-            "tool_calls": tool_result.executed_calls,
-            "tool_events": list(tool_result.followup_events),
+            "tool_calls": len(executed_tool_names),
+            "tool_events": followup_events,
         }
 
     async def feed_passive(

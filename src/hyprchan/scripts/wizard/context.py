@@ -1,16 +1,17 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Callable
+from typing import Any, Callable, Literal, overload
 
 from .components import (
+    UNDEFINED,
     Choice,
     Component,
     Confirm,
     Input,
     SecretInput,
-    UNDEFINED,
 )
+
 
 @dataclass(slots=True, frozen=True)
 class DynamicStepRequest:
@@ -85,6 +86,14 @@ class WizardContext:
                 default=default,
             )
         )
+
+    @overload
+    def choice(self, name: str, options: list[str]) -> str: ...
+
+    @overload
+    def choice(
+        self, name: str, options: list[str], *, multiple: Literal[True] = True
+    ) -> list[str]: ...
 
     def choice(
         self,

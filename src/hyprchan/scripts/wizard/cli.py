@@ -5,6 +5,7 @@ from typing import Annotated
 
 from ascender.core.cli_engine import Command, GenericCLI, Handler
 from ascender.core.di.abc.base_injector import Injector
+from setup.master import InstallationMaster
 
 from . import Choice, Confirm, Input, MainInstaller, WizardContext, step
 
@@ -62,6 +63,19 @@ class WizardCLI(GenericCLI):
     def __init__(self, injector: Injector) -> None:
         super().__init__()
         self.injector = injector
+
+    @Handler("setup", description="Run the hyprchan setup wizard.")
+    async def setup(self) -> None:
+        installer = InstallationMaster()
+        result = await installer.run()
+        if result is None:
+            print("Wizard exited before returning a result.")
+            return
+        print(f"Wizard finished: {result.status.value}")
+        if result.status.value != "completed":
+            print(f"Stopped at step: {result.failed_step}")
+            if result.error:
+                print(f"Reason: {result.error}")
 
     @Handler("meme", description="Run the meme wizard (3 steps + rickroll finale).")
     def meme(self) -> None:

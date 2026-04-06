@@ -27,7 +27,14 @@ class WizardRenderer(Protocol):
 
     def start(self, config: WizardDisplayConfig, steps: list[StepState]) -> None: ...
     def stop(self) -> None: ...
-    def refresh(self, config: WizardDisplayConfig, steps: list[StepState]) -> None: ...
+    def refresh(
+        self,
+        config: WizardDisplayConfig,
+        steps: list[StepState],
+        force: bool = False,
+    ) -> None: ...
+    def print_step_enter(self, step: StepState, index: int, total: int) -> None: ...
+    def print_step_result(self, step: StepState) -> None: ...
     def print_success(self, message: str) -> None: ...
 
 
@@ -75,7 +82,10 @@ class Wizard:
                 state.error = None
                 self.context.current_step_key = step.key
 
+                # Re-render steps overview at start of each step to handle 'clear'
                 self.renderer.refresh(display, self._step_states)
+                self.renderer.print_step_enter(state, index, len(self._steps))
+
                 outcome = await self._execute_step(step, state, display)
                 if outcome == "abort":
                     return WizardResult(
@@ -85,9 +95,9 @@ class Wizard:
                         error=state.error,
                     )
 
+                self.renderer.print_step_result(state)
                 index += 1
 
-            self.renderer.refresh(display, self._step_states)
             self.renderer.print_success("Setup flow completed.")
             return WizardResult(status=WizardStatus.COMPLETED, state=dict(self.context.state))
         finally:
@@ -111,7 +121,10 @@ class Wizard:
                 state.error = None
                 self.context.current_step_key = step.key
 
+                # Re-render steps overview at start of each step to handle 'clear'
                 self.renderer.refresh(display, self._step_states)
+                self.renderer.print_step_enter(state, index, len(self._steps))
+
                 outcome = self._execute_step_sync(step, state, display)
                 if outcome == "abort":
                     return WizardResult(
@@ -120,9 +133,10 @@ class Wizard:
                         failed_step=step.key,
                         error=state.error,
                     )
+
+                self.renderer.print_step_result(state)
                 index += 1
 
-            self.renderer.refresh(display, self._step_states)
             self.renderer.print_success("Setup flow completed.")
             return WizardResult(status=WizardStatus.COMPLETED, state=dict(self.context.state))
         finally:
@@ -143,22 +157,20 @@ class Wizard:
                     self.context.state[step.key] = resolved
                 state.status = StepStatus.COMPLETED
                 state.error = None
-                self.renderer.refresh(display, self._step_states)
                 return "ok"
             except Exception as exc:  # noqa: BLE001
                 state.status = StepStatus.FAILED
                 state.error = str(exc)
-                self.renderer.refresh(display, self._step_states)
+                self.renderer.refresh(display, self._step_states, force=True)
 
                 action = self._ask_failure_action(step.name, str(exc))
                 if action == "retry":
                     state.status = StepStatus.RUNNING
                     state.error = None
-                    self.renderer.refresh(display, self._step_states)
+                    self.renderer.refresh(display, self._step_states, force=True)
                     continue
                 if action == "skip":
                     state.status = StepStatus.SKIPPED
-                    self.renderer.refresh(display, self._step_states)
                     return "skip"
                 return "abort"
 
@@ -177,22 +189,20 @@ class Wizard:
                     self.context.state[step.key] = resolved
                 state.status = StepStatus.COMPLETED
                 state.error = None
-                self.renderer.refresh(display, self._step_states)
                 return "ok"
             except Exception as exc:  # noqa: BLE001
                 state.status = StepStatus.FAILED
                 state.error = str(exc)
-                self.renderer.refresh(display, self._step_states)
+                self.renderer.refresh(display, self._step_states, force=True)
 
                 action = self._ask_failure_action(step.name, str(exc))
                 if action == "retry":
                     state.status = StepStatus.RUNNING
                     state.error = None
-                    self.renderer.refresh(display, self._step_states)
+                    self.renderer.refresh(display, self._step_states, force=True)
                     continue
                 if action == "skip":
                     state.status = StepStatus.SKIPPED
-                    self.renderer.refresh(display, self._step_states)
                     return "skip"
                 return "abort"
 
@@ -234,11 +244,7 @@ class Wizard:
         display: WizardDisplayConfig,
     ) -> Any:
         if inspect.isawaitable(result):
-            task = asyncio.ensure_future(result)
-            while not task.done():
-                self.renderer.refresh(display, self._step_states)
-                await asyncio.sleep(0.08)
-            return await task
+            return await result
         return result
 
     def _resolve_step_result_sync(self, result: object) -> Any:
