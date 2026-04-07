@@ -150,12 +150,12 @@ class InstallationMaster(Wizard):
         panel = Panel(
             (
                 "[cyan]HyprMemory[/] is a brain-inspired memory system for hyprchan which allows for her to remember (factual, episodic & procedural) memories and collect information into a long-term memory.\n"
-                "- **STM (Short-term)**: Redis/in-memory TTL store for raw perception + recent items.\n"
-                "- **LTM (Long-term)**: Postgres storage for episodes, semantic facts, concepts, graph edges, and dream logs.\n"
-                "- **WM (Working-memory)**: Prompt blocks composed from recall results.\n"
-                "- **Retrieval**: Hybrid dense + lexical + graph spreading activation with emotion-aware reranking.\n"
-                "- **Consolidation**: Sleep-time STM -> LTM distillation with fatigue-bounded processing.\n"
-                "- **Dreams**: Optional LLM judge generates a dream fragment as a consolidation side-effect.\n\n"
+                "- [bold]STM (Short-term)[/]: Redis/in-memory TTL store for raw perception + recent items.\n"
+                "- [boldLTM (Long-term)[/]: Postgres storage for episodes, semantic facts, concepts, graph edges, and dream logs.\n"
+                "- [bold]WM (Working-memory)[/]: Prompt blocks composed from recall results.\n"
+                "- [bold]Retrieval[/]: Hybrid dense + lexical + graph spreading activation with emotion-aware reranking.\n"
+                "- [bold]Consolidation[/]: Sleep-time STM -> LTM distillation with fatigue-bounded processing.\n"
+                "- [bold]Dreams[/]: Optional LLM judge generates a dream fragment as a consolidation side-effect.\n\n"
                 "NOTE: [yellow]Hypr-chan will sleep if fatigue will creep high up.[/]\n"
             ),
             title="Hypr-memory setup",

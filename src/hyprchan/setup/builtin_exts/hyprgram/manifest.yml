@@ -1,9 +1,0 @@
-version: "0.1.0"
-name: "hyprgram"
-description: "A telegram integration for hyprchan so she can communicate with you via telegram, and also talk to the world via telegram (with sandbox of course)."
-author: "Ascender Team"
-homepage: "https://ascender-ai.com"
-min_hyprchan_version: "0.1.0"
-requirements:
-  - aiogram 
-
