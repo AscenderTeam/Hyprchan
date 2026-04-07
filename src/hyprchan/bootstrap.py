@@ -31,6 +31,7 @@ try:
 except ModuleNotFoundError:
     provideAgentHub = None
 
+from alp import provideALP
 from attp_core.rs_api import Limits
 from shared.attp import provideAttpClient
 from shared.database_runtime import resolve_database_connection
@@ -63,6 +64,7 @@ providers = [
     useCLI(ExtensionsCLI),
     useCLI(HyprTuiCLI),
     useCLI(WizardCLI),
+    provideALP(),
     provideAttpClient(
         AGENTHUB_TOKEN,
         AGENTHUB_ORG,

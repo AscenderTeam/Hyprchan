@@ -8,9 +8,9 @@ from typing import Annotated, Any
 
 from ascender.common import Injectable
 from ascender.core import Inject
-
 from core.animations.engine import AnimationEngine
 from core.hypraios.constants import Phases
+from core.hypraios.hooks.manager import HookManager
 from core.hypraios.kernel.event_compaction import (
     EventCompacter,
     EventCompactionRequest,
@@ -26,7 +26,6 @@ from core.hypraios.kernel.states import KernelStates
 from core.hypraios.linguistic.linguistic_engine import LinguisticEngine
 from core.hypraios.mood.phase_engine import PhaseEngine
 from core.hypraios.perception.watcher import PerceptionWatcher
-from core.hypraios.hooks.manager import HookManager
 from core.hypraios.utils.dynamic_variable import DynamicVariable
 from core.hypraios.utils.fault_adaptive_parameter import FaultAdaptiveParameter
 from core.hyprmemory.models import MemoryState
@@ -803,7 +802,11 @@ class HyprAIOSKernel:
                 continue
             origin = str(event.get("origin", "")).strip().lower()
             event_type = str(event.get("type", "")).strip().lower()
-            if origin not in {"communication_controller", "hyprgram", "hyprchan_agent"} and event_type not in {
+            if origin not in {
+                "communication_controller",
+                "hyprgram",
+                "hyprchan_agent",
+            } and event_type not in {
                 "communication_message",
                 "agent_response",
             }:
@@ -856,7 +859,11 @@ class HyprAIOSKernel:
 
             event_type = str(event.get("type", "")).strip().lower()
             origin = str(event.get("origin", "")).strip().lower()
-            if event_type in {"communication_message", "agent_response", "tool_observation"}:
+            if event_type in {
+                "communication_message",
+                "agent_response",
+                "tool_observation",
+            }:
                 return True
             if origin in {"communication_controller", "hyprgram", "linguistic_tools"}:
                 return True
@@ -1074,11 +1081,11 @@ class HyprAIOSKernel:
         self._schedule_next_passive_ponder()
         self.logger.debug(
             "Inference cycle complete phase=%s mood=%s tokens=%s",
-            payload["phase"],
-            payload["mood"],
-            payload["total_tokens"],
+            payload["phase"],  # pyright: ignore[reportArgumentType]
+            payload["mood"],  # pyright: ignore[reportArgumentType]
+            payload["total_tokens"],  # pyright: ignore[reportArgumentType]
         )
-        return payload
+        return payload  # pyright: ignore[reportReturnType]
 
     async def communicate(
         self, text: str, *, timeout_sec: float = 20.0
@@ -1114,6 +1121,7 @@ class HyprAIOSKernel:
                 "event_id": event_id,
                 "response": response,
             }
+
         except asyncio.TimeoutError:
             if event_id in self._response_waiters:
                 self._response_waiters.pop(event_id, None)
@@ -1204,9 +1212,7 @@ class HyprAIOSKernel:
                 await loader.load(name)
                 self.logger.info("Loaded extension: %s", name)
             except Exception as exc:
-                self.logger.exception(
-                    "Extension load failed for %s: %s", name, exc
-                )
+                self.logger.exception("Extension load failed for %s: %s", name, exc)
 
     async def shutdown(self):
         self._shutting_down = True
@@ -1571,9 +1577,7 @@ class HyprAIOSKernel:
                     self.logger.debug("Passive ponder skipped by hook")
                     inputs_for_inference = None
                 else:
-                    updated_inputs = ponder_payload.get(
-                        "inputs", inputs_for_inference
-                    )
+                    updated_inputs = ponder_payload.get("inputs", inputs_for_inference)
                     if isinstance(updated_inputs, list):
                         inputs_for_inference = list(updated_inputs)
                 if inputs_for_inference and not can_run_now:

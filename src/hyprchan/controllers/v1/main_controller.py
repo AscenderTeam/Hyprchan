@@ -1,11 +1,11 @@
 import asyncio
 from pathlib import Path
 
+from alp import ALPReceiver
 from ascender.core import Controller, Get, Post
+from core.hypraios.kernel.kernel import HyprAIOSKernel
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field
-
-from core.hypraios.kernel.kernel import HyprAIOSKernel
 
 
 class CommunicationRequest(BaseModel):
@@ -71,3 +71,14 @@ class MainController:
     async def communication_events(self, since_id: int = 0, limit: int = 200):
         await self._ensure_booted()
         return self.kernel.events_view(since_id=since_id, limit=limit)
+
+    @ALPReceiver("connect")
+    async def on_connect(self, sid: str):
+        pass
+
+    @ALPReceiver("message")
+    async def on_alp_message(self, sid: str, data: CommunicationRequest):
+        await self._ensure_booted()
+        return await self.kernel.communicate(
+            data.text, timeout_sec=float(data.timeout_sec)
+        )

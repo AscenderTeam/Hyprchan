@@ -18,6 +18,8 @@ class ConfigAssembler:
         self.personalization_path = self.config_dir / "personalization.yaml"
         self.env_path = self.config_dir / ".env"
 
+        self.selected_model = None
+
     def start_personalization(self):
         if not self.personalization_path.exists():
             self.personalization_path.touch()
@@ -156,8 +158,9 @@ class ConfigAssembler:
         return "openai"
 
     def select_model(self, model: str):
+        self.selected_model = model.strip()
         provider = self._get_current_provider()
-        model = model.strip()
+        model = self.selected_model
 
         # 1. Update personalization.yml
         config = {}
@@ -205,6 +208,54 @@ class ConfigAssembler:
 
         if not found:
             new_env_lines.append(f"{target_key}={target_value}")
+
+        self.env_path.write_text("\n".join(new_env_lines) + "\n", encoding="utf-8")
+
+    def set_api_key(self, api_key: str):
+        provider = self._get_current_provider()
+        api_key = api_key.strip()
+
+        # Update .env
+        env_lines = []
+        if self.env_path.exists():
+            try:
+                env_lines = self.env_path.read_text(encoding="utf-8").splitlines()
+            except Exception:
+                pass
+
+        keys = {
+            "openai": "OPENAI_API_KEY",
+            "gemini": "GEMINI_API_KEY",
+            "openrouter": "OPENROUTER_API_KEY",
+        }
+        target_key = keys.get(provider, "OPENAI_API_KEY")
+
+        # If it's a codex model and we're getting an OAuth token, use OPENAI_OAUTH_TOKEN
+        if (
+            provider == "openai"
+            and self.selected_model
+            and "-codex" in self.selected_model
+        ):
+            target_key = "OPENAI_OAUTH_TOKEN"
+
+        new_env_lines = []
+        found = False
+        for line in env_lines:
+            stripped = line.strip()
+            if not stripped or stripped.startswith("#") or "=" not in stripped:
+                new_env_lines.append(line)
+                continue
+
+            parts = line.split("=", 1)
+            key = parts[0].strip()
+            if key == target_key:
+                new_env_lines.append(f"{target_key}={api_key}")
+                found = True
+            else:
+                new_env_lines.append(line)
+
+        if not found:
+            new_env_lines.append(f"{target_key}={api_key}")
 
         self.env_path.write_text("\n".join(new_env_lines) + "\n", encoding="utf-8")
 
@@ -258,3 +309,65 @@ class ConfigAssembler:
             return ["qwen/qwen3.6-plus:free", "moonshotai/kimi-k2.5 (recommended)"]
 
         return []
+
+    def enable_hyprmemory(self, enabled: bool = True):
+        """Enables or disables HyprMemory and its related features in both personalization.yaml and .env."""
+        # 1. Update personalization.yml
+        config = {}
+        if self.personalization_path.exists():
+            try:
+                content = self.personalization_path.read_text(encoding="utf-8").strip()
+                if content:
+                    config = yaml.safe_load(content) or {}
+            except Exception:
+                pass
+
+        if not isinstance(config, dict):
+            config = {}
+
+        if "memory" not in config or not isinstance(config["memory"], dict):
+            config["memory"] = {}
+
+        config["memory"]["enabled"] = enabled
+        config["memory"]["read_active"] = enabled
+        config["memory"]["sleep_enabled"] = enabled
+        config["memory"]["buffer_limit"] = 3
+
+        self.personalization_path.write_text(
+            str(yaml.dump(config, default_flow_style=False, sort_keys=False)),
+            encoding="utf-8",
+        )
+
+        # 2. Update .env
+        env_lines = []
+        if self.env_path.exists():
+            try:
+                env_lines = self.env_path.read_text(encoding="utf-8").splitlines()
+            except Exception:
+                pass
+
+        flags = {
+            "HYPRMEMORY_ENABLED": "1" if enabled else "0",
+            "HYPRMEMORY_READ_ACTIVE": "1" if enabled else "0",
+            "HYPRMEMORY_SLEEP_ENABLED": "1" if enabled else "0",
+            "HYPRMEMORY_BUFFER_LIMIT": "3",
+        }
+
+        new_env_lines = []
+        found_keys = set()
+
+        for line in env_lines:
+            stripped = line.strip()
+            if "=" in line and not stripped.startswith("#"):
+                key = line.split("=", 1)[0].strip()
+                if key in flags:
+                    new_env_lines.append(f"{key}={flags[key]}")
+                    found_keys.add(key)
+                    continue
+            new_env_lines.append(line)
+
+        for key, value in flags.items():
+            if key not in found_keys:
+                new_env_lines.append(f"{key}={value}")
+
+        self.env_path.write_text("\n".join(new_env_lines) + "\n", encoding="utf-8")
