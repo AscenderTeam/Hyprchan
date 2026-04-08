@@ -105,5 +105,5 @@ Hyprchan comes with a powerful CLI for management and interaction.
 ---
 
 <div align="center">
-  <sub>Built with the <b>Ascender Framework</b>.</sub>
+  <sub>Built with the <b>Ascender Framework</b>. Maintained by <b>Ascender Team</b> and <b>Hyprland Community Enthusiasts</b>.</sub>
 </div>
