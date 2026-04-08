@@ -76,16 +76,3 @@ class WizardCLI(GenericCLI):
             print(f"Stopped at step: {result.failed_step}")
             if result.error:
                 print(f"Reason: {result.error}")
-
-    @Handler("meme", description="Run the meme wizard (3 steps + rickroll finale).")
-    def meme(self) -> None:
-        installer = MemeInstaller()
-        result = installer.run_sync()
-        if result is None:
-            print("Wizard exited before returning a result.")
-            return
-        print(f"Wizard finished: {result.status.value}")
-        if result.status.value != "completed":
-            print(f"Stopped at step: {result.failed_step}")
-            if result.error:
-                print(f"Reason: {result.error}")
