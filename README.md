@@ -1,215 +1,109 @@
-# Ascender Framework Project
+<div align="center">
 
-## LLM Provider Target (single env var)
+<img src="public/assets/readme/hyprchan_pixel.png" width="250" alt="Hyprchan Pixel Art">
 
-Use `INFERENCE_TARGET` with the format `provider:model`.
+# 🌌 HyprAI OS: Hyprchan
 
-Examples:
+**The homeostatic system companion that lives in your Hyprland workspace.**
 
-```bash
-INFERENCE_TARGET=openai:gpt-4o-mini
-INFERENCE_TARGET=gemini:gemini-2.5-flash
-INFERENCE_TARGET=openrouter:anthropic/claude-3.5-sonnet
-```
-
-Provider keys:
-- `OPENAI_OAUTH_TOKEN` (or `OPENAI_API_KEY`) for `openai`
-- `GEMINI_API_KEY` (or `GOOGLE_API_KEY`) for `gemini`
-- `OPENROUTER_API_KEY` for `openrouter`
-
-## Overview
-
-This project is built using the **Ascender Framework**, a structured FastAPI-based framework designed for modular and scalable applications.
+[![Python Version](https://img.shields.io/badge/python-3.11%2B-blue.svg?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=for-the-badge&logo=fastapi)](https://fastapi.tiangolo.com/)
+[![Hyprland](https://img.shields.io/badge/Hyprland-CC1111?style=for-the-badge&logo=linux&logoColor=white)](https://hyprland.org/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-336791?style=for-the-badge&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+[![License](https://img.shields.io/badge/license-MIT-green.svg?style=for-the-badge)](LICENSE)
 
 ---
 
-## Getting Started
+**Hyprchan** is a homeostatic system entity driven by a continuous kernel loop, multimodal perception, and a layered memory stack. She observes your workspaces, listens to your voice, and reacts to your presence with dynamic mood shifts and pixel-art animations.
 
-### Prerequisites
+[**Quick Start**](#-quick-start) • [**Features**](#-features) • [**Architecture**](#-architecture) • [**Commands**](#-cli-commands)
 
-Ensure you have the following dependencies installed:
+</div>
 
-- **Python 3.11 or higher**
-- **Poetry** (for dependency management)
-- **pip** (Python's package manager)
+---
 
-### Installation
+## 📸 Visuals
 
-1. **Install Poetry** (if not already installed):
+<div align="center">
+  <table border="0">
+    <tr>
+      <td width="50%">
+        <img src="public/assets/readme/tui_screenshot.png" width="100%" alt="Rich TUI Interface">
+        <p align="center"><i>Live Rich TUI with telemetry and memory snapshots.</i></p>
+      </td>
+      <td width="50%">
+        <img src="public/assets/readme/overlay_example.png" width="100%" alt="Hyprland Overlay">
+        <p align="center"><i>Animated Hyprland overlay with tool-calling capabilities.</i></p>
+      </td>
+    </tr>
+  </table>
+</div>
 
-   ```bash
-   pip install poetry
-   ```
+---
 
-2. **Configure Poetry to use virtual environments**:
+## 🚀 Quick Start
 
-   ```bash
-   poetry config virtualenvs.create true
-   ```
+Getting Hyprchan running is simple. Just install and run the setup wizard.
 
-3. **Install project dependencies**:
-
-   ```bash
-   poetry install
-   ```
-
-4. **Run development server**:
-     
-    ```bash
-    ascender run serve
-    ```
-
-    On `ascender run serve`, the app now auto-manages storage:
-    - If Docker is available, it auto-starts an embedded Postgres container (`pgvector/pgvector:pg16`).
-    - If Docker is unavailable, it falls back to SQLite (`database.db`) automatically.
-
-    Optional env overrides:
-
-    ```bash
-    HYPRCHAN_DB_AUTOSTART=true
-    HYPRCHAN_PG_CONTAINER=hyprchan-embedded-postgres
-    HYPRCHAN_PG_IMAGE=pgvector/pgvector:pg16
-    HYPRCHAN_PG_HOST=127.0.0.1
-    HYPRCHAN_PG_PORT=55432
-    HYPRCHAN_PG_USER=postgres
-    HYPRCHAN_PG_PASSWORD=mysecretpassword
-    HYPRCHAN_PG_DB=hyprchan
-    HYPRCHAN_SQLITE_PATH=database.db
-    ```
-
-If everything works, you're done!
-
-## OpenAI OAuth Setup
-
-HyprAI OS now uses OpenAI bearer-token authorization (OAuth style) for inference.
-
-Create a `.env` file in the project root with:
-
+### 1. Installation
 ```bash
-INFERENCE_TARGET=openai:gpt-4o-mini
-OPENAI_TIMEOUT_SECONDS=30
-
-# OPENAI provider
-OPENAI_OAUTH_TOKEN=your_oauth_bearer_token
-# or OPENAI_API_KEY=... as fallback
-OPENAI_API_BASE_URL=https://api.openai.com/v1
-
-# GEMINI provider (OpenAI-compatible endpoint)
-GEMINI_API_KEY=your_gemini_api_key
-GEMINI_API_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai
-
-# OPENROUTER provider
-OPENROUTER_API_KEY=your_openrouter_api_key
-OPENROUTER_API_BASE_URL=https://openrouter.ai/api/v1
-OPENROUTER_HTTP_REFERER=https://your.site
-OPENROUTER_X_TITLE=Hyprchan
+pip install hyprchan
 ```
 
-The kernel loop is booted by the window events service on startup. You can also force USER-active state via:
-
-`GET /v1/summon`
-
-## Rich Live TUI
-
-Run the live Rich terminal interface with verbose state explanations:
-
+### 2. Setup Wizard
+Run the interactive setup to configure your LLM provider, memory (Postgres/Redis), and system services.
 ```bash
-python src/hypraios_tui.py --model gpt-4o-mini
+hyprchan wizard setup
 ```
 
-Inside the TUI, commands are:
-
-- `/help` for command help
-- `/state` for an inline scalar snapshot
-- `/memory` for recent narrative memory snapshot
-- `/scroll <up|down|pageup|pagedown|top|bottom> [n]` to navigate chat history
-- `/follow <on|off>` to toggle live auto-follow of new chat lines
-- `/clear` to clear the chat log
-- `/reset` to reset scalar state/context
-- `/quit` to exit
-
-The inference layer now applies dynamic token-level `logit_bias` derived from state scalars (`v`, `e`) using mood profiles (sparkly/cheerful/irritated/angry) with bounded intensity.
-
-When fatigue reaches SLEEP, the TUI now shows a live memory-consolidation sequence with periodic one-way `<system>` telemetry and Hypr-chan dream/reflection outputs until consolidation completes.
-
-## Webcam Perception (OpenCV)
-
-HyprAI OS can read your webcam feed as a perception source and emit raw events for face presence and motion.
-
-Env toggles:
-
+### 3. Launch the TUI
+Once setup is complete, wake her up and start chatting:
 ```bash
-WEBCAM_VISION_ENABLED=true
-WEBCAM_DEVICE_INDEX=0
-WEBCAM_POLL_INTERVAL_SEC=0.25
-WEBCAM_MIN_MOTION_RATIO=0.02
-WEBCAM_MIN_FACE_RATIO=0.002
-WEBCAM_MIN_EMIT_INTERVAL_SEC=1.2
-WEBCAM_AUTO_INSTALL_OPENCV=true
-WEBCAM_AUTO_FIND_DEVICE=true
-WEBCAM_MAX_DEVICE_INDEX=4
-MULTIMODAL_SNAPSHOT_ENABLED=true
-MULTIMODAL_SNAPSHOT_INTERVAL_SEC=120
-SPEECH_PERCEPTION_ENABLED=true
-SPEECH_INPUT_DEVICE=
-SPEECH_LANGUAGE=auto
-SPEECH_FRAME_DURATION_MS=30
-SPEECH_MIN_SPEECH_SEC=0.4
-SPEECH_END_SILENCE_SEC=0.8
-SPEECH_MAX_SPEECH_SEC=15
-SPEECH_PRE_ROLL_SEC=0.3
-SPEECH_MIN_START_DBFS=-38
-SPEECH_MIN_CONTINUE_DBFS=-43
+hyprchan tui
 ```
 
-When `SPEECH_LANGUAGE=auto`, Whisper auto-detects spoken language and passes a
-language hint into ACTIVE inference so replies follow the user's spoken language.
+---
 
-API endpoints:
+## ✨ Features
 
-- `GET /v1/events/vision/status`
-- `GET /v1/events/vision/scan`
-- `GET /v1/events/speech/status`
+*   **🧠 Layered Memory Stack:** Brain-inspired architecture with **Short-Term (Redis)**, **Long-Term (Postgres + pgvector)**, and **Working Memory**.
+*   **🌙 Sleep & Dreaming:** Automatically distills events into semantic facts during consolidation cycles. She literally *dreams* about your interactions.
+*   **🎭 Dynamic Mood Dynamics:** Internal scalars (`valence`, `energy`, `fatigue`) drive her personality. Sustained interaction or rudeness shifts her stance in real-time.
+*   **👁️ Multimodal Perception:**
+    *   **Vision:** Webcam face/motion detection and periodic desktop snapshots.
+    *   **Audio:** Continuous speech-to-text via **Faster-Whisper** with auto-language detection.
+    *   **OS:** Monitors Hyprland workspace switches and window focus events.
+*   **🎨 LLM-Driven Animations:** The assistant can trigger poses (`idle`, `depressed`, `sleeping`) and move herself across your screen using custom tools.
 
-## Web Communication Source
+---
 
-Serve mode now includes a user communication perception source and event feed:
+## 🏗️ Architecture
 
-- `GET /v1/communication` - HTML communication client.
-- `POST /v1/communication/send` - send user text as a perception event (`communication_controller`).
-- `GET /v1/communication/events` - view all events and agent responses.
+Hyprchan operates on a **Continuous Kernel Loop** where perception preempts cognition.
 
-Core behavior:
+### The Perception-to-Mood Pipeline
+1.  **Controllers:** Emit raw OS/Voice/Vision events.
+2.  **Toggle Detector:** Filters high-frequency "noise" from actual activity.
+3.  **Activity Detector:** Calculates macro-pressure on her attention.
+4.  **Mood Engine:** Updates internal scalars based on interaction quality ($d$ delta) and phase fatigue.
+5.  **Logit Bias:** Mood scalars are projected into token-level biases, subtly altering her speech patterns.
 
-- Non-user perception sources are buffered into context and event logs.
-- User-origin events trigger inference immediately.
-- Passive pondering runs in core kernel after 40s of no user communication.
-- Every 2 minutes, a PerceptionSource captures a full-screen image (downscaled x2) and latest webcam frame; both are attached as multimodal content on subsequent inferences.
-- Snapshot files are written under `runtime/perception/`.
-- A speech PerceptionSource continuously listens on default microphone (or `SPEECH_INPUT_DEVICE` override), detects utterances by volume + silence boundaries, and emits them as `communication_controller` events to trigger immediate inference.
+---
 
-Speech debug CLI:
+## 💻 CLI Commands
 
-```bash
-python src/speech_debug_cli.py --list-devices
-python src/speech_debug_cli.py
-python src/speech_debug_cli.py --device "USB" --no-transcribe
-```
+Hyprchan comes with a powerful CLI for management and interaction.
 
-Agent context persistence:
+| Command | Description |
+| :--- | :--- |
+| `hyprchan wizard setup` | Launches the interactive configuration master. |
+| `hyprchan tui` | Opens the live Rich terminal interface. |
+| `hyprchan serve` | Starts the FastAPI backend daemon. |
+| `hyprchan extensions` | Manage built-in extensions (Hyprgram, HyprX). |
+| `hyprchan status` | Check the health of the kernel and perception services. |
 
-- Context, event logs, responses, and persona memory are saved to `agent_memory.json` at repository root and reloaded on boot.
+---
 
-## LLM Animation Tools
-
-HyprAI OS inference now exposes LangChain tools for the overlay renderer:
-
-- `set_animation_pose` - picks one loaded pose from the current animation set.
-- `move_self` - moves Hyprchan by directional delta and sets sprite scale coefficient in range `0..2`.
-- `screenshot` - captures a live screenshot and returns it as multimodal tool output.
-- `camera` - captures a live webcam photo and returns it as multimodal tool output.
-- `answer_user` - renders user-facing text in white on top of Hyprchan figure.
-
-Tool multimodal outputs are persisted into context/event history as `tool_observation` events before the assistant reply is saved, so image evidence remains recallable in later turns.
-
-If the model returns plain text without calling `answer_user`, HyprAI OS mirrors that text to the overlay automatically.
+<div align="center">
+  <sub>Built with the <b>Ascender Framework</b>.</sub>
+</div>
