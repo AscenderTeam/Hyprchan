@@ -371,3 +371,84 @@ class ConfigAssembler:
                 new_env_lines.append(f"{key}={value}")
 
         self.env_path.write_text("\n".join(new_env_lines) + "\n", encoding="utf-8")
+
+    def enable_extensions(self, extensions: list[str]):
+        """Enables extensions in both personalization.yaml and .env."""
+        # 1. Update personalization.yml
+        config = {}
+        if self.personalization_path.exists():
+            try:
+                content = self.personalization_path.read_text(encoding="utf-8").strip()
+                if content:
+                    config = yaml.safe_load(content) or {}
+            except Exception:
+                pass
+
+        if not isinstance(config, dict):
+            config = {}
+
+        if "extensions" not in config or not isinstance(config["extensions"], dict):
+            config["extensions"] = {}
+
+        config["extensions"]["enabled"] = extensions
+
+        self.personalization_path.write_text(
+            str(yaml.dump(config, default_flow_style=False, sort_keys=False)),
+            encoding="utf-8",
+        )
+
+        # 2. Update .env
+        env_lines = []
+        if self.env_path.exists():
+            try:
+                env_lines = self.env_path.read_text(encoding="utf-8").splitlines()
+            except Exception:
+                pass
+
+        target_key = "HYPRCHAN_EXTENSIONS_ENABLED"
+        target_value = ",".join(extensions)
+
+        new_env_lines = []
+        found = False
+        for line in env_lines:
+            stripped = line.strip()
+            if "=" in line and not stripped.startswith("#"):
+                key = line.split("=", 1)[0].strip()
+                if key == target_key:
+                    new_env_lines.append(f"{target_key}={target_value}")
+                    found = True
+                    continue
+            new_env_lines.append(line)
+
+        if not found:
+            new_env_lines.append(f"{target_key}={target_value}")
+
+        self.env_path.write_text("\n".join(new_env_lines) + "\n", encoding="utf-8")
+
+    def set_env_vars(self, vars_dict: dict[str, str]):
+        """Sets multiple environment variables in the .env file."""
+        env_lines = []
+        if self.env_path.exists():
+            try:
+                env_lines = self.env_path.read_text(encoding="utf-8").splitlines()
+            except Exception:
+                pass
+
+        new_env_lines = []
+        found_keys = set()
+
+        for line in env_lines:
+            stripped = line.strip()
+            if "=" in line and not stripped.startswith("#"):
+                key = line.split("=", 1)[0].strip()
+                if key in vars_dict:
+                    new_env_lines.append(f"{key}={vars_dict[key]}")
+                    found_keys.add(key)
+                    continue
+            new_env_lines.append(line)
+
+        for key, value in vars_dict.items():
+            if key not in found_keys:
+                new_env_lines.append(f"{key}={value}")
+
+        self.env_path.write_text("\n".join(new_env_lines) + "\n", encoding="utf-8")

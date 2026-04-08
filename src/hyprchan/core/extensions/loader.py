@@ -8,7 +8,7 @@ from typing import Any
 
 import yaml
 
-from config.paths import extensions_dir, repo_root
+from config.paths import builtins_extensions_dir, extensions_dir, repo_root
 from core.extensions.executor import ExtensionExecutor
 from core.extensions.errors import ExtensionNotLoaded
 from core.extensions.extension import HyprchanExtension
@@ -115,12 +115,27 @@ class ExtensionLoader:
             sys.modules.pop(loaded.module_name, None)
 
     def _resolve_extension_dir(self, extension: str) -> Path:
+        # 1. Direct path (for local dev)
         candidate = Path(extension).expanduser()
         if candidate.exists():
             return candidate.resolve()
+
+        # 2. User config (~/.config/hyprchan/extensions)
+        user_candidate = (extensions_dir() / extension).resolve()
+        if user_candidate.exists():
+            return user_candidate
+
+        # 3. Built-ins (src/hyprchan/builtins/extensions)
+        builtins_candidate = (builtins_extensions_dir() / extension).resolve()
+        if builtins_candidate.exists():
+            return builtins_candidate
+
+        # 4. Old repo candidate (fallback for backward compatibility in source runs)
         repo_candidate = (repo_root() / extension).expanduser()
         if repo_candidate.exists():
             return repo_candidate.resolve()
+
+        # Final fallback
         return (extensions_dir() / extension).resolve()
 
     def _prepare_workspace(

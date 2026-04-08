@@ -4,31 +4,33 @@ Please do not store sensitive information in this file, this file is not for sto
 """
 
 import os
-
-from config.personalization import load_personalization_config
 from pathlib import Path
+
+from config.paths import env_paths
+from config.personalization import load_personalization_config
 
 
 def _hydrate_env_from_dotenv():
-    root = Path(__file__).resolve().parent.parent.parent
-    env_file = root / ".env"
-    if not env_file.exists():
-        return
-
-    try:
-        lines = env_file.read_text(encoding="utf-8").splitlines()
-    except OSError:
-        return
-
-    for line in lines:
-        stripped = line.strip()
-        if not stripped or stripped.startswith("#") or "=" not in stripped:
+    # Priority order: Shell Env > User Config .env > Repo Root .env
+    # We load in priority order and only set if key is not already in os.environ
+    for env_file in reversed(env_paths()):
+        if not env_file.exists():
             continue
-        key, value = stripped.split("=", 1)
-        key = key.strip()
-        if not key or key in os.environ:
+
+        try:
+            lines = env_file.read_text(encoding="utf-8").splitlines()
+        except OSError:
             continue
-        os.environ[key] = value.strip().strip('"').strip("'")
+
+        for line in lines:
+            stripped = line.strip()
+            if not stripped or stripped.startswith("#") or "=" not in stripped:
+                continue
+            key, value = stripped.split("=", 1)
+            key = key.strip()
+            if not key or key in os.environ:
+                continue
+            os.environ[key] = value.strip().strip('"').strip("'")
 
 
 _hydrate_env_from_dotenv()
@@ -80,9 +82,6 @@ MAX_THRESHOLD = 12
 MIN_WINDOW = 0.25
 MAX_WINDOW = 2.0
 
-AGENTHUB_TOKEN = os.getenv("AGENTHUB_TOKEN", "unspecified")
-AGENTHUB_ORG = int(os.getenv("AGENTHUB_ORG", "1"))
-AGENTHUB_MAX_PAYLOAD = 10 * 1024 * 1024
 
 _PERSONALIZATION = load_personalization_config()
 

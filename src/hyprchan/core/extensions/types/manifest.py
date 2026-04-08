@@ -19,3 +19,4 @@ class IExtManifest(BaseDTO):
     readme: str | None = None
     tags: list[str] = Field(default_factory=list)
     workspace: IExtWorkspace | None = None
+    setup: str | None = None

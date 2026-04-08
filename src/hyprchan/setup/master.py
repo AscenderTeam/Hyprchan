@@ -150,12 +150,12 @@ class InstallationMaster(Wizard):
         panel = Panel(
             (
                 "[cyan]HyprMemory[/] is a brain-inspired memory system for hyprchan which allows for her to remember (factual, episodic & procedural) memories and collect information into a long-term memory.\n"
-                "- [bold]STM (Short-term)[/]: Redis/in-memory TTL store for raw perception + recent items.\n"
-                "- [boldLTM (Long-term)[/]: Postgres storage for episodes, semantic facts, concepts, graph edges, and dream logs.\n"
-                "- [bold]WM (Working-memory)[/]: Prompt blocks composed from recall results.\n"
-                "- [bold]Retrieval[/]: Hybrid dense + lexical + graph spreading activation with emotion-aware reranking.\n"
-                "- [bold]Consolidation[/]: Sleep-time STM -> LTM distillation with fatigue-bounded processing.\n"
-                "- [bold]Dreams[/]: Optional LLM judge generates a dream fragment as a consolidation side-effect.\n\n"
+                "- [bold]STM (Short-term)[/bold]: Redis/in-memory TTL store for raw perception + recent items.\n"
+                "- [bold]LTM (Long-term)[/bold]: Postgres storage for episodes, semantic facts, concepts, graph edges, and dream logs.\n"
+                "- [bold]WM (Working-memory)[/bold]: Prompt blocks composed from recall results.\n"
+                "- [bold]Retrieval[/bold]: Hybrid dense + lexical + graph spreading activation with emotion-aware reranking.\n"
+                "- [bold]Consolidation[/bold]: Sleep-time STM -> LTM distillation with fatigue-bounded processing.\n"
+                "- [bold]Dreams[/bold]: Optional LLM judge generates a dream fragment as a consolidation side-effect.\n\n"
                 "NOTE: [yellow]Hypr-chan will sleep if fatigue will creep high up.[/]\n"
             ),
             title="Hypr-memory setup",
@@ -250,6 +250,58 @@ class InstallationMaster(Wizard):
             else:
                 self.console.print("[red]Failed to install background service.[/red]")
 
+    @step(name="Built-in Extensions", description="Enable built-in extensions")
+    def extensions_setup(self, ctx: WizardContext):
+        self.console.print(
+            "Hyprchan comes with some [cyan]built-in extensions[/] that extend her capabilities."
+        )
+        enable = ctx.confirm("Do you want to enable built-in extensions?", default=True)
+        if enable:
+            selected = ctx.choice(
+                "Select extensions to enable",
+                ["hyprgram", "hyprx"],
+                multiple=True,
+            )
+            self.config_assembler.enable_extensions(selected)
+
+            if "hyprgram" in selected:
+                self.console.print("\n[cyan]Configuring Hyprgram (Telegram)...[/]")
+                token = ctx.secret("Telegram Bot Token", required=True)
+                username = ctx.input("Bot Username (optional)", placeholder="@your_bot")
+                channel = ctx.input(
+                    "Debug Channel ID (optional)", placeholder="-100..."
+                )
+
+                vars_to_set = {"HYPRGRAM_BOT_TOKEN": token}
+                if username:
+                    vars_to_set["HYPRGRAM_BOT_USERNAME"] = username
+                if channel:
+                    vars_to_set["HYPRGRAM_BOT_DEBUG_CHANNELID"] = channel
+
+                self.config_assembler.set_env_vars(vars_to_set)
+
+            if "hyprx" in selected:
+                self.console.print("\n[cyan]Configuring HyprX (X/Twitter)...[/]")
+                api_key = ctx.secret("X API Key", required=True)
+                api_secret = ctx.secret("X API Secret", required=True)
+                access_token = ctx.secret("X Access Token", required=True)
+                access_token_secret = ctx.secret("X Access Token Secret", required=True)
+
+                self.config_assembler.set_env_vars(
+                    {
+                        "HYPRX_API_KEY": api_key,
+                        "HYPRX_API_SECRET": api_secret,
+                        "HYPRX_ACCESS_TOKEN": access_token,
+                        "HYPRX_ACCESS_TOKEN_SECRET": access_token_secret,
+                    }
+                )
+
+            self.console.print(
+                f"\n[green]Enabled extensions: {', '.join(selected)}[/green]"
+            )
+        else:
+            self.config_assembler.enable_extensions([])
+
     @step(name="Final Step", description="Are you ready to launch and meet hypr-chan?")
     def launch(
         self, ctx: WizardContext, unleash: Annotated[bool, Confirm(default=True)]
@@ -257,4 +309,7 @@ class InstallationMaster(Wizard):
         if unleash:
             self.service_manager.start_service()
             self.console.print("[cyan]Hypr-chan is waking up...![/]")
-            self.console.print("To talk to [cyan bold]her[/] type `hyprchan tui`")
+            self.console.print("To talk to [bold cyan]her[/] type `hyprchan tui`")
+            return
+
+        exit(1)

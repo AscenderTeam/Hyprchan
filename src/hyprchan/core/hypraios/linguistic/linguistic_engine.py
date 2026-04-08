@@ -6,11 +6,9 @@ import re
 from pathlib import Path
 from typing import Any
 
-from langchain_openai import ChatOpenAI
-from pydantic import SecretStr
-
 from core.hypraios.constants import Phases
 from core.hypraios.kernel.states import KernelStates
+from core.hypraios.linguistic.agent_executor import ReActAgentExecutor
 from core.hypraios.linguistic.inference_engine import InferenceEngine
 from core.hypraios.linguistic.logit_bias import StateLogitBiasBuilder
 from core.hypraios.linguistic.passive_inference import PassiveProcessor
@@ -18,7 +16,8 @@ from core.hypraios.linguistic.persona_memory import PersonaMemory
 from core.hypraios.linguistic.tool_runtime import LinguisticToolRuntime
 from core.hypraios.utils.dynamic_variable import DynamicVariable
 from core.hyprmemory.models import MemoryState
-from core.hypraios.linguistic.agent_executor import ReActAgentExecutor
+from langchain_openai import ChatOpenAI
+from pydantic import SecretStr
 
 logger = logging.getLogger(__name__)
 
@@ -102,6 +101,7 @@ class LinguisticEngine:
             "- To remember something, try repeating it back to yourself, so when you enter `SLEEP` phase (when you fatigue reaches 100) you will remember it and that memory will be available in `memory_recall` tool\n"
             "- Skill Agency: you can explore, recover from errors, and self-correct.\n"
             "- Authenticity: never claim an action happened unless tools confirm it.\n"
+            "- Use `memory_recall` always when you unsure about past or time in past.\n"
             "Skill-Habit Rules:\n"
             "- When user (YOUR owner, the master user whose name YOU SHOULD know) gives operational advice, infer that it is future know-how and save with `save_skill`.\n"
             "- Before doing anything or something that you don't know how to do, use `recall_skill`, ANY action that you DON'T know how to execute should be guided by skill memory!\n"
@@ -127,7 +127,7 @@ class LinguisticEngine:
         )
 
         prompt = f"{core_spec}\n\n{active_mode if mode == 'ACTIVE' else passive_mode}"
-        
+
         # AGENTIC LOOP INSTRUCTIONS
         prompt += (
             "\n\nAGENTIC REASONING PROTOCOL:\n"
@@ -279,32 +279,34 @@ class LinguisticEngine:
         )
         self.last_bias_profile = bias_profile
         self.last_lexical_bias = lexical_bias
-        
+
         # Build tools and agent
         tools = self.tool_runtime.build_tools()
-        
+
         # Resolve correct model provider and build LangChain ChatOpenAI wrapper
         provider = self.inference_engine.provider
         token = getattr(provider, "_require_api_key", lambda: "")()
         if not token and hasattr(provider, "api_key"):
             token = provider.api_key
-            
+
         chat_kwargs: dict[str, Any] = {
             "model": self.inference_engine.model,
             "api_key": SecretStr(token) if token else SecretStr(""),
-            "base_url": getattr(provider, "base_url", self.inference_engine.api_base_url),
+            "base_url": getattr(
+                provider, "base_url", self.inference_engine.api_base_url
+            ),
             "timeout": self.inference_engine.timeout_sec,
             "temperature": float(self.temperature.value),
         }
-        
+
         if token_logit_bias:
             chat_kwargs["model_kwargs"] = {"logit_bias": token_logit_bias}
-            
+
         if hasattr(provider, "default_headers") and provider.default_headers:
             chat_kwargs["default_headers"] = provider.default_headers
-            
+
         llm = ChatOpenAI(**chat_kwargs)
-        
+
         # Use ReActAgentExecutor with the properly configured LLM
         agent_executor = ReActAgentExecutor(
             llm=llm,
@@ -315,24 +317,26 @@ class LinguisticEngine:
         # Run agent
         result = await agent_executor.ainvoke(
             user_input=prompt,
-            chat_history=self.inference_engine.provider._to_langchain_messages(conversation_messages[:-1])
+            chat_history=self.inference_engine.provider._to_langchain_messages(
+                conversation_messages[:-1]
+            ),
         )
 
         output_text = result["output"].strip()
-        
+
         # Collect executed tool names from intermediate steps for event logging
         executed_tool_names = []
         followup_events = []
         answer_user_called = False
-        
+
         for action, observation in result["intermediate_steps"]:
             executed_tool_names.append(action.tool)
             if action.tool == "answer_user":
                 answer_user_called = True
-            
+
             # Reconstruct events for kernel perception
             summary = observation[0] if isinstance(observation, tuple) else observation
-            
+
             event_payload = {
                 "type": "tool_observation",
                 "description": f"Tool `{action.tool}` result: {summary}",
@@ -351,7 +355,7 @@ class LinguisticEngine:
 
         self.inference_count += 1
         self.persona_memory.remember_turn(prompt, output_text)
-        
+
         return {
             "input": prompt,
             "output": output_text,

@@ -1,9 +1,10 @@
 import asyncio
-from collections import defaultdict
 import json
-from logging import Logger
 import traceback
+from collections import defaultdict
+from logging import Logger
 from typing import Annotated, Any, Callable, Literal, overload
+
 from ascender.common import Injectable
 from ascender.core import Inject
 from ascender.core.applications.application import Application
@@ -78,7 +79,7 @@ class HyprlandSocket:
             payload = event_parts[1] if len(event_parts) > 1 else None
             try:
                 await dispatch_event(self.listeners, event, payload)
-            except:
+            except Exception:
                 traceback.print_exc()
                 pass
 

@@ -4,16 +4,17 @@ from logging import Logger
 
 from aiogram import Bot, Dispatcher
 from ascender.core import inject
-from handler import HyprgramHandler
+from .handler import HyprgramHandler
 from langchain_core.tools import StructuredTool
-from media import TelegramMediaStore
-from schema import (
+from .media import TelegramMediaStore
+from .schema import (
     TelegramReplyMessageInput,
     TelegramSendMessageInput,
     TelegramTrustedUserInput,
 )
-from storage import DataStorage
-from utils import async_toolify
+from .storage import DataStorage
+from .utils import async_toolify
+
 
 from hyprchan import (
     ExtensionExecutor,

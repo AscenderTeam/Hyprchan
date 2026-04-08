@@ -65,9 +65,9 @@ class WizardCLI(GenericCLI):
         self.injector = injector
 
     @Handler("setup", description="Run the hyprchan setup wizard.")
-    async def setup(self) -> None:
+    def setup(self) -> None:
         installer = InstallationMaster()
-        result = await installer.run()
+        result = installer.run_sync()
         if result is None:
             print("Wizard exited before returning a result.")
             return

@@ -6,17 +6,17 @@ import time
 from importlib import import_module
 from typing import Any
 
-from client import HyprXClient
-from constants import (
+from .client import HyprXClient
+from .constants import (
     HYPRX_REPLY_ONLY_TOOLSET,
     HYPRX_REQUIRED_ENV,
     TOOL_TWITTER_POST,
     TOOL_TWITTER_REPLY,
     TOOL_TWITTER_REPOST,
 )
-from policy import HyprXPolicy
-from storage import HyprXStorage
-from utils import async_toolify
+from .policy import HyprXPolicy
+from .storage import HyprXStorage
+from .utils import async_toolify
 
 from hyprchan import (
     ExtensionExecutor,

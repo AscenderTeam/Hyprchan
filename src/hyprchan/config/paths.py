@@ -19,6 +19,10 @@ def user_config_dir() -> Path:
     return Path.home() / ".config" / "hyprchan"
 
 
+def builtins_extensions_dir() -> Path:
+    return Path(__file__).resolve().parent.parent / "builtins" / "extensions"
+
+
 def extensions_dir() -> Path:
     return user_config_dir() / "extensions"
 
@@ -31,4 +35,15 @@ def personalization_paths() -> list[Path]:
     return [
         project_config_dir() / "personalization.yaml",
         user_config_dir() / "personalization.yaml",
+    ]
+
+
+def env_paths() -> list[Path]:
+    override = os.getenv("HYPRCHAN_ENV_PATH", "").strip()
+    if override:
+        return [Path(override)]
+
+    return [
+        repo_root() / ".env",
+        user_config_dir() / ".env",
     ]

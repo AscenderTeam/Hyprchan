@@ -18,9 +18,6 @@ from scripts.extensions.cli import ExtensionsCLI
 from scripts.tui.cli import HyprTuiCLI
 from scripts.wizard.cli import WizardCLI
 from settings import (
-    AGENTHUB_MAX_PAYLOAD,
-    AGENTHUB_ORG,
-    AGENTHUB_TOKEN,
     DATABASE_CONNECTION,
 )
 
@@ -32,8 +29,6 @@ except ModuleNotFoundError:
     provideAgentHub = None
 
 from alp import provideALP
-from attp_core.rs_api import Limits
-from shared.attp import provideAttpClient
 from shared.database_runtime import resolve_database_connection
 
 runtime_database_connection = resolve_database_connection(
@@ -65,11 +60,6 @@ providers = [
     useCLI(HyprTuiCLI),
     useCLI(WizardCLI),
     provideALP(),
-    provideAttpClient(
-        AGENTHUB_TOKEN,
-        AGENTHUB_ORG,
-        limits=Limits(max_payload_size=AGENTHUB_MAX_PAYLOAD),
-    ),
     provideAnimations(
         [
             DepressedSitAnimation(),
@@ -81,10 +71,6 @@ providers = [
         target_fps=8,
     ),
 ]
-
-if provideAgentHub is not None:
-    providers.append(provideAgentHub())
-
 
 appBootstrap: IBootstrap = {
     "providers": providers,
