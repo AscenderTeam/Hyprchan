@@ -8,6 +8,7 @@ from hyprchan.core.animations.renderer.window import HyprchanWindow
 from hyprchan.core.hyprland.socket import HyprlandSocket
 
 gi.require_version("Gtk", "4.0")
+gi.require_version("GdkPixbuf", "2.0")
 from gi.repository import GdkPixbuf, GLib, Gtk  # type: ignore[attr-defined]
 
 
@@ -20,6 +21,7 @@ class HyprchanApp(Gtk.Application):
         super().__init__(application_id="org.hyprland.hyprchan")
         self.on_update_callback = on_update_callback
         self.target_fps = target_fps
+        self._sprite_scale = 1.0
 
     def do_activate(self) -> None:
         self.win = HyprchanWindow()
@@ -38,8 +40,10 @@ class HyprchanApp(Gtk.Application):
         frame = self.on_update_callback()
         if frame:
             width, height = frame.get_width(), frame.get_height()
+            scaled_width = max(1, int(round(width * self._sprite_scale)))
+            scaled_height = max(1, int(round(height * self._sprite_scale)))
 
-            self.win.set_default_size(width, height)
+            self.win.set_default_size(scaled_width, scaled_height)
             self.win.set_image(frame)
             return True
 
@@ -73,3 +77,6 @@ class HyprchanApp(Gtk.Application):
 
     def set_overlay_text(self, text: str) -> None:
         self.win.set_overlay_text(text)
+
+    def set_sprite_scale(self, scale: float) -> None:
+        self._sprite_scale = max(0.1, float(scale))
