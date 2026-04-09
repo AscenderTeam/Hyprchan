@@ -1,18 +1,43 @@
 [project]
 name = "hyprchan"
 version = "0.1.0"
-description = "hyprchan"
+description = "An anime girl that lives in your Hyprland and chills."
 authors = [
     {name = "Zahcoder34",email = "Zakhriw@gmail.com"}
 ]
 readme = "README.md"
 requires-python = ">=3.11,<3.14"
 dependencies = [
-    "ascender-framework (>=2.0.4,<3.0.0)",
+    "ascender-framework (>=2.1.0,<3.0.0)",
     "hyprland (>=0.2.54,<0.3.0)",
-    "agent-scaffolds (>=0.1.10,<0.2.0)"
+    "langchain (>=0.3.0,<0.4.0)",
+    "langchain-core (>=0.3.78,<0.4.0)",
+    "langchain-openai (>=0.3.0,<0.4.0)",
+    "pgvector (>=0.3.6,<0.4.0)",
+    "tiktoken (>=0.8.0,<0.9.0)",
+    "pygobject (>=3.56.0,<4.0.0)",
+    "pygobject-stubs (>=2.16.0,<3.0.0)",
+    "opencv-python-headless (>=4.10.0.84,<5.0.0.0)",
+    "faster-whisper (>=1.1.1,<2.0.0)",
+    "sounddevice (>=0.5.1,<0.6.0)",
+    "redis (>=7.2.1,<8.0.0)",
+    "asyncpg (>=0.31.0,<0.32.0)",
+    "aiosqlite (>=0.20.0,<0.21.0)",
+    "httpx (>=0.27.0,<0.29.0)",
+    "textual (>=0.70.0,<1.0.0)",
+    "pyyaml (>=6.0.1,<7.0.0)",
+    "aiogram (>=3.26.0,<4.0.0)",
+    "questionary (>=2.1.1,<3.0.0)",
+    "tweepy (>=4.16.0,<5.0.0)",
+    "ascender-alp (>=0.0.2,<0.0.3)"
 ]
 
+[tool.poetry]
+packages = [
+    { include = "hyprchan", from = "src/hyprchan" }
+]
+[tool.poetry.scripts]
+hyprchan = "main:launch"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]

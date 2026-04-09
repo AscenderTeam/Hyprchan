@@ -172,3 +172,5 @@ cython_debug/
 /logs
 
 .codegpt
+agent_memory.json
+runtime/perception/

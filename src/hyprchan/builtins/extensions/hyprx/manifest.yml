@@ -1,0 +1,8 @@
+version: "0.1.0"
+name: "hyprx"
+description: "X/Twitter integration for Hyprchan with passive mentions, controlled autonomy, and reply safety lock."
+author: "Ascender Team"
+homepage: "https://ascender-ai.com"
+min_hyprchan_version: "0.1.0"
+requirements:
+  - tweepy

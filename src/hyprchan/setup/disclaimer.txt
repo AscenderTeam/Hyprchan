@@ -1,0 +1,26 @@
+[bold green]HYPRCHAN - FUNCTIONALITY DESCRIPTION & SECURITY DISCLAIMER[/bold green]
+
+[bold blue]1. OVERVIEW[/bold blue]
+Hyprchan is an autonomous, AI-driven desktop companion ([italic]HyprAI OS[/italic]) designed primarily for the [cyan]Hyprland[/cyan] tiling window manager. It functions as a persistent digital entity that "lives" on your workspace, reacting to your activities, monitoring your environment, and interacting with you through a rich terminal interface (TUI) or web-based frontend.
+
+[bold blue]2. CORE FUNCTIONALITY[/bold blue]
+- [cyan]System Integration:[/cyan] Monitors window events, workspace changes, and active applications via Hyprland sockets.
+- [cyan]Multimodal Perception:[/cyan] Continuously captures environment data, including:
+    * [italic]Video:[/italic] Real-time webcam monitoring for face, motion, and pose detection (OpenCV).
+    * [italic]Audio:[/italic] Persistent microphone access for speech-to-text transcription (FasterWhisper).
+    * [italic]Screen:[/italic] Periodic high-frequency screenshots and window captures for visual context.
+- [cyan]Autonomous Kernel:[/cyan] Features a state-driven engine (HyprAIOSKernel) that manages mood (valence/arousal), fatigue, and simulated personality traits.
+- [cyan]Long-term Memory:[/cyan] Stores interaction history, persona data, and environmental snapshots in local databases (Postgres/pgvector or SQLite) and state stores (Redis).
+- [cyan]Extensibility:[/cyan] Supports modular extensions (e.g., Hyprgram for Telegram, HyprX for X/Twitter) that allow the agent to interact with external services and social media.
+
+[bold red]3. SECURITY & PRIVACY WARNING[/bold red]
+[yellow]By installing and running Hyprchan, you acknowledge and accept the following risks:[/yellow]
+
+- [bold yellow]PERVASIVE MONITORING:[/bold yellow] Hyprchan is designed to be "always-on." It will access your webcam, microphone, and screen content. While this data is processed locally for perception, snapshots and logs are stored in the `runtime/perception/` directory.
+- [bold yellow]DATA EXFILTRATION TO AI PROVIDERS:[/bold yellow] To function, Hyprchan transmits text and visual context (including screenshots and camera frames) to third-party Large Language Model (LLM) providers (e.g., OpenAI, Google Gemini, OpenRouter). [red]Sensitive information visible on your screen or spoken near your microphone may be sent to these services.[/red]
+- [bold yellow]LOCAL DATA STORAGE:[/bold yellow] API keys, session logs, and interaction history are stored locally. Ensure your filesystem and database instances (Postgres, Redis) are properly secured.
+- [bold yellow]EXTENSION RISKS:[/bold yellow] Third-party or user-enabled extensions may execute arbitrary code or interact with external APIs using your credentials. Review extension code before activation.
+- [bold yellow]EXPERIMENTAL SOFTWARE:[/bold yellow] Hyprchan is an experimental project. It may exhibit unpredictable behavior, high resource consumption (CPU/GPU), or unintended system interactions.
+- [bold yellow]NO AFFILIATION:[/bold yellow] Hyprchan is a third-party project and is in [bold red]NO WAY[/bold red] affiliated with, endorsed by, or associated with the official Hyprland window manager or its developers.
+
+[bold reverse red] USE AT YOUR OWN RISK. [/bold reverse red] [bold red]THE DEVELOPERS ARE NOT RESPONSIBLE FOR DATA LEAKS, PRIVACY BREACHES, OR SYSTEM INSTABILITY RESULTING FROM THE USE OF THIS SOFTWARE.[/bold red]

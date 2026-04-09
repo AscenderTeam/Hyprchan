@@ -1,0 +1,2 @@
+class ExtensionNotLoaded(RuntimeError):
+    pass

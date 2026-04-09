@@ -1,0 +1,25 @@
+TOOL_SET_ANIMATION_POSE = "set_animation_pose"
+TOOL_ANSWER_USER = "answer_user"
+TOOL_MOVE_SELF = "move_self"
+TOOL_SCREENSHOT = "screenshot"
+TOOL_CAMERA = "camera"
+TOOL_MEMORY_RECALL = "memory_recall"
+TOOL_HYPRCTL_COMMAND = "hyprctl_command"
+TOOL_SAVE_SKILL = "save_skill"
+TOOL_RECALL_SKILL = "recall_skill"
+TOOL_LIST_SKILLS = "list_skills"
+TOOL_PATCH_SKILL = "patch_skill"
+
+BUILTIN_TOOL_NAMES = {
+    TOOL_SET_ANIMATION_POSE,
+    TOOL_ANSWER_USER,
+    TOOL_MOVE_SELF,
+    TOOL_SCREENSHOT,
+    TOOL_CAMERA,
+    TOOL_MEMORY_RECALL,
+    TOOL_HYPRCTL_COMMAND,
+    TOOL_SAVE_SKILL,
+    TOOL_RECALL_SKILL,
+    TOOL_LIST_SKILLS,
+    TOOL_PATCH_SKILL,
+}
