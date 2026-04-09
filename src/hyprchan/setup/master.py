@@ -123,8 +123,17 @@ class InstallationMaster(Wizard):
             self.console.print(
                 "[yellow]Codex model detected. Initiating OAuth2 flow...[/yellow]"
             )
-            oauth = OpenAIOAuth()
-            token = oauth.catch_token()
+            try:
+                oauth = OpenAIOAuth()
+                token = oauth.catch_token()
+            except Exception as exc:
+                self.console.print(
+                    "[red]OAuth2 setup failed.[/] "
+                    "Set [bold]OPENAI_OAUTH_CLIENT_ID[/bold] (and optionally "
+                    "[bold]OPENAI_OAUTH_AUTH_URL[/bold]) in your environment."
+                )
+                self.console.print(f"[red]{exc}[/red]")
+                token = None
             if token:
                 self.console.print("[green]Token received successfully![/green]")
                 self.config_assembler.set_api_key(token)
