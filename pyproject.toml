@@ -5,7 +5,7 @@ description = "An anime girl that lives in your Hyprland and chills."
 authors = [
     {name = "Zahcoder34",email = "Zakhriw@gmail.com"}
 ]
-readme = "README.md"
+readme = "README_PYPI.md"
 requires-python = ">=3.11,<3.14"
 dependencies = [
     "ascender-framework (>=2.1.0,<3.0.0)",
