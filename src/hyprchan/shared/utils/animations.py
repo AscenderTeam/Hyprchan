@@ -1,3 +1,6 @@
+import gi
+
+gi.require_version("GdkPixbuf", "2.0")
 from gi.repository import GdkPixbuf
 
 
@@ -29,9 +32,7 @@ def _infer_axis_size(
     best_size: int | None = None
     for size in candidates:
         frames = total // size
-        frame_sums = [
-            prefix[(i + 1) * size] - prefix[i * size] for i in range(frames)
-        ]
+        frame_sums = [prefix[(i + 1) * size] - prefix[i * size] for i in range(frames)]
         mean = sum(frame_sums) / frames
         if mean <= 0:
             continue
