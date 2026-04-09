@@ -173,4 +173,7 @@ cython_debug/
 
 .codegpt
 agent_memory.json
+agent_memory.mem
+agent_memory.hmem
+hyprchan.nohup.log
 runtime/perception/
