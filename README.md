@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="public/assets/readme/hyprchan_pixel.png" width="250" alt="Hyprchan Pixel Art">
+<img src="https://github.com/AscenderTeam/Hyprchan/raw/feature/memory-update/public/assets/readme/hyprchan_pixel.png" width="250" alt="Hyprchan Pixel Art">
 
 # 🌌 HyprAI OS: Hyprchan
 
@@ -28,11 +28,11 @@
   <table border="0">
     <tr>
       <td width="50%">
-        <img src="public/assets/readme/tui_screenshot.png" width="100%" alt="Rich TUI Interface">
+        <img src="https://github.com/AscenderTeam/Hyprchan/raw/feature/memory-update/public/assets/readme/tui_screenshot.png" width="100%" alt="Rich TUI Interface">
         <p align="center"><i>Live Rich TUI with telemetry and memory snapshots.</i></p>
       </td>
       <td width="50%">
-        <img src="public/assets/readme/overlay_example.png" width="100%" alt="Hyprland Overlay">
+        <img src="https://github.com/AscenderTeam/Hyprchan/raw/feature/memory-update/public/assets/readme/overlay_example.png" width="100%" alt="Hyprland Overlay">
         <p align="center"><i>Animated Hyprland overlay with tool-calling capabilities.</i></p>
       </td>
     </tr>
