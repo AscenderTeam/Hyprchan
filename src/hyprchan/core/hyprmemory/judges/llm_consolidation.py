@@ -5,8 +5,8 @@ import json
 from dataclasses import dataclass
 from typing import Any
 
-from core.hyprmemory.interfaces import ConsolidationJudge
-from core.hyprmemory.models import (
+from hyprchan.core.hyprmemory.interfaces import ConsolidationJudge
+from hyprchan.core.hyprmemory.models import (
     Episode,
     EpisodeSummary,
     FactCandidate,

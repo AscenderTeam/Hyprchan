@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from core.hyprmemory.models import MemoryState, SemanticFeeling
-from core.hyprmemory.utils.math import clamp
+from hyprchan.core.hyprmemory.models import MemoryState, SemanticFeeling
+from hyprchan.core.hyprmemory.utils.math import clamp
 
 
 @dataclass(slots=True)

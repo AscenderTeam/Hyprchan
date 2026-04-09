@@ -1,5 +1,5 @@
-from core.hyprmemory.interfaces.judges import ConsolidationJudge, LinkingJudge
-from core.hyprmemory.interfaces.stores import (
+from hyprchan.core.hyprmemory.interfaces.judges import ConsolidationJudge, LinkingJudge
+from hyprchan.core.hyprmemory.interfaces.stores import (
     EmbeddingProvider,
     LTMStore,
     ProceduralMemory,

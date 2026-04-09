@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from core.hyprmemory.interfaces import LTMStore
-from core.hyprmemory.models import ConceptNode, DreamEntry, Episode, GraphEdge, SemanticFact
+from hyprchan.core.hyprmemory.interfaces import LTMStore
+from hyprchan.core.hyprmemory.models import ConceptNode, DreamEntry, Episode, GraphEdge, SemanticFact
 
 
 class LongTermMemoryLayer:

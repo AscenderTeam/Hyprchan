@@ -2,8 +2,8 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from core.extensions.executor import ExtensionExecutor
-from core.hypraios.constants import Phases
+from hyprchan.core.extensions.executor import ExtensionExecutor
+from hyprchan.core.hypraios.constants import Phases
 
 if TYPE_CHECKING:
     from core.hyprmemory.services.memory_service import HyprMemoryService

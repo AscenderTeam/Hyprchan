@@ -3,9 +3,9 @@ from __future__ import annotations
 from collections import deque
 from datetime import timedelta
 
-from core.hyprmemory.interfaces import STMStore
-from core.hyprmemory.models import PerceptionTrace, STMItem
-from core.hyprmemory.utils.time import utc_now
+from hyprchan.core.hyprmemory.interfaces import STMStore
+from hyprchan.core.hyprmemory.models import PerceptionTrace, STMItem
+from hyprchan.core.hyprmemory.utils.time import utc_now
 
 
 class InMemorySTMStore(STMStore):

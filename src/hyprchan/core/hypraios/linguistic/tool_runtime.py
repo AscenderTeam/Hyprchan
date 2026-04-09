@@ -10,10 +10,10 @@ from pathlib import Path
 from typing import Any, Callable, Literal
 
 from ascender.core import inject
-from core.animations.engine import AnimationEngine
-from core.hypraios.constants import Phases
-from core.hypraios.perception.opencv_module import OpenCVPerceptionModule
-from core.hypraios.tools.constants import (
+from hyprchan.core.animations.engine import AnimationEngine
+from hyprchan.core.hypraios.constants import Phases
+from hyprchan.core.hypraios.perception.opencv_module import OpenCVPerceptionModule
+from hyprchan.core.hypraios.tools.constants import (
     TOOL_ANSWER_USER,
     TOOL_CAMERA,
     TOOL_HYPRCTL_COMMAND,
@@ -26,15 +26,15 @@ from core.hypraios.tools.constants import (
     TOOL_SCREENSHOT,
     TOOL_SET_ANIMATION_POSE,
 )
-from core.hypraios.tools.registry import ToolRegistry
-from core.hypraios.tools.types import ToolContext, ToolSpec
-from core.hyprland.exceptions import UnknownRequestError
-from core.hyprland.socket import HyprlandSocket
-from core.hyprmemory import HyprMemoryService
-from core.hyprmemory.models import MemoryState
+from hyprchan.core.hypraios.tools.registry import ToolRegistry
+from hyprchan.core.hypraios.tools.types import ToolContext, ToolSpec
+from hyprchan.core.hyprland.exceptions import UnknownRequestError
+from hyprchan.core.hyprland.socket import HyprlandSocket
+from hyprchan.core.hyprmemory import HyprMemoryService
+from hyprchan.core.hyprmemory.models import MemoryState
 from langchain_core.tools import StructuredTool
 from pydantic import BaseModel, Field
-from settings import (
+from hyprchan.settings import (
     WEBCAM_AUTO_FIND_DEVICE,
     WEBCAM_DEVICE_INDEX,
     WEBCAM_MAX_DEVICE_INDEX,

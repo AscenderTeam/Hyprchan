@@ -6,8 +6,8 @@ Please do not store sensitive information in this file, this file is not for sto
 import os
 from pathlib import Path
 
-from config.paths import env_paths
-from config.personalization import load_personalization_config
+from hyprchan.config.paths import env_paths
+from hyprchan.config.personalization import load_personalization_config
 
 
 def _hydrate_env_from_dotenv():
@@ -61,11 +61,11 @@ DATABASE_CONNECTION = {
         "postgresql+asyncpg://postgres:mysecretpassword@localhost:5432/hyprchan",
     ),
     "entities": [
-        "entities.episode",
-        "entities.fact",
-        "entities.concept",
-        "entities.edge",
-        "entities.dream",
+        "hyprchan.entities.episode",
+        "hyprchan.entities.fact",
+        "hyprchan.entities.concept",
+        "hyprchan.entities.edge",
+        "hyprchan.entities.dream",
     ],
     "pool_options": {},
 }

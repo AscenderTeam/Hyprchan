@@ -5,7 +5,7 @@ from typing import Callable, Literal
 
 from langchain_core.tools import StructuredTool
 
-from core.hypraios.constants import Phases
+from hyprchan.core.hypraios.constants import Phases
 
 
 @dataclass(slots=True)

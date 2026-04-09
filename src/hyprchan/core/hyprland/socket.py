@@ -9,9 +9,9 @@ from ascender.common import Injectable
 from ascender.core import Inject
 from ascender.core.applications.application import Application
 
-from core.hyprland.const import COMMAND_SOCK_DIR, EVENT_SOCK_DIR
-from core.hyprland.sock_stream import UNIXSockStream
-from core.hyprland.utils import _ListenerSpec, analyze_listener, dispatch_event
+from hyprchan.core.hyprland.const import COMMAND_SOCK_DIR, EVENT_SOCK_DIR
+from hyprchan.core.hyprland.sock_stream import UNIXSockStream
+from hyprchan.core.hyprland.utils import _ListenerSpec, analyze_listener, dispatch_event
 
 
 @Injectable(provided_in="root")

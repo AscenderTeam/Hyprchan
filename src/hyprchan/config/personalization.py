@@ -7,7 +7,7 @@ from typing import Any
 from pydantic import BaseModel, Field
 import yaml
 
-from config.paths import personalization_paths
+from hyprchan.config.paths import personalization_paths
 
 
 class AiConfig(BaseModel):

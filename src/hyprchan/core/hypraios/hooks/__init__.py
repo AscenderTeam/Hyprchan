@@ -1,5 +1,5 @@
-from core.hypraios.hooks.manager import HookManager
-from core.hypraios.hooks.types import (
+from hyprchan.core.hypraios.hooks.manager import HookManager
+from hyprchan.core.hypraios.hooks.types import (
     AiInferencePayload,
     AiResponsePayload,
     AiMode,

@@ -4,10 +4,10 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Iterable
 
-from core.hyprmemory.interfaces import EmbeddingProvider, LTMStore, VectorStore
-from core.hyprmemory.models import ConceptNode, Episode, MemoryQuery, RecallResult
-from core.hyprmemory.utils.math import clamp, cosine_similarity, exp_decay
-from core.hyprmemory.utils.text import lexical_similarity
+from hyprchan.core.hyprmemory.interfaces import EmbeddingProvider, LTMStore, VectorStore
+from hyprchan.core.hyprmemory.models import ConceptNode, Episode, MemoryQuery, RecallResult
+from hyprchan.core.hyprmemory.utils.math import clamp, cosine_similarity, exp_decay
+from hyprchan.core.hyprmemory.utils.text import lexical_similarity
 
 
 @dataclass(slots=True)

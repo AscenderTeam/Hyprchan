@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from core.hyprmemory.interfaces import STMStore
-from core.hyprmemory.models import PerceptionTrace, STMItem
+from hyprchan.core.hyprmemory.interfaces import STMStore
+from hyprchan.core.hyprmemory.models import PerceptionTrace, STMItem
 
 
 class ShortTermMemoryLayer:

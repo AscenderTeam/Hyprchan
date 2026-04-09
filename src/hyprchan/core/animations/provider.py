@@ -1,7 +1,7 @@
 from ascender.core import Provider
 
-from core.animations.animation import Animation
-from core.animations.engine import AnimationEngine
+from hyprchan.core.animations.animation import Animation
+from hyprchan.core.animations.engine import AnimationEngine
 
 
 def provideAnimations(animations: list[Animation], target_fps: int = 60) -> Provider:

@@ -1,7 +1,7 @@
 """Configuration helpers for Hyprchan."""
 
-from config.personalization import PersonalizationConfig, load_personalization_config
-from config.personalization_store import (
+from hyprchan.config.personalization import PersonalizationConfig, load_personalization_config
+from hyprchan.config.personalization_store import (
     load_enabled_extensions,
     save_enabled_extensions,
 )

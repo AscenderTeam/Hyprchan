@@ -4,7 +4,7 @@ from ascender.core.database import DBEntity
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import Float, String
 from sqlalchemy.orm import Mapped, mapped_column
-import settings
+from hyprchan import settings
 
 
 class ConceptEntity(DBEntity):

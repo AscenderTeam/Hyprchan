@@ -1,9 +1,9 @@
-from core.hypraios.kernel.event_compaction.contracts import (
+from hyprchan.core.hypraios.kernel.event_compaction.contracts import (
     EventCompacter,
     EventCompactionRequest,
     EventCompactionResult,
 )
-from core.hypraios.kernel.event_compaction.gpt5_nano_compacter import (
+from hyprchan.core.hypraios.kernel.event_compaction.gpt5_nano_compacter import (
     GPT5NanoEventCompacter,
 )
 

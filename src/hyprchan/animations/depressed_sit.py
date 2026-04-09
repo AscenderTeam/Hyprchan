@@ -1,7 +1,7 @@
 import os
 
-from core.animations.animation import Animation
-from shared.utils.animations import load_animation_frames
+from hyprchan.core.animations.animation import Animation
+from hyprchan.shared.utils.animations import load_animation_frames
 
 
 class DepressedSitAnimation(Animation):

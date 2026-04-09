@@ -7,7 +7,7 @@ from aiogram.types import Message
 from .media import TelegramMediaStore
 from .storage import DataStorage
 
-from core.hypraios.hooks import (
+from hyprchan.core.hypraios.hooks import (
     AiInferencePayload,  # TODO: Soon this one will be changed
 )
 from hyprchan import ExtensionExecutor, HookResult

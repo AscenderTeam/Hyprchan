@@ -1,4 +1,4 @@
-from core.hypraios.utils.tui import main
+from hyprchan.core.hypraios.utils.tui import main
 
 
 if __name__ == "__main__":

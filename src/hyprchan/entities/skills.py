@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-import settings
+from hyprchan import settings
 from ascender.core.database import DBEntity
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import JSON, Float, String, Text

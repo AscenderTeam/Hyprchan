@@ -1,8 +1,8 @@
 import time
 from typing import Any
 
-from core.hypraios.constants import Phases
-from core.hypraios.hooks.types import HookFn, HookName
+from hyprchan.core.hypraios.constants import Phases
+from hyprchan.core.hypraios.hooks.types import HookFn, HookName
 
 
 class ExtensionExecutor:

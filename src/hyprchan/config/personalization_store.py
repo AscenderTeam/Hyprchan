@@ -5,7 +5,7 @@ from typing import Any
 
 import yaml
 
-from config.paths import user_config_dir
+from hyprchan.config.paths import user_config_dir
 
 
 def _load_raw(path: Path) -> dict[str, Any]:

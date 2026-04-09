@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from inspect import isawaitable
 from logging import Logger
-from core.hypraios.hooks.types import HookFn, HookName, HookPayload, HookResult
+from hyprchan.core.hypraios.hooks.types import HookFn, HookName, HookPayload, HookResult
 
 
 @dataclass(slots=True)

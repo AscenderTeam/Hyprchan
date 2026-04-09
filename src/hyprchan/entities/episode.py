@@ -6,7 +6,7 @@ from ascender.core.database import DBEntity
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import DateTime, Float, Integer, JSON, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
-import settings
+from hyprchan import settings
 
 
 class EpisodeEntity(DBEntity):

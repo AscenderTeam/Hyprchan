@@ -1,7 +1,7 @@
 from typing import Any, Callable
 from ascender.core import ControllerDecoratorHook, inject
 
-from core.hyprland.socket import HyprlandSocket
+from hyprchan.core.hyprland.socket import HyprlandSocket
 
 
 class HyprEvent(ControllerDecoratorHook):

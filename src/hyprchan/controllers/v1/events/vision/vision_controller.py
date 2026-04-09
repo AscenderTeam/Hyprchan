@@ -1,6 +1,6 @@
 from ascender.core import Controller, Get
 
-from controllers.v1.events.vision.vision_service import VisionService
+from hyprchan.controllers.v1.events.vision.vision_service import VisionService
 
 
 @Controller(

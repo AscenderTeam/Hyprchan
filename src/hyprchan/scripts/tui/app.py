@@ -10,9 +10,9 @@ from textual.containers import Container, Horizontal, Vertical
 from textual.reactive import reactive
 from textual.widgets import Footer, Header, TextArea
 
-from config.personalization import load_personalization_config
-from scripts.tui.api import HyprApiClient, ServerSnapshot
-from scripts.tui.widgets import ChatLog, GlowHeader, StatusPanel, SystemLog
+from hyprchan.config.personalization import load_personalization_config
+from hyprchan.scripts.tui.api import HyprApiClient, ServerSnapshot
+from hyprchan.scripts.tui.widgets import ChatLog, GlowHeader, StatusPanel, SystemLog
 
 
 class HyprTUI(App):

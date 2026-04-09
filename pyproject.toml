@@ -1,6 +1,6 @@
 [project]
 name = "hyprchan"
-version = "0.1.0"
+version = "0.1.2"
 description = "An anime girl that lives in your Hyprland and chills."
 authors = [
     {name = "Zahcoder34",email = "Zakhriw@gmail.com"}
@@ -34,10 +34,10 @@ dependencies = [
 
 [tool.poetry]
 packages = [
-    { include = "hyprchan", from = "src/hyprchan" }
+    { include = "hyprchan", from = "src" }
 ]
 [tool.poetry.scripts]
-hyprchan = "main:launch"
+hyprchan = "hyprchan.main:launch"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]

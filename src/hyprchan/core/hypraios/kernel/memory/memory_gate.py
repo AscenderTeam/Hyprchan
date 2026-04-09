@@ -10,7 +10,7 @@ from typing import Any
 from ascender.core import inject
 from ascender.core.database import DatabaseEngine
 
-from config.personalization import load_personalization_config
+from hyprchan.config.personalization import load_personalization_config
 
 def _resolve_redis_client_type() -> Any:
     try:
@@ -40,11 +40,11 @@ def _resolve_redis_client_type() -> Any:
 RedisClient: Any = _resolve_redis_client_type()
 
 
-from core.hypraios.constants import Phases
-from core.hypraios.kernel.memory.buffer import MemoryBuffer
-from core.hyprmemory import HyprMemoryService
-from core.hyprmemory.models import ConsolidationReport, DreamEntry, MemoryState
-from core.hyprmemory.utils.serialization import state_from_dict, state_to_dict
+from hyprchan.core.hypraios.constants import Phases
+from hyprchan.core.hypraios.kernel.memory.buffer import MemoryBuffer
+from hyprchan.core.hyprmemory import HyprMemoryService
+from hyprchan.core.hyprmemory.models import ConsolidationReport, DreamEntry, MemoryState
+from hyprchan.core.hyprmemory.utils.serialization import state_from_dict, state_to_dict
 
 
 logger = logging.getLogger(__name__)

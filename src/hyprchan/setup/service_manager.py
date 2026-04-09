@@ -7,7 +7,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from config.paths import repo_root
+from hyprchan.config.paths import repo_root
 
 
 class ServiceManager:
@@ -50,7 +50,7 @@ class ServiceManager:
     def _install_linux_systemd(self) -> bool:
         """Creates a systemd user service."""
         # Use 'hyprchan serve' as the command
-        exec_start = f"{self.hyprchan_bin} serve"
+        exec_start = f"{self.hyprchan_bin} start"
 
         service_content = f"""[Unit]
 Description=Hyprchan Autonomous AI Daemon
@@ -74,14 +74,18 @@ WantedBy=default.target
             service_file.write_text(service_content, encoding="utf-8")
             # Reload and enable
             subprocess.run(["systemctl", "--user", "daemon-reload"], check=True)
-            subprocess.run(["systemctl", "--user", "enable", "hyprchan.service"], check=True)
+            subprocess.run(
+                ["systemctl", "--user", "enable", "hyprchan.service"], check=True
+            )
             return True
         except (OSError, subprocess.CalledProcessError):
             return False
 
     def _install_macos_launchd(self) -> bool:
         """Creates a macOS launchd agent (plist)."""
-        plist_path = Path.home() / "Library" / "LaunchAgents" / "com.hyprchan.daemon.plist"
+        plist_path = (
+            Path.home() / "Library" / "LaunchAgents" / "com.hyprchan.daemon.plist"
+        )
         plist_path.parent.mkdir(parents=True, exist_ok=True)
 
         plist_content = f"""<?xml version="1.0" encoding="UTF-8"?>
@@ -93,7 +97,7 @@ WantedBy=default.target
     <key>ProgramArguments</key>
     <array>
         <string>{self.hyprchan_bin}</string>
-        <string>serve</string>
+        <string>start</string>
     </array>
     <key>WorkingDirectory</key>
     <string>{repo_root()}</string>
@@ -111,7 +115,9 @@ WantedBy=default.target
         try:
             plist_path.write_text(plist_content, encoding="utf-8")
             # Load the agent
-            subprocess.run(["launchctl", "unload", str(plist_path)], capture_output=True)
+            subprocess.run(
+                ["launchctl", "unload", str(plist_path)], capture_output=True
+            )
             subprocess.run(["launchctl", "load", str(plist_path)], check=True)
             return True
         except (OSError, subprocess.CalledProcessError):
@@ -121,11 +127,15 @@ WantedBy=default.target
         """Attempts to start the service immediately."""
         try:
             if self.is_linux():
-                subprocess.run(["systemctl", "--user", "start", "hyprchan.service"], check=True)
+                subprocess.run(
+                    ["systemctl", "--user", "start", "hyprchan.service"], check=True
+                )
                 return True
             if self.is_macos():
                 # Already started via 'load' if RunAtLoad is true, but just in case
-                subprocess.run(["launchctl", "start", "com.hyprchan.daemon"], check=True)
+                subprocess.run(
+                    ["launchctl", "start", "com.hyprchan.daemon"], check=True
+                )
                 return True
         except (OSError, subprocess.CalledProcessError):
             return False

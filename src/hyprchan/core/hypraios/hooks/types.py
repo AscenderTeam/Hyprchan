@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Callable, Literal, TypedDict
 
-from core.hypraios.constants import Phases
+from hyprchan.core.hypraios.constants import Phases
 
 AiMode = Literal["passive", "active_user", "active_self"]
 HookName = Literal[

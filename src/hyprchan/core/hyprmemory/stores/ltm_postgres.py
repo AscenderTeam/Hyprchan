@@ -5,25 +5,25 @@ from typing import Any
 from ascender.core.database import DatabaseEngine
 from sqlalchemy import delete, or_, select
 
-from core.hyprmemory.interfaces import LTMStore
-from core.hyprmemory.models import (
+from hyprchan.core.hyprmemory.interfaces import LTMStore
+from hyprchan.core.hyprmemory.models import (
     ConceptNode,
     DreamEntry,
     Episode,
     GraphEdge,
     SemanticFact,
 )
-from core.hyprmemory.utils.serialization import (
+from hyprchan.core.hyprmemory.utils.serialization import (
     feeling_from_dict,
     feeling_to_dict,
     state_from_dict,
     state_to_dict,
 )
-from entities.concept import ConceptEntity
-from entities.dream import DreamEntity
-from entities.edge import EdgeEntity
-from entities.episode import EpisodeEntity
-from entities.fact import FactEntity
+from hyprchan.entities.concept import ConceptEntity
+from hyprchan.entities.dream import DreamEntity
+from hyprchan.entities.edge import EdgeEntity
+from hyprchan.entities.episode import EpisodeEntity
+from hyprchan.entities.fact import FactEntity
 
 
 class PostgresLTMStore(LTMStore):

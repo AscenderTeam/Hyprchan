@@ -2,11 +2,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from core.hyprmemory.models import ConceptNode, Episode, GraphEdge
-from core.hyprmemory.utils.id import generate_id
-from core.hyprmemory.utils.math import clamp, cosine_similarity
-from core.hyprmemory.utils.text import lexical_similarity
-from core.hyprmemory.utils.time import utc_now
+from hyprchan.core.hyprmemory.models import ConceptNode, Episode, GraphEdge
+from hyprchan.core.hyprmemory.utils.id import generate_id
+from hyprchan.core.hyprmemory.utils.math import clamp, cosine_similarity
+from hyprchan.core.hyprmemory.utils.text import lexical_similarity
+from hyprchan.core.hyprmemory.utils.time import utc_now
 
 
 @dataclass(slots=True)

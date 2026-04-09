@@ -1,8 +1,8 @@
 import os
 
-from core.animations.animation import Animation
-from settings import SPRITES_BASE_DIR
-from shared.utils.animations import load_animation_frames
+from hyprchan.core.animations.animation import Animation
+from hyprchan.settings import SPRITES_BASE_DIR
+from hyprchan.shared.utils.animations import load_animation_frames
 
 
 class SleepingSitAnimation(Animation):

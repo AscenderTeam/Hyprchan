@@ -18,13 +18,13 @@ from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
 
-from core.hypraios.constants import Phases
-from core.hypraios.kernel.states import KernelStates
-from core.hypraios.linguistic.inference_engine import InferenceEngine
-from core.hypraios.linguistic.linguistic_engine import LinguisticEngine
-from core.hypraios.linguistic.passive_inference import SYSTEM_INTRO_MESSAGE
-from core.hypraios.mood.phase_engine import PhaseEngine
-from core.hypraios.utils.dynamic_variable import DynamicVariable
+from hyprchan.core.hypraios.constants import Phases
+from hyprchan.core.hypraios.kernel.states import KernelStates
+from hyprchan.core.hypraios.linguistic.inference_engine import InferenceEngine
+from hyprchan.core.hypraios.linguistic.linguistic_engine import LinguisticEngine
+from hyprchan.core.hypraios.linguistic.passive_inference import SYSTEM_INTRO_MESSAGE
+from hyprchan.core.hypraios.mood.phase_engine import PhaseEngine
+from hyprchan.core.hypraios.utils.dynamic_variable import DynamicVariable
 
 
 @dataclass

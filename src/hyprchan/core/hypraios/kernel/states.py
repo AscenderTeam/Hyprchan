@@ -1,6 +1,6 @@
 from dataclasses import dataclass
-from core.hypraios.constants import Phases
-from core.hypraios.utils.dynamic_variable import DynamicVariable
+from hyprchan.core.hypraios.constants import Phases
+from hyprchan.core.hypraios.utils.dynamic_variable import DynamicVariable
 
 
 @dataclass

@@ -4,7 +4,7 @@ import re
 from dataclasses import dataclass
 from datetime import timedelta
 
-from core.hyprmemory.interfaces import (
+from hyprchan.core.hyprmemory.interfaces import (
     ConsolidationJudge,
     EmbeddingProvider,
     LinkingJudge,
@@ -13,7 +13,7 @@ from core.hyprmemory.interfaces import (
     SemanticFeelingJudge,
     STMStore,
 )
-from core.hyprmemory.models import (
+from hyprchan.core.hyprmemory.models import (
     ConceptNode,
     ConsolidationReport,
     DreamEntry,
@@ -24,10 +24,10 @@ from core.hyprmemory.models import (
     SemanticFact,
     STMItem,
 )
-from core.hyprmemory.utils.id import generate_id
-from core.hyprmemory.utils.math import clamp
-from core.hyprmemory.utils.text import tokenize
-from core.hyprmemory.utils.time import utc_now
+from hyprchan.core.hyprmemory.utils.id import generate_id
+from hyprchan.core.hyprmemory.utils.math import clamp
+from hyprchan.core.hyprmemory.utils.text import tokenize
+from hyprchan.core.hyprmemory.utils.time import utc_now
 
 _USER_PREF_RE = re.compile(
     r"\b(i|i\s+really)\s+(like|love|prefer)\s+(?P<pref>[^.?!]+)", re.I

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Protocol
 
-from core.hyprmemory.models import (
+from hyprchan.core.hyprmemory.models import (
     ConceptNode,
     Episode,
     EpisodeSummary,

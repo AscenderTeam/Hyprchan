@@ -1,6 +1,6 @@
-from bootstrap import appBootstrap
-from ascender.core._builder.build import build
 from ascender.core.applications.create_application import createApplication
+
+from hyprchan.bootstrap import appBootstrap
 
 app = createApplication(config=appBootstrap)
 

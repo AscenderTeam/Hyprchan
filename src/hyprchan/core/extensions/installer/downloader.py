@@ -6,8 +6,8 @@ from typing import Any
 
 import yaml
 
-from core.extensions.types.manifest import IExtManifest
-from scripts.wizard import Wizard
+from hyprchan.core.extensions.types.manifest import IExtManifest
+from hyprchan.scripts.wizard import Wizard
 
 
 class Downloader(ABC):

@@ -6,7 +6,7 @@ from rich.text import Text
 from textual.containers import VerticalScroll
 from textual.widgets import Static
 
-from scripts.tui.api import ServerSnapshot
+from hyprchan.scripts.tui.api import ServerSnapshot
 
 
 class GlowHeader(Static):

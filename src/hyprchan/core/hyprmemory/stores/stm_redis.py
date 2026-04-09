@@ -4,9 +4,9 @@ import json
 
 from redis.asyncio import Redis
 
-from core.hyprmemory.interfaces import STMStore
-from core.hyprmemory.models import PerceptionTrace, STMItem
-from core.hyprmemory.utils.serialization import (
+from hyprchan.core.hyprmemory.interfaces import STMStore
+from hyprchan.core.hyprmemory.models import PerceptionTrace, STMItem
+from hyprchan.core.hyprmemory.utils.serialization import (
     datetime_from_iso,
     datetime_to_iso,
     state_from_dict,

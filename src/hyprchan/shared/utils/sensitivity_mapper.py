@@ -1,4 +1,4 @@
-from settings import MAX_THRESHOLD, MAX_WINDOW, MIN_THRESHOLD, MIN_WINDOW
+from hyprchan.settings import MAX_THRESHOLD, MAX_WINDOW, MIN_THRESHOLD, MIN_WINDOW
 
 
 def sensitivity_to_params(sensitivity: float):

@@ -3,14 +3,14 @@ from typing import Annotated
 
 from rich.console import Console
 from rich.panel import Panel
-from scripts.wizard import Choice, Confirm, Wizard, WizardContext, step
-from scripts.wizard.prompts import PromptDriver
-from scripts.wizard.wizard import WizardRenderer
+from hyprchan.scripts.wizard import Choice, Confirm, Wizard, WizardContext, step
+from hyprchan.scripts.wizard.prompts import PromptDriver
+from hyprchan.scripts.wizard.wizard import WizardRenderer
 
-from setup.config_assembler import ConfigAssembler
-from setup.openai_oauth import OpenAIOAuth
-from setup.postgres_installer import PostgresInstaller
-from setup.service_manager import ServiceManager
+from hyprchan.setup.config_assembler import ConfigAssembler
+from hyprchan.setup.openai_oauth import OpenAIOAuth
+from hyprchan.setup.postgres_installer import PostgresInstaller
+from hyprchan.setup.service_manager import ServiceManager
 
 
 class InstallationMaster(Wizard):

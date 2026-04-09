@@ -3,7 +3,7 @@ from __future__ import annotations
 from ascender.core.cli_engine import Command, GenericCLI, Handler
 from ascender.core.di.abc.base_injector import Injector
 
-from scripts.tui.app import run_tui
+from hyprchan.scripts.tui.app import run_tui
 
 
 @Command(

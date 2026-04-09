@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from core.hyprmemory.utils.math import clamp
+from hyprchan.core.hyprmemory.utils.math import clamp
 
 
 @dataclass(slots=True)

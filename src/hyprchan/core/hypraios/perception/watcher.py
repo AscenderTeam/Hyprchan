@@ -2,7 +2,7 @@ import asyncio
 import inspect
 from typing import Any, Callable
 
-from core.hypraios.perception.activity_detector import AsyncActivityDetector
+from hyprchan.core.hypraios.perception.activity_detector import AsyncActivityDetector
 
 
 class PerceptionWatcher:

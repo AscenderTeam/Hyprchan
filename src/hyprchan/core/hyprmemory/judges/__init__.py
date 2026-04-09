@@ -1,7 +1,7 @@
-from core.hyprmemory.judges.linking import SimpleLinkingJudge
-from core.hyprmemory.judges.llm_consolidation import LLMConsolidationJudge
-from core.hyprmemory.judges.salience import WeightedSalienceJudge
-from core.hyprmemory.judges.semantic_feeling import DeterministicSemanticFeelingJudge
+from hyprchan.core.hyprmemory.judges.linking import SimpleLinkingJudge
+from hyprchan.core.hyprmemory.judges.llm_consolidation import LLMConsolidationJudge
+from hyprchan.core.hyprmemory.judges.salience import WeightedSalienceJudge
+from hyprchan.core.hyprmemory.judges.semantic_feeling import DeterministicSemanticFeelingJudge
 
 __all__ = [
     "SimpleLinkingJudge",

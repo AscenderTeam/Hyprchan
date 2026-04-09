@@ -1,6 +1,6 @@
 from typing import Any, Union
 
-from scripts.wizard import Wizard
+from hyprchan.scripts.wizard import Wizard
 
 from .downloader import Downloader
 from .git import GitDownloader

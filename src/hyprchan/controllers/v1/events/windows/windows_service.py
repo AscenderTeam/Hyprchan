@@ -4,12 +4,12 @@ from ascender.common import Injectable
 from ascender.core import Inject
 from ascender.core.applications.application import Application
 
-from controllers.v1.events.speech.speech_service import SpeechService
-from controllers.v1.events.vision.vision_service import VisionService
-from core.hyprland.socket import HyprlandSocket
-from core.hypraios.kernel.kernel import HyprAIOSKernel
-from shared.lifecycle import ServiceLifecycle
-from shared.toggle_detector import AsyncToggleDetector
+from hyprchan.controllers.v1.events.speech.speech_service import SpeechService
+from hyprchan.controllers.v1.events.vision.vision_service import VisionService
+from hyprchan.core.hyprland.socket import HyprlandSocket
+from hyprchan.core.hypraios.kernel.kernel import HyprAIOSKernel
+from hyprchan.shared.lifecycle import ServiceLifecycle
+from hyprchan.shared.toggle_detector import AsyncToggleDetector
 
 
 @Injectable(provided_in="root")

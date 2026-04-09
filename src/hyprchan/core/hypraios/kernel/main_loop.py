@@ -1,9 +1,9 @@
 import asyncio
 import time
 from typing import Any, Callable
-from core.hypraios.utils.dynamic_variable import DynamicVariable
-from core.hypraios.utils.fault_adaptive_parameter import FaultAdaptiveParameter
-from core.hypraios.utils.flag_variable import FlagVariable
+from hyprchan.core.hypraios.utils.dynamic_variable import DynamicVariable
+from hyprchan.core.hypraios.utils.fault_adaptive_parameter import FaultAdaptiveParameter
+from hyprchan.core.hypraios.utils.flag_variable import FlagVariable
 
 
 class MainKernelLoop:

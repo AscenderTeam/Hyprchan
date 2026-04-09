@@ -1,8 +1,8 @@
 from typing import Any
 
-from core.hyprmemory.interfaces import EmbeddingProvider
-from core.hyprmemory.interfaces.stores import ProceduralMemory as ProcMem
-from core.hyprmemory.interfaces.stores import ProceduralMemoryStore
+from hyprchan.core.hyprmemory.interfaces import EmbeddingProvider
+from hyprchan.core.hyprmemory.interfaces.stores import ProceduralMemory as ProcMem
+from hyprchan.core.hyprmemory.interfaces.stores import ProceduralMemoryStore
 
 
 class ProceduralMemory:

@@ -1,4 +1,4 @@
-from core.hypraios.contracts import (
+from hyprchan.core.hypraios.contracts import (
     PerceptionEvent,
     PerceptionEventCallback,
     PerceptionSource,

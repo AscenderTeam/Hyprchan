@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from config.paths import extensions_dir
-from core.extensions.types.manifest import IExtManifest
+from hyprchan.config.paths import extensions_dir
+from hyprchan.core.extensions.types.manifest import IExtManifest
 
 
 def resolve_extension_workspace(name: str, manifest: IExtManifest | None = None) -> Path:

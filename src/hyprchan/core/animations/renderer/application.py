@@ -4,8 +4,8 @@ from typing import Callable
 import gi
 from ascender.core import inject
 
-from core.animations.renderer.window import HyprchanWindow
-from core.hyprland.socket import HyprlandSocket
+from hyprchan.core.animations.renderer.window import HyprchanWindow
+from hyprchan.core.hyprland.socket import HyprlandSocket
 
 gi.require_version("Gtk", "4.0")
 from gi.repository import GdkPixbuf, GLib, Gtk  # type: ignore[attr-defined]

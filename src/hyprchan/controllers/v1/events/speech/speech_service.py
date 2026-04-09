@@ -5,12 +5,12 @@ from ascender.common import Injectable
 from ascender.core import Inject
 from ascender.core.applications.application import Application
 
-from core.hypraios.kernel.kernel import HyprAIOSKernel
-from core.hypraios.perception.speech_perception_source import (
+from hyprchan.core.hypraios.kernel.kernel import HyprAIOSKernel
+from hyprchan.core.hypraios.perception.speech_perception_source import (
     SpeechPerceptionConfig,
     SpeechPerceptionSource,
 )
-from settings import (
+from hyprchan.settings import (
     SPEECH_END_SILENCE_SEC,
     SPEECH_FRAME_DURATION_MS,
     SPEECH_INPUT_DEVICE,
@@ -22,7 +22,7 @@ from settings import (
     SPEECH_PERCEPTION_ENABLED,
     SPEECH_PRE_ROLL_SEC,
 )
-from shared.lifecycle import ServiceLifecycle
+from hyprchan.shared.lifecycle import ServiceLifecycle
 
 
 @Injectable(provided_in="root")

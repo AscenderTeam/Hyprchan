@@ -1,8 +1,8 @@
 import re
 from typing import Literal
 
-from core.hypraios.constants import Phases
-from core.hypraios.kernel.states import KernelStates
+from hyprchan.core.hypraios.constants import Phases
+from hyprchan.core.hypraios.kernel.states import KernelStates
 
 
 class PhaseEngine:

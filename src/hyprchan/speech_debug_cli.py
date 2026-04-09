@@ -12,11 +12,11 @@ from typing import Any
 import numpy as np
 import sounddevice as sd  # type: ignore
 
-from core.hypraios.perception.speech_perception_source import (
+from hyprchan.core.hypraios.perception.speech_perception_source import (
     SpeechPerceptionConfig,
     SpeechPerceptionSource,
 )
-from settings import (
+from hyprchan.settings import (
     SPEECH_END_SILENCE_SEC,
     SPEECH_FRAME_DURATION_MS,
     SPEECH_INPUT_DEVICE,

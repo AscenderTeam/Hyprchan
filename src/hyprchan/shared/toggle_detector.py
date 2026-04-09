@@ -3,7 +3,7 @@ from collections import deque
 import time
 from typing import Any, Callable
 
-from shared.utils.sensitivity_mapper import sensitivity_to_params
+from hyprchan.shared.utils.sensitivity_mapper import sensitivity_to_params
 
 
 class AsyncToggleDetector:

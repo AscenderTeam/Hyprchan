@@ -3,9 +3,9 @@ from __future__ import annotations
 from ascender.core.database import DatabaseEngine
 from sqlalchemy import String, func, or_, select
 
-from core.hyprmemory.interfaces import ProceduralMemoryStore
-from core.hyprmemory.models import ProceduralMemory
-from entities.skills import SkillEntity
+from hyprchan.core.hyprmemory.interfaces import ProceduralMemoryStore
+from hyprchan.core.hyprmemory.models import ProceduralMemory
+from hyprchan.entities.skills import SkillEntity
 
 
 class SqliteProceduralStore(ProceduralMemoryStore):

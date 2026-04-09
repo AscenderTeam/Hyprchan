@@ -8,12 +8,12 @@ from typing import Any
 
 import yaml
 
-from config.paths import builtins_extensions_dir, extensions_dir, repo_root
-from core.extensions.executor import ExtensionExecutor
-from core.extensions.errors import ExtensionNotLoaded
-from core.extensions.extension import HyprchanExtension
-from core.extensions.types.manifest import IExtManifest
-from core.extensions.workspace import resolve_extension_workspace
+from hyprchan.config.paths import builtins_extensions_dir, extensions_dir, repo_root
+from hyprchan.core.extensions.executor import ExtensionExecutor
+from hyprchan.core.extensions.errors import ExtensionNotLoaded
+from hyprchan.core.extensions.extension import HyprchanExtension
+from hyprchan.core.extensions.types.manifest import IExtManifest
+from hyprchan.core.extensions.workspace import resolve_extension_workspace
 
 @dataclass(slots=True)
 class LoadedExtension:

@@ -7,7 +7,7 @@ from typing import Any, Protocol
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
 from langchain_openai import ChatOpenAI
 from pydantic import SecretStr
-from settings import (
+from hyprchan.settings import (
     GEMINI_API_BASE_URL,
     GEMINI_API_KEY,
     INFERENCE_TARGET,

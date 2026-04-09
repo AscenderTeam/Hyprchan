@@ -5,15 +5,15 @@ import asyncio
 from ascender.core.cli_engine import Command, GenericCLI, Handler
 from ascender.core.di.abc.base_injector import Injector
 
-from config.personalization_store import (
+from hyprchan.config.personalization_store import (
     load_enabled_extensions,
     save_enabled_extensions,
 )
-from config.paths import extensions_dir
-from core.extensions.loader import ExtensionLoader
-from core.extensions.installer import ExtensionInstaller
-from core.hypraios.kernel.kernel import HyprAIOSKernel
-from scripts.wizard import Wizard
+from hyprchan.config.paths import extensions_dir
+from hyprchan.core.extensions.loader import ExtensionLoader
+from hyprchan.core.extensions.installer import ExtensionInstaller
+from hyprchan.core.hypraios.kernel.kernel import HyprAIOSKernel
+from hyprchan.scripts.wizard import Wizard
 
 
 @Command(

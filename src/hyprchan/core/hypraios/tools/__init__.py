@@ -1,4 +1,4 @@
-from core.hypraios.tools.constants import (
+from hyprchan.core.hypraios.tools.constants import (
     BUILTIN_TOOL_NAMES,
     TOOL_ANSWER_USER,
     TOOL_CAMERA,
@@ -8,8 +8,8 @@ from core.hypraios.tools.constants import (
     TOOL_SCREENSHOT,
     TOOL_SET_ANIMATION_POSE,
 )
-from core.hypraios.tools.registry import ToolRegistry
-from core.hypraios.tools.types import ToolContext, ToolSpec
+from hyprchan.core.hypraios.tools.registry import ToolRegistry
+from hyprchan.core.hypraios.tools.types import ToolContext, ToolSpec
 
 __all__ = [
     "BUILTIN_TOOL_NAMES",

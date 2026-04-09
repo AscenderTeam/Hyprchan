@@ -1,7 +1,7 @@
 from importlib import import_module
 from typing import Any
 
-from core.hyprmemory.services.retriever import HybridRetriever
+from hyprchan.core.hyprmemory.services.retriever import HybridRetriever
 
 
 def _resolve_hyprmemory_service() -> Any:

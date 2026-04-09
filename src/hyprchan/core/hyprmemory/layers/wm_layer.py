@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from core.hyprmemory.models import RecallResult
+from hyprchan.core.hyprmemory.models import RecallResult
 
 
 @dataclass(slots=True)

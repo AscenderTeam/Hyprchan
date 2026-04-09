@@ -1,7 +1,7 @@
 from typing import Sequence
 from ascender.core.router import RouterRoute
-from controllers.v1.main_controller import MainController
-from controllers.v1.routes_module import RoutesV1Module
+from hyprchan.controllers.v1.main_controller import MainController
+from hyprchan.controllers.v1.routes_module import RoutesV1Module
 
 
 routes: Sequence[RouterRoute] = [

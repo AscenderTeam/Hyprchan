@@ -3,12 +3,12 @@ from __future__ import annotations
 from collections import Counter
 from typing import Any
 
-from core.hypraios.kernel.event_compaction.contracts import (
+from hyprchan.core.hypraios.kernel.event_compaction.contracts import (
     EventCompacter,
     EventCompactionRequest,
     EventCompactionResult,
 )
-from core.hypraios.linguistic.inference_engine import InferenceEngine
+from hyprchan.core.hypraios.linguistic.inference_engine import InferenceEngine
 
 
 class GPT5NanoEventCompacter(EventCompacter):

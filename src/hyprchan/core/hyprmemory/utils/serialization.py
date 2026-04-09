@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
-from core.hyprmemory.models import MemoryState, SemanticFeeling
+from hyprchan.core.hyprmemory.models import MemoryState, SemanticFeeling
 
 
 def state_to_dict(state: MemoryState) -> dict[str, float]:

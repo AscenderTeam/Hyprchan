@@ -1,6 +1,6 @@
 from ascender.core import Controller
-from controllers.v1.events.windows.windows_service import WindowsService
-from core.hyprland import HyprEvent
+from hyprchan.controllers.v1.events.windows.windows_service import WindowsService
+from hyprchan.core.hyprland import HyprEvent
 
 
 @Controller(

@@ -8,19 +8,19 @@ from ascender.common import Injectable
 from ascender.core import Inject
 from ascender.core.applications.application import Application
 
-from core.hypraios.contracts import PerceptionEvent, PerceptionSource
-from core.hypraios.kernel.kernel import HyprAIOSKernel
-from core.hypraios.perception.multimodal_snapshot_source import (
+from hyprchan.core.hypraios.contracts import PerceptionEvent, PerceptionSource
+from hyprchan.core.hypraios.kernel.kernel import HyprAIOSKernel
+from hyprchan.core.hypraios.perception.multimodal_snapshot_source import (
     MultimodalSnapshotConfig,
     MultimodalSnapshotPerceptionSource,
 )
-from core.hypraios.perception.opencv_module import (
+from hyprchan.core.hypraios.perception.opencv_module import (
     OpenCVFrameSourceError,
     OpenCVPerceptionConfig,
     OpenCVPerceptionModule,
     OpenCVUnavailableError,
 )
-from settings import (
+from hyprchan.settings import (
     WEBCAM_DEVICE_INDEX,
     WEBCAM_AUTO_INSTALL_OPENCV,
     WEBCAM_AUTO_FIND_DEVICE,
@@ -33,7 +33,7 @@ from settings import (
     MULTIMODAL_SNAPSHOT_ENABLED,
     MULTIMODAL_SNAPSHOT_INTERVAL_SEC,
 )
-from shared.lifecycle import ServiceLifecycle
+from hyprchan.shared.lifecycle import ServiceLifecycle
 
 
 @Injectable(provided_in="root")

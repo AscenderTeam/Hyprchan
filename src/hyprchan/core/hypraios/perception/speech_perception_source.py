@@ -9,7 +9,7 @@ from typing import Any, Protocol
 
 import numpy as np
 
-from core.hypraios.contracts import (
+from hyprchan.core.hypraios.contracts import (
     PerceptionEvent,
     PerceptionEventCallback,
     PerceptionStatus,

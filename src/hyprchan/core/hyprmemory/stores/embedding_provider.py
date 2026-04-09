@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 from dataclasses import dataclass
 
-from core.hyprmemory.interfaces import EmbeddingProvider
+from hyprchan.core.hyprmemory.interfaces import EmbeddingProvider
 
 
 @dataclass(slots=True)

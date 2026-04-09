@@ -3,7 +3,7 @@ from pathlib import Path
 
 from alp import ALPReceiver
 from ascender.core import Controller, Get, Post
-from core.hypraios.kernel.kernel import HyprAIOSKernel
+from hyprchan.core.hypraios.kernel.kernel import HyprAIOSKernel
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field
 

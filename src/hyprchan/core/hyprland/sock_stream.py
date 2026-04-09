@@ -2,7 +2,7 @@ import asyncio
 import os
 from typing import AsyncIterator, Literal, overload
 
-from core.hyprland.exceptions import UnknownRequestError
+from hyprchan.core.hyprland.exceptions import UnknownRequestError
 
 
 class SenderHalf:

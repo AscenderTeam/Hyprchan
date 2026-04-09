@@ -1,6 +1,6 @@
 from ascender.core import Controller, Get
 
-from controllers.v1.events.speech.speech_service import SpeechService
+from hyprchan.controllers.v1.events.speech.speech_service import SpeechService
 
 
 @Controller(

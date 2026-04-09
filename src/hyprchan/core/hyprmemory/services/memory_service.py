@@ -5,23 +5,23 @@ from dataclasses import dataclass, field
 from logging import Logger
 from typing import Annotated, Any
 
-import settings
+from hyprchan import settings
 from ascender.common import Injectable
 from ascender.core import Inject, inject
 from ascender.core.database import DatabaseEngine
 from redis.asyncio import Redis
 
-from core.hypraios.constants import Phases
-from core.hyprmemory.consolidation.sleep_consolidator import SleepConsolidator
-from core.hyprmemory.interfaces import ConsolidationJudge, EmbeddingProvider
-from core.hyprmemory.judges.linking import SimpleLinkingJudge
-from core.hyprmemory.judges.llm_consolidation import LLMConsolidationJudge
-from core.hyprmemory.judges.salience import WeightedSalienceJudge
-from core.hyprmemory.judges.semantic_feeling import DeterministicSemanticFeelingJudge
-from core.hyprmemory.layers.ltm_layer import LongTermMemoryLayer
-from core.hyprmemory.layers.stm_layer import ShortTermMemoryLayer
-from core.hyprmemory.layers.wm_layer import WorkingMemoryLayer
-from core.hyprmemory.models import (
+from hyprchan.core.hypraios.constants import Phases
+from hyprchan.core.hyprmemory.consolidation.sleep_consolidator import SleepConsolidator
+from hyprchan.core.hyprmemory.interfaces import ConsolidationJudge, EmbeddingProvider
+from hyprchan.core.hyprmemory.judges.linking import SimpleLinkingJudge
+from hyprchan.core.hyprmemory.judges.llm_consolidation import LLMConsolidationJudge
+from hyprchan.core.hyprmemory.judges.salience import WeightedSalienceJudge
+from hyprchan.core.hyprmemory.judges.semantic_feeling import DeterministicSemanticFeelingJudge
+from hyprchan.core.hyprmemory.layers.ltm_layer import LongTermMemoryLayer
+from hyprchan.core.hyprmemory.layers.stm_layer import ShortTermMemoryLayer
+from hyprchan.core.hyprmemory.layers.wm_layer import WorkingMemoryLayer
+from hyprchan.core.hyprmemory.models import (
     ConsolidationReport,
     DreamEntry,
     MemoryQuery,
@@ -31,17 +31,17 @@ from core.hyprmemory.models import (
     RecallResult,
     STMItem,
 )
-from core.hyprmemory.services.retriever import HybridRetriever
-from core.hyprmemory.skills import PostgresProceduralStore, SqliteProceduralStore
-from core.hyprmemory.skills.memory import ProceduralMemory
-from core.hyprmemory.stores.embedding_provider import OpenAIEmbeddingProvider
-from core.hyprmemory.stores.ltm_postgres import PostgresLTMStore
-from core.hyprmemory.stores.stm_memory import InMemorySTMStore
-from core.hyprmemory.stores.stm_redis import RedisSTMStore
-from core.hyprmemory.stores.vector_pg import PgVectorStore
-from core.hyprmemory.utils.id import generate_id
-from core.hyprmemory.utils.math import clamp
-from core.hyprmemory.utils.time import utc_now
+from hyprchan.core.hyprmemory.services.retriever import HybridRetriever
+from hyprchan.core.hyprmemory.skills import PostgresProceduralStore, SqliteProceduralStore
+from hyprchan.core.hyprmemory.skills.memory import ProceduralMemory
+from hyprchan.core.hyprmemory.stores.embedding_provider import OpenAIEmbeddingProvider
+from hyprchan.core.hyprmemory.stores.ltm_postgres import PostgresLTMStore
+from hyprchan.core.hyprmemory.stores.stm_memory import InMemorySTMStore
+from hyprchan.core.hyprmemory.stores.stm_redis import RedisSTMStore
+from hyprchan.core.hyprmemory.stores.vector_pg import PgVectorStore
+from hyprchan.core.hyprmemory.utils.id import generate_id
+from hyprchan.core.hyprmemory.utils.math import clamp
+from hyprchan.core.hyprmemory.utils.time import utc_now
 
 
 @dataclass(slots=True)

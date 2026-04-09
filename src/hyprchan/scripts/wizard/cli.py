@@ -5,7 +5,7 @@ from typing import Annotated
 
 from ascender.core.cli_engine import Command, GenericCLI, Handler
 from ascender.core.di.abc.base_injector import Injector
-from setup.master import InstallationMaster
+from hyprchan.setup.master import InstallationMaster
 
 from . import Choice, Confirm, Input, MainInstaller, WizardContext, step
 

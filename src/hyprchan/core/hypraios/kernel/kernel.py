@@ -8,28 +8,28 @@ from typing import Annotated, Any
 
 from ascender.common import Injectable
 from ascender.core import Inject
-from core.animations.engine import AnimationEngine
-from core.hypraios.constants import Phases
-from core.hypraios.hooks.manager import HookManager
-from core.hypraios.kernel.event_compaction import (
+from hyprchan.core.animations.engine import AnimationEngine
+from hyprchan.core.hypraios.constants import Phases
+from hyprchan.core.hypraios.hooks.manager import HookManager
+from hyprchan.core.hypraios.kernel.event_compaction import (
     EventCompacter,
     EventCompactionRequest,
     EventCompactionResult,
     GPT5NanoEventCompacter,
 )
-from core.hypraios.kernel.main_loop import MainKernelLoop
-from core.hypraios.kernel.memory.buffer import MemoryBuffer
-from core.hypraios.kernel.memory.memory_gate import MemoryGate
-from core.hypraios.kernel.memory.stm_payload import build_stm_payload, parse_stm_payload
-from core.hypraios.kernel.memory.stm_snapshot import StmSnapshotStore
-from core.hypraios.kernel.states import KernelStates
-from core.hypraios.linguistic.linguistic_engine import LinguisticEngine
-from core.hypraios.mood.phase_engine import PhaseEngine
-from core.hypraios.perception.watcher import PerceptionWatcher
-from core.hypraios.utils.dynamic_variable import DynamicVariable
-from core.hypraios.utils.fault_adaptive_parameter import FaultAdaptiveParameter
-from core.hyprmemory.models import MemoryState
-from settings import (
+from hyprchan.core.hypraios.kernel.main_loop import MainKernelLoop
+from hyprchan.core.hypraios.kernel.memory.buffer import MemoryBuffer
+from hyprchan.core.hypraios.kernel.memory.memory_gate import MemoryGate
+from hyprchan.core.hypraios.kernel.memory.stm_payload import build_stm_payload, parse_stm_payload
+from hyprchan.core.hypraios.kernel.memory.stm_snapshot import StmSnapshotStore
+from hyprchan.core.hypraios.kernel.states import KernelStates
+from hyprchan.core.hypraios.linguistic.linguistic_engine import LinguisticEngine
+from hyprchan.core.hypraios.mood.phase_engine import PhaseEngine
+from hyprchan.core.hypraios.perception.watcher import PerceptionWatcher
+from hyprchan.core.hypraios.utils.dynamic_variable import DynamicVariable
+from hyprchan.core.hypraios.utils.fault_adaptive_parameter import FaultAdaptiveParameter
+from hyprchan.core.hyprmemory.models import MemoryState
+from hyprchan.settings import (
     EVENT_COMPACTION_BATCH_SIZE,
     EVENT_COMPACTION_ENABLED,
     EVENT_COMPACTION_KEEP_TAIL,

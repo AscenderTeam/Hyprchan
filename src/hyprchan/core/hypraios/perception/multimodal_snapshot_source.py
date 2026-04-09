@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable
 
-from core.hypraios.contracts import (
+from hyprchan.core.hypraios.contracts import (
     PerceptionEvent,
     PerceptionEventCallback,
     PerceptionStatus,

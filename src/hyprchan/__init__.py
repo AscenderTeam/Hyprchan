@@ -1,0 +1,1 @@
+"""Hyprchan package root."""

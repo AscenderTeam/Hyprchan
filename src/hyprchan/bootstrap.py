@@ -1,35 +1,29 @@
 import os
 from typing import Any, cast
 
-from animations.depressed_sit import DepressedSitAnimation
-from animations.falling_asleep_sit import FallingAsleepSitAnimation
-from animations.idle_sit import IdleSitAnimation
-from animations.sleeping_sit import SleepingSitAnimation
-from animations.startle_wakeup_sit import StartleWakeupSitAnimation
+from alp import provideALP
 from ascender.common.api_docs import DefineAPIDocs
 from ascender.core.cli_engine import useCLI
 from ascender.core.database import ORMEnum, provideDatabase
 from ascender.core.router import provideRouter
 from ascender.core.types import IBootstrap
-from core.animations.provider import provideAnimations
-from routes import routes
-from scripts.animation_cli import AnimationCLI
-from scripts.extensions.cli import ExtensionsCLI
-from scripts.tui.cli import HyprTuiCLI
-from scripts.wizard.cli import WizardCLI
-from settings import (
+
+from hyprchan.animations.depressed_sit import DepressedSitAnimation
+from hyprchan.animations.falling_asleep_sit import FallingAsleepSitAnimation
+from hyprchan.animations.idle_sit import IdleSitAnimation
+from hyprchan.animations.sleeping_sit import SleepingSitAnimation
+from hyprchan.animations.startle_wakeup_sit import StartleWakeupSitAnimation
+from hyprchan.core.animations.provider import provideAnimations
+from hyprchan.routes import routes
+from hyprchan.scripts.animation_cli import AnimationCLI
+from hyprchan.scripts.extensions.cli import ExtensionsCLI
+from hyprchan.scripts.start_cli import StartCLI
+from hyprchan.scripts.tui.cli import HyprTuiCLI
+from hyprchan.scripts.wizard.cli import WizardCLI
+from hyprchan.settings import (
     DATABASE_CONNECTION,
 )
-
-try:
-    from agenthub.providers.agenthub_provider import (
-        provideAgentHub,
-    )
-except ModuleNotFoundError:
-    provideAgentHub = None
-
-from alp import provideALP
-from shared.database_runtime import resolve_database_connection
+from hyprchan.shared.database_runtime import resolve_database_connection
 
 runtime_database_connection = resolve_database_connection(
     cast(dict[str, Any], DATABASE_CONNECTION)
@@ -59,6 +53,7 @@ providers = [
     useCLI(ExtensionsCLI),
     useCLI(HyprTuiCLI),
     useCLI(WizardCLI),
+    useCLI(StartCLI),
     provideALP(),
     provideAnimations(
         [

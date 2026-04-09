@@ -4,8 +4,8 @@ from typing import Any
 
 from gi.repository import GLib  # type: ignore[attr-defined]
 
-from core.animations.animation import Animation
-from core.animations.renderer.application import HyprchanApp
+from hyprchan.core.animations.animation import Animation
+from hyprchan.core.animations.renderer.application import HyprchanApp
 
 
 class AnimationEngine:

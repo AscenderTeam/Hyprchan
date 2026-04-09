@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Any
 
-from core.hyprmemory.models import MemoryState
+from hyprchan.core.hyprmemory.models import MemoryState
 
 
 @dataclass(frozen=True)

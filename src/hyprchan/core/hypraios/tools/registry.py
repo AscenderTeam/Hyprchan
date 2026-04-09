@@ -5,7 +5,7 @@ from logging import Logger
 
 from langchain_core.tools import StructuredTool
 
-from core.hypraios.tools.types import ToolContext, ToolSpec
+from hyprchan.core.hypraios.tools.types import ToolContext, ToolSpec
 
 
 @dataclass(slots=True)

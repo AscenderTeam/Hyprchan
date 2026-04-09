@@ -5,11 +5,11 @@ from dataclasses import dataclass
 from ascender.core.database import DatabaseEngine
 from sqlalchemy import select
 
-from core.hyprmemory.interfaces import EmbeddingProvider, LTMStore, VectorStore
-from core.hyprmemory.models import ConceptNode, Episode, MemoryQuery
-from core.hyprmemory.stores.ltm_postgres import PostgresLTMStore
-from entities.concept import ConceptEntity
-from entities.episode import EpisodeEntity
+from hyprchan.core.hyprmemory.interfaces import EmbeddingProvider, LTMStore, VectorStore
+from hyprchan.core.hyprmemory.models import ConceptNode, Episode, MemoryQuery
+from hyprchan.core.hyprmemory.stores.ltm_postgres import PostgresLTMStore
+from hyprchan.entities.concept import ConceptEntity
+from hyprchan.entities.episode import EpisodeEntity
 
 
 @dataclass(slots=True)

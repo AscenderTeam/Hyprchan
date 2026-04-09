@@ -8,7 +8,7 @@ from typing import TypeAlias, TypeVar, cast
 
 import aiosqlite
 
-from core.extensions.workspace import get_extension_data_dir
+from hyprchan.core.extensions.workspace import get_extension_data_dir
 
 _TABLE_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 JsonValue: TypeAlias = (

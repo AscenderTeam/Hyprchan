@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
 
-from core.hyprmemory.models.state import MemoryState, SemanticFeeling
+from hyprchan.core.hyprmemory.models.state import MemoryState, SemanticFeeling
 
 
 @dataclass(slots=True)

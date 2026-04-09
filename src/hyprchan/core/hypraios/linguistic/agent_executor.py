@@ -13,7 +13,7 @@ from langchain_core.tools import StructuredTool
 from langchain_core.messages import HumanMessage, BaseMessage, ToolMessage
 from langchain_core.agents import AgentAction
 
-import settings
+from hyprchan import settings
 from pydantic import SecretStr
 
 

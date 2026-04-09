@@ -1,4 +1,4 @@
-from core.hyprmemory.models.memory import (
+from hyprchan.core.hyprmemory.models.memory import (
     ConceptNode,
     ConsolidationReport,
     DreamEntry,
@@ -14,7 +14,7 @@ from core.hyprmemory.models.memory import (
     SemanticFact,
     STMItem,
 )
-from core.hyprmemory.models.state import MemoryState, SemanticFeeling
+from hyprchan.core.hyprmemory.models.state import MemoryState, SemanticFeeling
 
 __all__ = [
     "ConceptNode",

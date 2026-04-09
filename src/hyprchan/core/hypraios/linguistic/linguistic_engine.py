@@ -6,16 +6,16 @@ import re
 from pathlib import Path
 from typing import Any
 
-from core.hypraios.constants import Phases
-from core.hypraios.kernel.states import KernelStates
-from core.hypraios.linguistic.agent_executor import ReActAgentExecutor
-from core.hypraios.linguistic.inference_engine import InferenceEngine
-from core.hypraios.linguistic.logit_bias import StateLogitBiasBuilder
-from core.hypraios.linguistic.passive_inference import PassiveProcessor
-from core.hypraios.linguistic.persona_memory import PersonaMemory
-from core.hypraios.linguistic.tool_runtime import LinguisticToolRuntime
-from core.hypraios.utils.dynamic_variable import DynamicVariable
-from core.hyprmemory.models import MemoryState
+from hyprchan.core.hypraios.constants import Phases
+from hyprchan.core.hypraios.kernel.states import KernelStates
+from hyprchan.core.hypraios.linguistic.agent_executor import ReActAgentExecutor
+from hyprchan.core.hypraios.linguistic.inference_engine import InferenceEngine
+from hyprchan.core.hypraios.linguistic.logit_bias import StateLogitBiasBuilder
+from hyprchan.core.hypraios.linguistic.passive_inference import PassiveProcessor
+from hyprchan.core.hypraios.linguistic.persona_memory import PersonaMemory
+from hyprchan.core.hypraios.linguistic.tool_runtime import LinguisticToolRuntime
+from hyprchan.core.hypraios.utils.dynamic_variable import DynamicVariable
+from hyprchan.core.hyprmemory.models import MemoryState
 from langchain_openai import ChatOpenAI
 from pydantic import SecretStr
 
