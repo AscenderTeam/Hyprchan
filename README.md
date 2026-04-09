@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="public/assets/readme/hyprchan_pixel.png" width="250" alt="Hyprchan Pixel Art">
+<img src="https://raw.githubusercontent.com/AscenderTeam/Hyprchan/main/public/assets/readme/hyprchan_pixel.png" width="250" alt="Hyprchan Pixel Art">
 
 # 🌌 HyprAI OS: Hyprchan
 
@@ -10,7 +10,7 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=for-the-badge&logo=fastapi)](https://fastapi.tiangolo.com/)
 [![Hyprland](https://img.shields.io/badge/Hyprland-CC1111?style=for-the-badge&logo=linux&logoColor=white)](https://hyprland.org/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-336791?style=for-the-badge&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
-[![License](https://img.shields.io/badge/license-MIT-green.svg?style=for-the-badge)](LICENSE)
+[![License](https://img.shields.io/badge/license-MIT-green.svg?style=for-the-badge)](https://github.com/AscenderTeam/Hyprchan/blob/main/LICENSE)
 
 ---
 
@@ -28,11 +28,11 @@
   <table border="0">
     <tr>
       <td width="50%">
-        <img src="public/assets/readme/tui_screenshot.png" width="100%" alt="Rich TUI Interface">
+        <img src="https://raw.githubusercontent.com/AscenderTeam/Hyprchan/main/public/assets/readme/tui_screenshot.png" width="100%" alt="Rich TUI Interface">
         <p align="center"><i>Live Rich TUI with telemetry and memory snapshots.</i></p>
       </td>
       <td width="50%">
-        <img src="public/assets/readme/overlay_example.png" width="100%" alt="Hyprland Overlay">
+        <img src="https://raw.githubusercontent.com/AscenderTeam/Hyprchan/main/public/assets/readme/overlay_example.png" width="100%" alt="Hyprland Overlay">
         <p align="center"><i>Animated Hyprland overlay with tool-calling capabilities.</i></p>
       </td>
     </tr>
