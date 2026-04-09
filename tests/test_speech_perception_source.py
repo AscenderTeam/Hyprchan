@@ -134,6 +134,54 @@ async def test_speech_source_emits_detected_language_metadata() -> None:
     assert event["speech_language_confidence"] == 0.93
 
 
+@pytest.mark.asyncio
+async def test_speech_source_reports_vad_and_transcription_state() -> None:
+    class FakeTranscriber:
+        def transcribe(self, audio: np.ndarray) -> str:
+            assert audio.size > 0
+            return "glow test"
+
+    callback = AsyncMock()
+    speaking_state = AsyncMock()
+    transcription_state = AsyncMock()
+    config = SpeechPerceptionConfig(
+        frame_duration_ms=30,
+        min_speech_sec=0.06,
+        end_silence_sec=0.06,
+        pre_roll_sec=0.03,
+        min_start_dbfs=-45.0,
+        min_continue_dbfs=-50.0,
+    )
+    source = SpeechPerceptionSource(
+        callback,
+        config=config,
+        transcriber=FakeTranscriber(),
+        speaking_state_callback=speaking_state,
+        transcription_state_callback=transcription_state,
+    )
+
+    event = None
+    for _ in range(12):
+        event = await source._consume_frame(_frame(config, 0.06), emit=True)
+        if event is not None:
+            break
+    if event is None:
+        for _ in range(12):
+            event = await source._consume_frame(_frame(config, 0.0007), emit=True)
+            if event is not None:
+                break
+
+    assert event is not None
+    speaking_sequence = [call.args[0] for call in speaking_state.await_args_list]
+    assert speaking_sequence[:2] == [True, False]
+
+    transcription_sequence = [
+        call.args[0] for call in transcription_state.await_args_list
+    ]
+    assert transcription_sequence[:2] == [True, False]
+    assert float(transcription_state.await_args_list[0].args[1]) > 0
+
+
 def test_resample_audio_if_needed_changes_length_for_different_sample_rates() -> None:
     audio = np.linspace(-0.2, 0.2, num=4800, dtype=np.float32)
     resampled = SpeechPerceptionSource._resample_audio_if_needed(

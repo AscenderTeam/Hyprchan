@@ -38,10 +38,14 @@ class SpeechService(ServiceLifecycle):
         self.logger = logger
         self._source: SpeechPerceptionSource | None = None
         self._startup_error: str | None = None
+        self._vad_speaking = False
+        self._transcription_active_count = 0
 
     async def on_startup(self) -> None:
         self._source = None
         self._startup_error = None
+        self._vad_speaking = False
+        self._transcription_active_count = 0
         self.logger.debug("SpeechService startup begin")
 
         if not SPEECH_PERCEPTION_ENABLED:
@@ -60,7 +64,12 @@ class SpeechService(ServiceLifecycle):
             min_continue_dbfs=SPEECH_MIN_CONTINUE_DBFS,
         )
 
-        self._source = SpeechPerceptionSource(self._record_event, config=config)
+        self._source = SpeechPerceptionSource(
+            self._record_event,
+            config=config,
+            speaking_state_callback=self._on_speaking_state_changed,
+            transcription_state_callback=self._on_transcription_state_changed,
+        )
         try:
             await self._source.start()
         except Exception as exc:
@@ -79,6 +88,49 @@ class SpeechService(ServiceLifecycle):
         self.logger.debug("SpeechService shutdown begin")
         if self._source is not None:
             await self._source.stop()
+        self._vad_speaking = False
+        self._transcription_active_count = 0
+        self._set_speech_glow_active(False)
+
+    def _enqueue_animation_command(self, name: str, *args: Any) -> None:
+        animations = getattr(self.kernel, "animations", None)
+        if animations is None:
+            return
+        command = getattr(animations, name, None)
+        if not callable(command):
+            return
+        command(*args)
+
+    def _set_speech_glow_active(self, active: bool) -> None:
+        self._enqueue_animation_command("enqueue_speech_glow_active", bool(active))
+
+    def _fade_speech_glow(self, duration_sec: float) -> None:
+        self._enqueue_animation_command("enqueue_speech_glow_fade", float(duration_sec))
+
+    async def _on_speaking_state_changed(self, speaking: bool) -> None:
+        self._vad_speaking = bool(speaking)
+        if self._vad_speaking:
+            self._set_speech_glow_active(True)
+            return
+
+        if self._transcription_active_count <= 0:
+            self._fade_speech_glow(0.6)
+
+    async def _on_transcription_state_changed(
+        self, active: bool, speech_duration_sec: float
+    ) -> None:
+        if active:
+            self._transcription_active_count += 1
+            self._set_speech_glow_active(True)
+            return
+
+        self._transcription_active_count = max(0, self._transcription_active_count - 1)
+        if self._vad_speaking or self._transcription_active_count > 0:
+            self._set_speech_glow_active(True)
+            return
+
+        fade_duration = max(0.4, min(1.2, 0.45 + (float(speech_duration_sec) * 0.2)))
+        self._fade_speech_glow(fade_duration)
 
     async def _record_event(self, event: dict[str, Any]) -> None:
         transcript = str(event.get("description", "")).strip()

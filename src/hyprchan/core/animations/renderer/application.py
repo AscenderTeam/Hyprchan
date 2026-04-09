@@ -80,3 +80,12 @@ class HyprchanApp(Gtk.Application):
 
     def set_sprite_scale(self, scale: float) -> None:
         self._sprite_scale = max(0.1, float(scale))
+
+    def trigger_speech_glow(self, duration_sec: float = 0.9) -> None:
+        self.win.trigger_speech_glow(duration_sec)  # pyright: ignore[reportAttributeAccessIssue]
+
+    def set_speech_glow_active(self, active: bool) -> None:
+        self.win.set_speech_glow_active(active)  # pyright: ignore[reportAttributeAccessIssue]
+
+    def start_speech_glow_fade(self, duration_sec: float = 0.8) -> None:
+        self.win.start_speech_glow_fade(duration_sec)  # pyright: ignore[reportAttributeAccessIssue]

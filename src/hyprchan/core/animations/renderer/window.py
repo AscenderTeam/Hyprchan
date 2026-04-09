@@ -1,3 +1,5 @@
+import time
+
 import gi
 
 gi.require_version("Gtk", "4.0")
@@ -13,12 +15,32 @@ class PixelArtImage(Gtk.Widget):
         super().__init__()
         self._pixbuf: GdkPixbuf.Pixbuf | None = None
         self._texture: Gdk.Texture | None = None
+        self._speech_glow_active = False
+        self._speech_glow_fade_until = 0.0
+        self._speech_glow_fade_duration = 0.8
 
     def set_from_pixbuf(self, pixbuf: GdkPixbuf.Pixbuf) -> None:
         self._pixbuf = pixbuf
         self._texture = Gdk.Texture.new_for_pixbuf(pixbuf)
         self.queue_resize()
         self.queue_draw()
+
+    def set_speech_glow_active(self, active: bool) -> None:
+        self._speech_glow_active = bool(active)
+        if self._speech_glow_active:
+            self._speech_glow_fade_until = 0.0
+        self.queue_draw()
+
+    def start_speech_glow_fade(self, duration_sec: float = 0.8) -> None:
+        duration = max(0.2, min(float(duration_sec), 3.0))
+        self._speech_glow_active = False
+        self._speech_glow_fade_duration = duration
+        self._speech_glow_fade_until = time.monotonic() + duration
+        self.queue_draw()
+
+    def trigger_speech_glow(self, duration_sec: float = 0.9) -> None:
+        self.set_speech_glow_active(True)
+        self.start_speech_glow_fade(duration_sec)
 
     def do_measure(
         self,
@@ -56,6 +78,51 @@ class PixelArtImage(Gtk.Widget):
         bounds.init(
             float(offset_x), float(offset_y), float(draw_width), float(draw_height)
         )
+
+        now = time.monotonic()
+        glow_progress = 0.0
+        if self._speech_glow_active:
+            glow_progress = 1.0
+        else:
+            glow_remaining = self._speech_glow_fade_until - now
+            if glow_remaining > 0:
+                glow_progress = max(
+                    0.0,
+                    min(
+                        1.0,
+                        glow_remaining / max(0.001, self._speech_glow_fade_duration),
+                    ),
+                )
+
+        if glow_progress > 0 and hasattr(snapshot, "push_shadow"):
+            glow_color = Gdk.RGBA()
+            glow_color.red = 0.35
+            glow_color.green = 0.93
+            glow_color.blue = 1.0
+            glow_color.alpha = 0.055 + (0.07 * glow_progress)
+
+            shadow = Gsk.Shadow()
+            shadow.color = glow_color
+            shadow.dx = 0.0
+            shadow.dy = 0.0
+            shadow.radius = 9.0 + (7.0 * glow_progress)
+
+            snapshot.push_shadow([shadow])
+            self._append_sprite_texture(snapshot, bounds, draw_width, draw_height)
+            snapshot.pop()
+            return
+
+        self._append_sprite_texture(snapshot, bounds, draw_width, draw_height)
+
+    def _append_sprite_texture(
+        self,
+        snapshot: Gtk.Snapshot,
+        bounds: Graphene.Rect,
+        draw_width: int,
+        draw_height: int,
+    ) -> None:
+        if self._texture is None or self._pixbuf is None:
+            return
 
         if hasattr(snapshot, "append_scaled_texture"):
             snapshot.append_scaled_texture(
@@ -145,6 +212,15 @@ class HyprchanWindow(Gtk.Window):
         normalized = text.strip()
         self.answer_label.set_label(normalized)
         self.answer_label.set_visible(bool(normalized))
+
+    def trigger_speech_glow(self, duration_sec: float = 0.9) -> None:
+        self.image.trigger_speech_glow(duration_sec)
+
+    def set_speech_glow_active(self, active: bool) -> None:
+        self.image.set_speech_glow_active(active)
+
+    def start_speech_glow_fade(self, duration_sec: float = 0.8) -> None:
+        self.image.start_speech_glow_fade(duration_sec)
 
     def overlay_height_hint(self) -> int:
         if not self.answer_label.get_visible():
