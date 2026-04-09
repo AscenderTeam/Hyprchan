@@ -6,26 +6,23 @@ import time
 from importlib import import_module
 from typing import Any
 
-from .client import HyprXClient
-from .constants import (
+from client import HyprXClient
+from constants import (
     HYPRX_REPLY_ONLY_TOOLSET,
     HYPRX_REQUIRED_ENV,
     TOOL_TWITTER_POST,
     TOOL_TWITTER_REPLY,
     TOOL_TWITTER_REPOST,
 )
-from .policy import HyprXPolicy
-from .storage import HyprXStorage
-from .utils import async_toolify
+from policy import HyprXPolicy
+from storage import HyprXStorage
+from utils import async_toolify
 
-from hyprchan import (
-    ExtensionExecutor,
-    ExtensionKV,
-    HookResult,
-    HyprchanExtension,
-    ToolSpec,
-    extension_kv_path,
-)
+from hyprchan.core.extensions.executor import ExtensionExecutor
+from hyprchan.core.extensions.extension import HyprchanExtension
+from hyprchan.core.extensions.storage import ExtensionKV, extension_kv_path
+from hyprchan.core.hypraios.hooks.types import HookResult
+from hyprchan.core.hypraios.tools.types import ToolSpec
 
 
 class HyprXExtension(HyprchanExtension):

@@ -1,6 +1,6 @@
 [project]
 name = "hyprchan"
-version = "0.1.2"
+version = "0.1.6"
 description = "An anime girl that lives in your Hyprland and chills."
 authors = [
     {name = "Zahcoder34",email = "Zakhriw@gmail.com"}
@@ -29,12 +29,17 @@ dependencies = [
     "aiogram (>=3.26.0,<4.0.0)",
     "questionary (>=2.1.1,<3.0.0)",
     "tweepy (>=4.16.0,<5.0.0)",
-    "ascender-alp (>=0.0.2,<0.0.3)"
+    "ascender-alp (>=0.0.2,<0.0.3)",
+    "fastapi (==0.115)"
 ]
 
 [tool.poetry]
 packages = [
     { include = "hyprchan", from = "src" }
+]
+include = [
+    { path = "src/hyprchan/assets/sprites/*.png", format = ["sdist", "wheel"] },
+    { path = "extensions/**", format = ["sdist", "wheel"] }
 ]
 [tool.poetry.scripts]
 hyprchan = "hyprchan.main:launch"

@@ -4,13 +4,14 @@ from collections import defaultdict
 from typing import Any
 
 from aiogram.types import Message
-from .media import TelegramMediaStore
-from .storage import DataStorage
+from media import TelegramMediaStore
+from storage import DataStorage
 
 from hyprchan.core.hypraios.hooks import (
     AiInferencePayload,  # TODO: Soon this one will be changed
 )
-from hyprchan import ExtensionExecutor, HookResult
+from hyprchan.core.extensions.executor import ExtensionExecutor
+from hyprchan.core.hypraios.hooks.types import HookResult
 
 
 class HyprgramHandler:

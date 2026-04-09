@@ -2,7 +2,7 @@ import hashlib
 import time
 from typing import cast
 
-from hyprchan import ExtensionKV
+from hyprchan.core.extensions.storage import ExtensionKV
 
 JsonValue = (
     str

@@ -16,6 +16,6 @@ class AnimationCLI(GenericCLI):
     @Handler("run", description="Run the animation engine in this process.")
     def run(self) -> None:
         print("Starting animation engine...")
-        from core.animations.engine import AnimationEngine
+        from hyprchan.core.animations.engine import AnimationEngine
 
         self.injector.get(AnimationEngine)

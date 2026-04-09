@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 import time
 
-from hyprchan import ExtensionKV
+from hyprchan.core.extensions.storage import ExtensionKV
 
 
 class HyprXStorage:

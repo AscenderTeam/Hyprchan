@@ -1,8 +1,10 @@
 import os
+import shutil
 from typing import Annotated
 
 from rich.console import Console
 from rich.panel import Panel
+from hyprchan.config.paths import builtins_extensions_dir, extensions_dir
 from hyprchan.scripts.wizard import Choice, Confirm, Wizard, WizardContext, step
 from hyprchan.scripts.wizard.prompts import PromptDriver
 from hyprchan.scripts.wizard.wizard import WizardRenderer
@@ -262,6 +264,27 @@ class InstallationMaster(Wizard):
                 ["hyprgram", "hyprx"],
                 multiple=True,
             )
+            source_root = builtins_extensions_dir()
+            target_root = extensions_dir()
+            target_root.mkdir(parents=True, exist_ok=True)
+            for extension in selected:
+                source_dir = source_root / extension
+                target_dir = target_root / extension
+                if not source_dir.exists():
+                    self.console.print(
+                        f"[yellow]Built-in extension source not found:[/] {source_dir}"
+                    )
+                    continue
+                if target_dir.exists():
+                    self.console.print(
+                        f"[cyan]Keeping existing extension workspace:[/] {target_dir}"
+                    )
+                    continue
+                shutil.copytree(source_dir, target_dir)
+                self.console.print(
+                    f"[green]Installed built-in extension:[/] {extension} -> {target_dir}"
+                )
+
             self.config_assembler.enable_extensions(selected)
 
             if "hyprgram" in selected:

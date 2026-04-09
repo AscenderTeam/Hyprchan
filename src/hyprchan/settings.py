@@ -109,7 +109,17 @@ OPENROUTER_X_TITLE = os.getenv("OPENROUTER_X_TITLE", "")
 
 HYPRMEMORY_VECTOR_DIM = int(os.getenv("HYPRMEMORY_VECTOR_DIM", "1536"))
 
-SPRITES_BASE_DIR = os.path.abspath(os.path.join("public", "assets", "sprites"))
+def _resolve_sprites_base_dir() -> str:
+    package_sprites = Path(__file__).resolve().parent / "assets" / "sprites"
+    if package_sprites.exists():
+        return str(package_sprites)
+
+    # Dev fallback when running from repository root.
+    repo_sprites = Path.cwd() / "public" / "assets" / "sprites"
+    return str(repo_sprites.resolve())
+
+
+SPRITES_BASE_DIR = _resolve_sprites_base_dir()
 
 WEBCAM_VISION_ENABLED = _env_flag("WEBCAM_VISION_ENABLED", True)
 WEBCAM_DEVICE_INDEX = int(os.getenv("WEBCAM_DEVICE_INDEX", "0"))

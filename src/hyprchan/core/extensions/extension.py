@@ -6,7 +6,7 @@ from hyprchan.core.extensions.executor import ExtensionExecutor
 from hyprchan.core.hypraios.constants import Phases
 
 if TYPE_CHECKING:
-    from core.hyprmemory.services.memory_service import HyprMemoryService
+    from hyprchan.core.hyprmemory.services.memory_service import HyprMemoryService
 
 
 class HyprchanExtension(ABC):

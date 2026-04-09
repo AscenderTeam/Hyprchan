@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING, Any, final
 if TYPE_CHECKING:
     from gi.repository import GdkPixbuf
 
-    from core.animations.engine import AnimationEngine
+    from hyprchan.core.animations.engine import AnimationEngine
 
 
 class Animation:

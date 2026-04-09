@@ -1201,7 +1201,7 @@ class HyprAIOSKernel:
         await self.start_awake_loop()
 
     async def _load_enabled_extensions(self, enabled: list[str]) -> None:
-        from core.extensions.loader import ExtensionLoader
+        from hyprchan.core.extensions.loader import ExtensionLoader
 
         loader = ExtensionLoader(self)
         for extension in enabled:

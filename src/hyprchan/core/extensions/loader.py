@@ -125,7 +125,7 @@ class ExtensionLoader:
         if user_candidate.exists():
             return user_candidate
 
-        # 3. Built-ins (src/hyprchan/builtins/extensions)
+        # 3. Built-ins (repo/extensions or installed site-packages/extensions)
         builtins_candidate = (builtins_extensions_dir() / extension).resolve()
         if builtins_candidate.exists():
             return builtins_candidate

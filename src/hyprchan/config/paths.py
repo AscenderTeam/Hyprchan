@@ -5,7 +5,14 @@ from pathlib import Path
 
 
 def repo_root() -> Path:
-    return Path(__file__).resolve().parents[4]
+    current = Path(__file__).resolve()
+    for parent in current.parents:
+        if (parent / "pyproject.toml").exists() and (parent / "src" / "hyprchan").exists():
+            return parent
+    for parent in current.parents:
+        if (parent / "pyproject.toml").exists():
+            return parent
+    return Path.cwd().resolve()
 
 
 def project_config_dir() -> Path:
@@ -20,7 +27,22 @@ def user_config_dir() -> Path:
 
 
 def builtins_extensions_dir() -> Path:
-    return Path(__file__).resolve().parent.parent / "builtins" / "extensions"
+    override = os.getenv("HYPRCHAN_BUILTINS_EXTENSIONS_DIR", "").strip()
+    if override:
+        return Path(override).expanduser().resolve()
+
+    candidates = [
+        # Source checkout canonical path.
+        repo_root() / "extensions",
+        # Installed wheel path when `extensions/**` is shipped at site-packages root.
+        Path(__file__).resolve().parents[2] / "extensions",
+        # Legacy built-ins location for backward compatibility.
+        Path(__file__).resolve().parent.parent / "builtins" / "extensions",
+    ]
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate.resolve()
+    return candidates[0].resolve()
 
 
 def extensions_dir() -> Path:
