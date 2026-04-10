@@ -3,6 +3,7 @@ import inspect
 import logging
 import math
 import time
+from collections.abc import Callable
 from collections import deque
 from dataclasses import dataclass, replace
 from typing import Any, Protocol
@@ -17,6 +18,10 @@ from hyprchan.core.hypraios.contracts import (
 
 
 logger = logging.getLogger(__name__)
+
+
+SpeechSpeakingStateCallback = Callable[[bool], Any]
+SpeechTranscriptionStateCallback = Callable[[bool, float], Any]
 
 
 class SpeechTranscriber(Protocol):
@@ -212,10 +217,14 @@ class SpeechPerceptionSource:
         config: SpeechPerceptionConfig | None = None,
         transcriber: SpeechTranscriber | None = None,
         sounddevice_module: Any | None = None,
+        speaking_state_callback: SpeechSpeakingStateCallback | None = None,
+        transcription_state_callback: SpeechTranscriptionStateCallback | None = None,
     ) -> None:
         self.event_callback = event_callback
         self.config = config or SpeechPerceptionConfig()
         self.segmenter = SpeechSegmenter(self.config)
+        self.speaking_state_callback = speaking_state_callback
+        self.transcription_state_callback = transcription_state_callback
 
         self._transcriber = transcriber
         self._sounddevice_module = sounddevice_module
@@ -233,6 +242,7 @@ class SpeechPerceptionSource:
         self._dropped_frames = 0
         self._stream_sample_rate = int(self.config.sample_rate)
         self._transcribe_sample_rate = int(self.config.sample_rate)
+        self._last_speaking_state = bool(self.segmenter.is_speaking)
 
     @property
     def source_name(self) -> str:
@@ -324,6 +334,7 @@ class SpeechPerceptionSource:
     async def stop(self) -> None:
         self._running = False
         logger.debug("Speech source stop requested")
+        await self._emit_speaking_state(False, force=True)
 
         if self._task and not self._task.done():
             self._task.cancel()
@@ -366,6 +377,38 @@ class SpeechPerceptionSource:
             "dropped_frames": self._dropped_frames,
         }
 
+    async def _emit_speaking_state(
+        self, speaking: bool, *, force: bool = False
+    ) -> None:
+        if not force and speaking == self._last_speaking_state:
+            return
+
+        self._last_speaking_state = speaking
+        callback = self.speaking_state_callback
+        if callback is None:
+            return
+
+        try:
+            result = callback(speaking)
+            if inspect.isawaitable(result):
+                await result
+        except Exception as exc:
+            logger.warning("Speech speaking-state callback failed: %s", exc)
+
+    async def _emit_transcription_state(
+        self, active: bool, duration_sec: float
+    ) -> None:
+        callback = self.transcription_state_callback
+        if callback is None:
+            return
+
+        try:
+            result = callback(active, duration_sec)
+            if inspect.isawaitable(result):
+                await result
+        except Exception as exc:
+            logger.warning("Speech transcription-state callback failed: %s", exc)
+
     async def _worker(self) -> None:
         while self._running:
             frame = await self._queue.get()
@@ -384,30 +427,45 @@ class SpeechPerceptionSource:
         emit: bool,
     ) -> PerceptionEvent | None:
         utterance = self.segmenter.push(frame)
+        speaking_now = bool(self.segmenter.is_speaking)
         dbfs = SpeechSegmenter._dbfs(frame)
         self._last_observation = {
             "timestamp": time.time(),
             "dbfs": round(dbfs, 2),
             "noise_floor_dbfs": round(self.segmenter.noise_floor_dbfs, 2),
-            "speaking": self.segmenter.is_speaking,
+            "speaking": speaking_now,
             "input_device_name": self._active_device_name,
         }
+
+        utterance_duration_sec = 0.0
+        if utterance is not None:
+            utterance_duration_sec = float(utterance.shape[0]) / max(
+                1, self._stream_sample_rate
+            )
+            await self._emit_transcription_state(True, utterance_duration_sec)
+
+        await self._emit_speaking_state(speaking_now)
 
         if utterance is None:
             return None
 
         transcriber = self._transcriber
         if transcriber is None:
+            await self._emit_transcription_state(False, utterance_duration_sec)
             return None
 
-        transcribe_audio = self._resample_audio_if_needed(
-            utterance,
-            source_sample_rate=self._stream_sample_rate,
-            target_sample_rate=self._transcribe_sample_rate,
-        )
-        raw_transcription = await asyncio.to_thread(
-            transcriber.transcribe, transcribe_audio
-        )
+        try:
+            transcribe_audio = self._resample_audio_if_needed(
+                utterance,
+                source_sample_rate=self._stream_sample_rate,
+                target_sample_rate=self._transcribe_sample_rate,
+            )
+            raw_transcription = await asyncio.to_thread(
+                transcriber.transcribe, transcribe_audio
+            )
+        finally:
+            await self._emit_transcription_state(False, utterance_duration_sec)
+
         transcription = self._normalize_transcription(raw_transcription)
         cleaned = transcription.text.strip()
         if not cleaned:
@@ -416,7 +474,7 @@ class SpeechPerceptionSource:
         logger.debug(
             "Speech utterance finalized chars=%s duration=%.3fs language=%s",
             len(cleaned),
-            float(utterance.shape[0]) / max(1, self._stream_sample_rate),
+            utterance_duration_sec,
             transcription.language,
         )
 
@@ -425,9 +483,7 @@ class SpeechPerceptionSource:
             "origin": self.config.origin,
             "description": cleaned,
             "amplitude": 1.0,
-            "speech_duration_sec": round(
-                float(utterance.shape[0]) / max(1, self._stream_sample_rate), 3
-            ),
+            "speech_duration_sec": round(utterance_duration_sec, 3),
             "transcript": cleaned,
             "input_device_name": self._active_device_name,
         }

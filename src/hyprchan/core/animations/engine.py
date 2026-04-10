@@ -91,6 +91,27 @@ class AnimationEngine:
                 self.application.set_overlay_text(text)  # pyright: ignore[reportAttributeAccessIssue]
                 continue
 
+            if command_type == "speech_detected":
+                try:
+                    duration = float(command.get("duration", 0.9))
+                except (TypeError, ValueError):
+                    duration = 0.9
+                self.application.start_speech_glow_fade(duration_sec=duration)  # pyright: ignore[reportAttributeAccessIssue]
+                continue
+
+            if command_type == "speech_glow_active":
+                active = bool(command.get("active", False))
+                self.application.set_speech_glow_active(active)  # pyright: ignore[reportAttributeAccessIssue]
+                continue
+
+            if command_type == "speech_glow_fade":
+                try:
+                    duration = float(command.get("duration", 0.8))
+                except (TypeError, ValueError):
+                    duration = 0.8
+                self.application.start_speech_glow_fade(duration_sec=duration)  # pyright: ignore[reportAttributeAccessIssue]
+                continue
+
             if command_type == "move_self":
                 direction = str(command.get("direction", "")).strip().lower()
                 try:
@@ -123,6 +144,23 @@ class AnimationEngine:
                 "scale": scale,
             }
         )
+
+    def enqueue_speech_detected(self, duration: float = 0.9) -> None:
+        try:
+            clamped = max(0.2, min(float(duration), 3.0))
+        except (TypeError, ValueError):
+            clamped = 0.9
+        self.queue.put({"type": "speech_detected", "duration": clamped})
+
+    def enqueue_speech_glow_active(self, active: bool) -> None:
+        self.queue.put({"type": "speech_glow_active", "active": bool(active)})
+
+    def enqueue_speech_glow_fade(self, duration: float = 0.8) -> None:
+        try:
+            clamped = max(0.2, min(float(duration), 3.0))
+        except (TypeError, ValueError):
+            clamped = 0.8
+        self.queue.put({"type": "speech_glow_fade", "duration": clamped})
 
     def stop(self):
         self.application.quit()
