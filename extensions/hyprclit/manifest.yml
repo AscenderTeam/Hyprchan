@@ -1,0 +1,6 @@
+version: "0.1.0"
+name: "hyprclit"
+description: "ThinkPad TrackPoint telemetry extension with arousal messaging."
+author: "Ascender Team"
+homepage: "https://github.com/AscenderTeam/Hyprchan"
+min_hyprchan_version: "0.1.0"

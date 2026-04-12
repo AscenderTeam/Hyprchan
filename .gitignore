@@ -177,3 +177,6 @@ agent_memory.mem
 agent_memory.hmem
 hyprchan.nohup.log
 runtime/perception/
+runtime/hyprchan.sqlite3
+runtime/hyprchan.sqlite3--*
+runtime/*.sqlite3*
