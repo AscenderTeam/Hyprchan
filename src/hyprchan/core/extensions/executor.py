@@ -52,6 +52,9 @@ class ExtensionExecutor:
     def remove_hook(self, name: HookName, hook: HookFn) -> None:
         self.__kernel.hooks.unregister(name, hook)
 
+    async def answer_user(self, text: str) -> None:
+        await self.__kernel.linguistic_engine.tool_runtime.answer_user(text)
+
     async def run_inference_cycle(self, inputs: list[dict[str, Any]]):
         await self.__kernel._run_inference_cycle(inputs)
 

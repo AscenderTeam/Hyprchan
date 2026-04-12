@@ -15,6 +15,7 @@ from hyprchan.core.extensions.extension import HyprchanExtension
 from hyprchan.core.extensions.types.manifest import IExtManifest
 from hyprchan.core.extensions.workspace import resolve_extension_workspace
 
+
 @dataclass(slots=True)
 class LoadedExtension:
     name: str
@@ -37,6 +38,8 @@ class ExtensionLoader:
         module_path = extension_dir / "extension.py"
         if not module_path.exists():
             raise ExtensionNotLoaded(f"Missing extension.py at {module_path}")
+
+        self._clear_extension_local_modules(extension_dir)
 
         if str(extension_dir) not in sys.path:
             sys.path.insert(0, str(extension_dir))
@@ -104,6 +107,14 @@ class ExtensionLoader:
 
         return candidates[0]()
 
+    @staticmethod
+    def _clear_extension_local_modules(extension_dir: Path) -> None:
+        for file_path in extension_dir.glob("*.py"):
+            module_name = file_path.stem.strip()
+            if not module_name or module_name in {"__init__", "extension"}:
+                continue
+            sys.modules.pop(module_name, None)
+
     async def unload(self, name: str) -> None:
         loaded = self.loaded.pop(name, None)
         if loaded is None:
@@ -141,7 +152,9 @@ class ExtensionLoader:
     def _prepare_workspace(
         self, manifest: IExtManifest, fallback_name: str
     ) -> tuple[Path, Path]:
-        workspace_dir = resolve_extension_workspace(manifest.name or fallback_name, manifest)
+        workspace_dir = resolve_extension_workspace(
+            manifest.name or fallback_name, manifest
+        )
         workspace_dir.mkdir(parents=True, exist_ok=True)
         data_dir = workspace_dir / "data"
         data_dir.mkdir(parents=True, exist_ok=True)
