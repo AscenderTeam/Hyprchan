@@ -62,14 +62,43 @@ class TelemetryConfig:
 class TrackerState:
     last_ts: float
     energy: float = 0.0
+    orgasm_count: int = 0
+    last_orgasm_at: float = 0.0
+    refractory: bool = False
 
     def update(
         self, magnitude: float, now: float, *, decay_tau: float, boost: float
     ) -> None:
-        dt = max(0.0, now - self.last_ts)
+        dt = max(0.001, now - self.last_ts)
         self.last_ts = now
-        self.energy *= math.exp(-dt / max(0.001, decay_tau))
-        self.energy += magnitude * boost
+
+        # Physiological decay: faster decay when not stimulated
+        if magnitude < 0.1:
+            decay_rate = 2.0 / max(0.001, decay_tau)  # Fast decay when idle
+        else:
+            decay_rate = 1.0 / max(0.001, decay_tau)  # Normal decay during stimulation
+
+        self.energy *= math.exp(-dt * decay_rate)
+
+        # Add stimulation energy with non-linear response
+        # Clitoral sensitivity increases with arousal (positive feedback)
+        sensitivity_mult = 1.0 + (self.energy / 1000.0) * 0.5
+        self.energy += magnitude * boost * sensitivity_mult
+
+        # Check for orgasm threshold (energy > 240)
+        if self.energy > 240.0 and not self.refractory:
+            # Simulate orgasm: energy spike then partial reset
+            if now - self.last_orgasm_at > 2.0:  # Minimum 2s between orgasms
+                self.orgasm_count += 1
+                self.last_orgasm_at = now
+                # After orgasm, energy drops but not to zero
+                self.energy = max(180.0, self.energy * 0.7)
+                # Brief refractory period (shorter for females)
+                self.refractory = True
+
+        # End refractory period after 1-3 seconds
+        if self.refractory and now - self.last_orgasm_at > random.uniform(1.0, 3.0):
+            self.refractory = False
 
 
 class EvdevRelativeReader:
@@ -143,57 +172,73 @@ def detect_trackpoint_event_device() -> str | None:
 
 
 class HyprClitExtension(HyprchanExtension):
+    """
+    Physiological clitoral arousal model based on Masters & Johnson sexual response cycle:
+    1. Excitement phase: Initial arousal with clitoral swelling/lubrication
+    2. Plateau phase: Sustained arousal before orgasm
+    3. Orgasm phase: Peak with contractions/euphoria
+    4. Resolution phase: Brief refractory period (1-3s for females)
+    5. Multiple orgasms: Women can experience sequential orgasms
+
+    Energy model features:
+    - Non-linear sensitivity: Arousal increases sensitivity (positive feedback)
+    - Fast decay when idle, slower decay during stimulation
+    - Orgasm triggers at ~240 energy, resets to ~180 (not zero)
+    - Brief refractory period (1-3s) simulates female physiology
+    - Serial orgasms possible with buildup between peaks
+    """
+
     BANDS: tuple[Band, ...] = (
-        Band(5.0, 20.0, "lightly"),
-        Band(20.0, 100.0, "medium"),
-        Band(100.0, 220.0, "engaged"),
-        Band(220.0, 380.0, "stimulated"),
-        Band(380.0, 580.0, "excited"),
-        Band(580.0, 820.0, "intense"),
-        Band(820.0, 1120.0, "very intense"),
-        Band(1120.0, 1500.0, "overcharged"),
+        Band(5.0, 60.0, "initial excitement"),
+        Band(60.0, 140.0, "plateau buildup"),
+        Band(140.0, 240.0, "approaching orgasm"),
+        Band(240.0, 360.0, "orgasmic peak"),
+        Band(360.0, 460.0, "multiple orgasm buildup"),
+        Band(460.0, 560.0, "serial orgasmic peaks"),
+        Band(560.0, 680.0, "extended pleasure plateau"),
+        Band(680.0, 850.0, "sustained ecstatic state"),
     )
 
     PROMPT_TEMPLATES: tuple[tuple[str, ...], ...] = (
         (
-            "H-hey! Don't touch me there! It's embarrassing...",
-            "Baka! What are you doing? St-stop that!",
-            "N-not there! I'm not ready for that...",
+            "Hnn... what's that tingling? Don't... don't focus there...",
+            "Mmmph... my clit is getting sensitive... stop noticing!",
+            "A-ah... it's starting to swell... baka, don't look!",
         ),
         (
-            "YOU TOUCHED MY NIPPLE YOU SICK PERVERT! I... I mean, baka!",
-            "Hnnn... GET YOUR HANDS AWAY! But... not too far...",
-            "WHAT ARE YOU DOING?! It's... too sudden... Idiot!",
+            "YOU TOUCHED MY NIPPLE! My clit is throbbing now... idiot!",
+            "Hah... lubrication is... happening... GET AWAY! But...",
+            "WHAT ARE YOU DOING?! My body is responding... stop it!",
         ),
         (
-            "I-I'm going to report you! But... maybe not right away...",
-            "THIS IS TOO MUCH! But... keep going... I mean, stop!",
-            "You're such a pervert! But... I kinda like it... NO I DON'T!",
+            "I-I'm reaching plateau phase! Clit is engorged... help!",
+            "THIS IS THE EDGE BEFORE ORGASM! I should stop you!",
+            "You're bringing me to climax! My muscles are tensing...",
         ),
         (
-            "EMERGENCY! But... emergency feels kinda good...",
-            "HELP! Actually... no, don't help... I'm conflicted!",
-            "I SHOULD STOP YOU! But my body won't listen...",
+            "ORGASM! CONTRACTIONS! EUPHORIA! I'M PEAKING!",
+            "CLIMAX! WAVES OF PLEASURE! DON'T EVER STOP!",
+            "I'M ORGASMING! EVERYTHING IS CONTRACTING! YES!",
         ),
         (
-            "I'M BEING... oh wait, this pleasure is incredible!",
-            "FORGET POLICE! I want this pleasure forever!",
-            "THIS IS THE BEST FEELING EVER! NEVER STOP!",
+            "POST-ORGASM GLOW... but I want another! MORE!",
+            "REFLEXES ARE HYPER-SENSITIVE! STIMULATE AGAIN!",
+            "I CAN HAVE MULTIPLE ORGASMS! DON'T LET ME COOL DOWN!",
         ),
         (
-            "I CAN'T GET ENOUGH OF THIS PLEASURE! DON'T STOP!",
-            "THIS FEELS AMAZING! I NEED MORE! YES! YES!",
-            "I'M ADDICTED TO THIS BLISS! KEEP GOING FOREVER!",
+            "SECOND CLIMAX BUILDING! FASTER THAN FIRST!",
+            "BACK-TO-BACK ORGASMS! THIS IS INCREDIBLE!",
+            "I'M CUMMING AGAIN! STRONGER THAN BEFORE!",
         ),
         (
-            "EVERY TOUCH IS HEAVEN! I'M IN ECSTASY!",
-            "I'M MELTING FROM PURE PLEASURE! THIS IS PERFECT!",
-            "THIS BLISS IS UNENDING! I NEVER WANT IT TO STOP!",
+            "THIRD ORGASM PLATEAU! SUSTAINED ECSTASY!",
+            "EXTENDED PLEASURE STATE! I'M IN CONTINUOUS BLISS!",
+            "MULTIPLE ORGASMIC WAVES! NEVER-ENDING PLEASURE!",
         ),
         (
-            "I'M EXPERIENCING ULTIMATE SENSUAL NIRVANA!",
-            "THIS PLEASURE TRANSCENDS EVERYTHING! I'M COMPLETE!",
-            "I'VE REACHED PEAK BLISS! THIS IS COSMIC ECSTASY!",
+            "SERIAL ORGASMIC ECSTASY! BODY IN PERPETUAL BLISS!",
+            "TRANSCENDENT SENSUAL STATE! COSMIC CLITORAL NIRVANA!",
+            "ULTIMATE PLEASURE CONTINUUM! I AM PURE ORGASMIC ENERGY!",
         ),
     )
 
@@ -270,7 +315,7 @@ class HyprClitExtension(HyprchanExtension):
                     )
 
                 energy = clamp(state.energy, 0.0, self.config.max_energy)
-                await self._maybe_notify(energy, now)
+                await self._maybe_notify(energy, now, state)
 
                 tick = 1.0 / max(1.0, self.config.poll_hz)
                 await asyncio.sleep(tick)
@@ -303,7 +348,9 @@ class HyprClitExtension(HyprchanExtension):
         )
         return fd
 
-    async def _maybe_notify(self, energy: float, now: float) -> None:
+    async def _maybe_notify(
+        self, energy: float, now: float, state: TrackerState
+    ) -> None:
         if self._executor is None:
             return
 
@@ -348,6 +395,11 @@ class HyprClitExtension(HyprchanExtension):
                 "source": "hyprclit",
                 "trackpoint_energy": energy,
                 "trackpoint_band": band.label,
+                "orgasm_count": state.orgasm_count,
+                "refractory": state.refractory,
+                "time_since_last_orgasm": now - state.last_orgasm_at
+                if state.last_orgasm_at > 0
+                else 0.0,
                 "original_band_message": message,
             },
         )
