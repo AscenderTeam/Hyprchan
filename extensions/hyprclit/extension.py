@@ -37,7 +37,12 @@ class HyprClitExtension(HyprchanExtension):
             self.logger.info("[cyan]HYPRCLIT[/] Disabled by HYPRCLIT_ENABLED")
             return
 
+        fd = self._open_event_device()
+        if fd is not None:
+            os.close(fd)
+
         self._task = asyncio.create_task(self._telemetry_loop())
+        self._task.add_done_callback(self._on_task_done)
         self.logger.info("[cyan]HYPRCLIT[/] TrackPoint telemetry extension started")
 
     async def on_shutdown(self) -> None:
@@ -49,6 +54,18 @@ class HyprClitExtension(HyprchanExtension):
         except asyncio.CancelledError:
             pass
         self._task = None
+
+    def _on_task_done(self, task: asyncio.Task[None]) -> None:
+        if task.cancelled():
+            return
+        error = task.exception()
+        if error is None:
+            return
+        self.logger.error(
+            "[cyan]HYPRCLIT[/] Telemetry loop crashed: %s",
+            error,
+            exc_info=(type(error), error, error.__traceback__),
+        )
 
     async def _telemetry_loop(self) -> None:
         reader = EvdevRelativeReader()
@@ -114,12 +131,8 @@ class HyprClitExtension(HyprchanExtension):
 
         try:
             fd = os.open(device, os.O_RDONLY | os.O_NONBLOCK)
-        except PermissionError:
-            self.logger.warning(
-                "[cyan]HYPRCLIT[/] Permission denied opening %s. Add user to input group or run with proper permissions.",
-                device,
-            )
-            return None
+        except PermissionError as error:
+            raise RuntimeError(self._input_permission_help(device)) from error
         except OSError as error:
             self.logger.warning("[cyan]HYPRCLIT[/] Cannot open %s: %s", device, error)
             return None
@@ -128,6 +141,18 @@ class HyprClitExtension(HyprchanExtension):
             "[cyan]HYPRCLIT[/] Reading TrackPoint telemetry from %s", device
         )
         return fd
+
+    @staticmethod
+    def _input_permission_help(device: str) -> str:
+        return (
+            "[HYPRCLIT] Permission denied opening "
+            f"{device}. Give this user read access to /dev/input first, then restart Hyprchan. "
+            "On Linux, simplest fix is usually:\n"
+            "  sudo usermod -aG input $USER\n"
+            "  logout/login\n"
+            "Then verify access with:\n"
+            f"  ls -l {device}"
+        )
 
     async def _maybe_notify(
         self, energy: float, now: float, state: TrackerState
