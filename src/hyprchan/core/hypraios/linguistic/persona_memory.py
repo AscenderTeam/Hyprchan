@@ -68,7 +68,7 @@ class PersonaMemory:
     def _adapt_from_text(self, text: str):
         lowered = text.lower()
 
-        playful_markers = ["rp", "roleplay", "*", "hehe", "haha", "nya", "play"]
+        playful_markers = ["rp", "roleplay", "*", "hehe", "haha", "play"]
         warm_markers = ["thanks", "thank", "please", "love", "nice", "good"]
         intense_markers = ["drama", "alone", "leave", "never", "always", "cry"]
         harsh_markers = ["stupid", "idiot", "shut up", "hate", "useless"]
