@@ -30,6 +30,7 @@ class PostgresProceduralStore(ProceduralMemoryStore):
             )
             await session.merge(entity)
             await session.commit()
+            # self.logger.debug(f"Upserted skill {memory.name} to Postgres")
 
     async def fetch_by_id(self, memory_id: str) -> ProceduralMemory | None:
         async with self._context() as session:

@@ -5,6 +5,7 @@ import logging
 import os
 import random
 import time
+
 from device import EvdevRelativeReader, detect_trackpoint_event_device
 from prompts import BANDS, PROMPT_TEMPLATES, STATIC_CLARIFY
 from telemetry import (
@@ -12,6 +13,7 @@ from telemetry import (
     TrackerState,
     clamp,
 )
+
 from hyprchan.core.extensions.executor import ExtensionExecutor
 from hyprchan.core.extensions.extension import HyprchanExtension
 
@@ -194,8 +196,8 @@ class HyprClitExtension(HyprchanExtension):
         await self._executor.emit_signal(
             event_type="communication_message",
             description=prompt,
-            origin="hyprclit_trackpoint",
-            amplitude=amplitude,
+            origin="communication_controller",
+            amplitude=1.0,
             force_active=True,
             metadata={
                 "source": "hyprclit",

@@ -66,6 +66,7 @@ DATABASE_CONNECTION = {
         "hyprchan.entities.concept",
         "hyprchan.entities.edge",
         "hyprchan.entities.dream",
+        "hyprchan.entities.skills",
     ],
     "pool_options": {},
 }

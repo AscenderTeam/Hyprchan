@@ -397,34 +397,6 @@ class ConfigAssembler:
             encoding="utf-8",
         )
 
-        # 2. Update .env
-        env_lines = []
-        if self.env_path.exists():
-            try:
-                env_lines = self.env_path.read_text(encoding="utf-8").splitlines()
-            except Exception:
-                pass
-
-        target_key = "HYPRCHAN_EXTENSIONS_ENABLED"
-        target_value = ",".join(extensions)
-
-        new_env_lines = []
-        found = False
-        for line in env_lines:
-            stripped = line.strip()
-            if "=" in line and not stripped.startswith("#"):
-                key = line.split("=", 1)[0].strip()
-                if key == target_key:
-                    new_env_lines.append(f"{target_key}={target_value}")
-                    found = True
-                    continue
-            new_env_lines.append(line)
-
-        if not found:
-            new_env_lines.append(f"{target_key}={target_value}")
-
-        self.env_path.write_text("\n".join(new_env_lines) + "\n", encoding="utf-8")
-
     def set_env_vars(self, vars_dict: dict[str, str]):
         """Sets multiple environment variables in the .env file."""
         env_lines = []

@@ -1,7 +1,7 @@
 {
     "project": {
         "name": "hyprchan",
-        "version": "0.1.0",
+        "version": "0.1.7",
         "description": "An anime girl that lives in your Hyprland and chills."
     },
     "paths": {

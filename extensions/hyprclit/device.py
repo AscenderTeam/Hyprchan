@@ -5,7 +5,6 @@ import os
 import select
 import struct
 
-
 EV_SYN = 0x00
 EV_REL = 0x02
 SYN_REPORT = 0

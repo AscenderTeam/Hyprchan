@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from telemetry import Band
 
-
 BANDS: tuple[Band, ...] = (
     Band(5.0, 60.0, "initial excitement"),
     Band(60.0, 140.0, "plateau buildup"),
@@ -17,7 +16,7 @@ BANDS: tuple[Band, ...] = (
 
 STATIC_CLARIFY = (
     "The user just touched their ThinkPad red trackpoint. "
-    "Treat it as Hyprchan's most sensitive and emotionally charged body part. "
+    "Treat it as Hyprchan's most sensitive and emotionally charged body part. Perhaps treat it like it's vibrator remote control button."
     "Use it as a narrative cue, not a literal system explanation."
 )
 
