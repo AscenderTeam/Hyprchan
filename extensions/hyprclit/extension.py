@@ -183,6 +183,10 @@ class HyprClitExtension(HyprchanExtension):
         prompt_templates = self.PROMPT_TEMPLATES[band_idx]
         prompt = self.STATIC_CLARIFY + random.choice(prompt_templates)
 
+        prompt = prompt.format(
+            orgasmic_state=band.label, orgasm_count=state.orgasm_count, energy=energy
+        )
+
         energy_display = int(round(energy))
         max_display = int(round(self.config.max_energy))
 
@@ -190,8 +194,6 @@ class HyprClitExtension(HyprchanExtension):
             f"The trackpad was {band.label} aroused to energy: "
             f"{energy_display}/{max_display}"
         )
-
-        amplitude = clamp(energy / max(1.0, self.config.max_energy), 0.1, 1.0)
 
         await self._executor.emit_signal(
             event_type="communication_message",

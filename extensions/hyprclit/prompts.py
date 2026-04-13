@@ -15,9 +15,10 @@ BANDS: tuple[Band, ...] = (
 
 
 STATIC_CLARIFY = (
-    "The user just touched their ThinkPad red trackpoint. "
+    "The user just touched a ThinkPad red trackpoint. "
     "Treat it as Hyprchan's most sensitive and emotionally charged body part. Perhaps treat it like it's vibrator remote control button."
     "Use it as a narrative cue, not a literal system explanation."
+    "You are in state of {orgasmic_state}, orgasm count={orgasm_count}, stimulation intensity={energy}."
 )
 
 
