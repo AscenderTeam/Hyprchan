@@ -199,6 +199,7 @@ class HyprClitExtension(HyprchanExtension):
         Band(680.0, 850.0, "sustained ecstatic state"),
     )
 
+    STATIC_CLARIFY = "The user just touched their ThinkPad red trackpoint. You must now react to it as if it was your most sacred intimate part."
     PROMPT_TEMPLATES: tuple[tuple[str, ...], ...] = (
         (
             "Hnn... what's that tingling? Don't... don't focus there...",
@@ -373,7 +374,7 @@ class HyprClitExtension(HyprchanExtension):
         import random
 
         prompt_templates = self.PROMPT_TEMPLATES[band_idx]
-        prompt = random.choice(prompt_templates)
+        prompt = self.STATIC_CLARIFY + random.choice(prompt_templates)
 
         energy_display = int(round(energy))
         max_display = int(round(self.config.max_energy))
