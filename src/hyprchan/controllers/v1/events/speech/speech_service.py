@@ -13,12 +13,15 @@ from hyprchan.core.hypraios.perception.speech_perception_source import (
 from hyprchan.settings import (
     SPEECH_END_SILENCE_SEC,
     SPEECH_FRAME_DURATION_MS,
+    SPEECH_INITIAL_PROMPT,
     SPEECH_INPUT_DEVICE,
     SPEECH_LANGUAGE,
+    SPEECH_LOG_PROB_THRESHOLD,
     SPEECH_MAX_SPEECH_SEC,
     SPEECH_MIN_CONTINUE_DBFS,
     SPEECH_MIN_SPEECH_SEC,
     SPEECH_MIN_START_DBFS,
+    SPEECH_NO_SPEECH_THRESHOLD,
     SPEECH_PERCEPTION_ENABLED,
     SPEECH_PRE_ROLL_SEC,
 )
@@ -62,6 +65,9 @@ class SpeechService(ServiceLifecycle):
             pre_roll_sec=SPEECH_PRE_ROLL_SEC,
             min_start_dbfs=SPEECH_MIN_START_DBFS,
             min_continue_dbfs=SPEECH_MIN_CONTINUE_DBFS,
+            initial_prompt=SPEECH_INITIAL_PROMPT,
+            no_speech_threshold=SPEECH_NO_SPEECH_THRESHOLD,
+            log_prob_threshold=SPEECH_LOG_PROB_THRESHOLD,
         )
 
         self._source = SpeechPerceptionSource(

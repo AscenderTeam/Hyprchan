@@ -29,12 +29,14 @@ from hyprchan.core.hypraios.perception.watcher import PerceptionWatcher
 from hyprchan.core.hypraios.utils.dynamic_variable import DynamicVariable
 from hyprchan.core.hypraios.utils.fault_adaptive_parameter import FaultAdaptiveParameter
 from hyprchan.core.hyprmemory.models import MemoryState
+from hyprchan.core.hyprvoice.manager import VoiceManager
 from hyprchan.settings import (
     EVENT_COMPACTION_BATCH_SIZE,
     EVENT_COMPACTION_ENABLED,
     EVENT_COMPACTION_KEEP_TAIL,
     EVENT_COMPACTION_MODEL,
     EXTENSIONS_ENABLED,
+    VOICE_CONFIG,
 )
 
 
@@ -99,6 +101,7 @@ class HyprAIOSKernel:
         self.perception_watcher = PerceptionWatcher(self.main_loop.perception_signal)
         self.memory_gate = MemoryGate()
         self.hooks = HookManager(self.logger)
+        self.voice_manager = VoiceManager(VOICE_CONFIG)
 
         self._loop_task: asyncio.Task | None = None
         self._sleep_task: asyncio.Task | None = None
@@ -1176,6 +1179,22 @@ class HyprAIOSKernel:
             },
         }
 
+    def _register_voice_hook(self) -> None:
+        if not self.voice_manager.enabled:
+            return
+
+        def _on_ai_response(payload: dict) -> None:
+            response = payload.get("response", {})
+            if not isinstance(response, dict):
+                return
+            output = str(response.get("output", "")).strip()
+            phase = payload.get("phase")
+            if output and isinstance(phase, Phases):
+                self.voice_manager.speak(output, phase=phase)
+
+        self.hooks.register("on_ai_response", _on_ai_response, priority=-10)
+        self.logger.info("Voice output hook registered (engine=%s)", self.voice_manager._config.engine)
+
     async def bootup(self):
         if self._booted:
             return
@@ -1195,6 +1214,8 @@ class HyprAIOSKernel:
         self.logger.info("Booting HyprAI OS kernel")
         self._booted = True
         self._shutting_down = False
+        self.voice_manager.setup()
+        self._register_voice_hook()
         await self._set_phase(Phases.PASSIVE, reason="bootup")
         if EXTENSIONS_ENABLED:
             await self._load_enabled_extensions(list(EXTENSIONS_ENABLED))
@@ -1238,6 +1259,7 @@ class HyprAIOSKernel:
                 waiter.cancel()
             self._response_waiters.pop(event_id, None)
 
+        await self.voice_manager.teardown()
         self._booted = False
         await self._set_phase(Phases.MAINT, reason="shutdown")
         self._save_stm_snapshot()

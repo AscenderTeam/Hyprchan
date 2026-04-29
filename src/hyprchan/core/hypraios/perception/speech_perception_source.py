@@ -2,6 +2,7 @@ import asyncio
 import inspect
 import logging
 import math
+import re
 import time
 from collections.abc import Callable
 from collections import deque
@@ -16,8 +17,45 @@ from hyprchan.core.hypraios.contracts import (
     PerceptionStatus,
 )
 
-
 logger = logging.getLogger(__name__)
+
+
+# ---------------------------------------------------------------------------
+# Whisper hallucination blocklist
+# Whisper's built-in no_speech_threshold / log_prob_threshold handle the bulk
+# of silence hallucinations.  This regex list catches text patterns that still
+# slip through (YouTube/subtitle artifacts, single-character junk, etc.)
+# ---------------------------------------------------------------------------
+_HALLUCINATION_PATTERNS: list[re.Pattern[str]] = [
+    # Punctuation / empty content
+    re.compile(r"^\s*\.{1,5}\s*$"),
+    re.compile(r"^\s*[\s,;:!?.…]+\s*$"),
+    # Bracket/paren-only tags: [Music], (Applause), [BLANK_AUDIO], etc.
+    re.compile(r"^\s*[\[(][^\]\)]{1,40}[\])]\s*$"),
+    # YouTube / streaming platform artifacts
+    re.compile(r"thanks?\s+for\s+watching", re.IGNORECASE),
+    re.compile(r"thank\s+you\s+for\s+watching", re.IGNORECASE),
+    re.compile(r"please\s+(like\s+and\s+)?subscribe", re.IGNORECASE),
+    re.compile(r"like\s+and\s+subscribe", re.IGNORECASE),
+    re.compile(r"don'?t\s+forget\s+to\s+subscribe", re.IGNORECASE),
+    re.compile(r"see\s+you\s+(next\s+time|in\s+the\s+next|later|soon)", re.IGNORECASE),
+    re.compile(r"subtitles?\s+by\b", re.IGNORECASE),
+    re.compile(r"transcript\s+(by|provided)", re.IGNORECASE),
+    re.compile(r"closed\s+caption", re.IGNORECASE),
+    re.compile(r"\bamara\.org\b", re.IGNORECASE),
+    # Common silence filler hallucinations
+    re.compile(r"^\s*(you|bye|goodbye|farewell|ciao|adios)[\s.!]*$", re.IGNORECASE),
+    re.compile(r"^\s*\bum+\b[\s.!]*$", re.IGNORECASE),
+    re.compile(r"^\s*\buh+\b[\s.!]*$", re.IGNORECASE),
+    re.compile(r"^\s*\(\s*(music|applause|laughter|silence|inaudible|noise)\s*\)\s*$", re.IGNORECASE),
+]
+
+
+def _is_hallucination(text: str) -> bool:
+    for pattern in _HALLUCINATION_PATTERNS:
+        if pattern.search(text):
+            return True
+    return False
 
 
 SpeechSpeakingStateCallback = Callable[[bool], Any]
@@ -55,6 +93,13 @@ class SpeechPerceptionConfig:
     model_name: str = "Systran/faster-whisper-large-v3"
     event_type: str = "communication_message"
     origin: str = "communication_controller"
+    # Whisper prompt — seeds the decoder with known vocabulary so names like
+    # "Hyprchan" / "Hypr-chan" are recognised and hallucinations are reduced.
+    initial_prompt: str = "Hyprchan, Hypr-chan"
+    # Segments whose no_speech_prob exceeds this are discarded (0–1).
+    no_speech_threshold: float = 0.6
+    # Segments whose avg_logprob is below this are discarded (≤ 0).
+    log_prob_threshold: float = -1.0
 
     def __post_init__(self) -> None:
         self.sample_rate = max(8000, int(self.sample_rate))
@@ -72,11 +117,22 @@ class SpeechPerceptionConfig:
 
 
 class FasterWhisperSpeechTranscriber:
-    def __init__(self, *, model_name: str, language: str) -> None:
+    def __init__(
+        self,
+        *,
+        model_name: str,
+        language: str,
+        initial_prompt: str = "",
+        no_speech_threshold: float = 0.6,
+        log_prob_threshold: float = -1.0,
+    ) -> None:
         from faster_whisper import WhisperModel  # type: ignore
 
         self.model = WhisperModel(model_name, device="cpu", compute_type="int8")
         self.language = language
+        self.initial_prompt: str | None = initial_prompt.strip() or None
+        self.no_speech_threshold = float(no_speech_threshold)
+        self.log_prob_threshold = float(log_prob_threshold)
 
     def transcribe(self, audio: np.ndarray) -> SpeechTranscription:
         normalized_language = str(self.language or "").strip().lower()
@@ -85,8 +141,23 @@ class FasterWhisperSpeechTranscriber:
             if normalized_language in {"", "auto", "autodetect", "detect"}
             else self.language
         )
-        segments, info = self.model.transcribe(audio, language=language_arg)
-        parts = [segment.text.strip() for segment in segments if segment.text.strip()]
+        segments, info = self.model.transcribe(
+            audio,
+            language=language_arg,
+            initial_prompt=self.initial_prompt,
+            no_speech_threshold=self.no_speech_threshold,
+            log_prob_threshold=self.log_prob_threshold,
+        )
+        parts: list[str] = []
+        for segment in segments:
+            text = segment.text.strip()
+            if not text:
+                continue
+            if _is_hallucination(text):
+                logger.debug("Hallucination filtered: %r", text)
+                continue
+            parts.append(text)
+
         detected_language = str(getattr(info, "language", "") or "").strip() or None
         raw_confidence = getattr(info, "language_probability", None)
         try:
@@ -276,11 +347,17 @@ class SpeechPerceptionSource:
             self._transcriber = FasterWhisperSpeechTranscriber(
                 model_name=self.config.model_name,
                 language=self.config.language,
+                initial_prompt=self.config.initial_prompt,
+                no_speech_threshold=self.config.no_speech_threshold,
+                log_prob_threshold=self.config.log_prob_threshold,
             )
             logger.debug(
-                "Speech transcriber initialized model=%s language=%s",
+                "Speech transcriber initialized model=%s language=%s prompt=%r no_speech_threshold=%.2f log_prob_threshold=%.2f",
                 self.config.model_name,
                 self.config.language,
+                self.config.initial_prompt,
+                self.config.no_speech_threshold,
+                self.config.log_prob_threshold,
             )
 
         self._loop = asyncio.get_running_loop()

@@ -3,9 +3,10 @@ from pathlib import Path
 
 from alp import ALPReceiver
 from ascender.core import Controller, Get, Post
-from hyprchan.core.hypraios.kernel.kernel import HyprAIOSKernel
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field
+
+from hyprchan.core.hypraios.kernel.kernel import HyprAIOSKernel
 
 
 class CommunicationRequest(BaseModel):

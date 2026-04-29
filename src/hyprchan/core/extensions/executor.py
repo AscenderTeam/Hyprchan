@@ -55,6 +55,13 @@ class ExtensionExecutor:
     async def run_inference_cycle(self, inputs: list[dict[str, Any]]):
         await self.__kernel._run_inference_cycle(inputs)
 
+    def speak(self, text: str) -> None:
+        """
+        Fire-and-forget voice output.  Ignored unless the kernel is in ACTIVE
+        phase and voice is enabled in personalization config.
+        """
+        self.__kernel.voice_manager.speak(text, phase=self.phase)
+
     async def emit_signal(
         self,
         *,

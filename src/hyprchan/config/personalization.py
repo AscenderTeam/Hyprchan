@@ -44,12 +44,23 @@ class ExtensionsConfig(BaseModel):
     enabled: list[str] = Field(default_factory=list)
 
 
+class VoiceConfig(BaseModel):
+    enabled: bool = False
+    engine: str = "hyprchan_audio"
+    url: str | None = None
+    token: str | None = None
+    trim_quotes: bool = True  # strip roleplay action markers: *sighs*, *grabs hand*, etc.
+    device: str | None = None  # None = sounddevice default; int index or device name as string
+    sample_rate: int = Field(default=22050, ge=8000, le=96000)
+
+
 class PersonalizationConfig(BaseModel):
     version: int = 1
     ai: AiConfig = Field(default_factory=AiConfig)
     memory: MemoryConfig = Field(default_factory=MemoryConfig)
     tui: TuiConfig = Field(default_factory=TuiConfig)
     extensions: ExtensionsConfig = Field(default_factory=ExtensionsConfig)
+    voice: VoiceConfig = Field(default_factory=VoiceConfig)
 
 
 _ENV_MAP: dict[str, str] = {
@@ -68,6 +79,14 @@ _ENV_MAP: dict[str, str] = {
     "HYPRCHAN_TUI_VI_MODE": "tui.vi_mode",
     "HYPRCHAN_EXTENSIONS_ENABLED": "extensions.enabled",
     "OPENAI_MODEL": "ai.model",
+    # Voice output
+    "HYPRCHAN_VOICE_ENABLED": "voice.enabled",
+    "HYPRCHAN_VOICE_ENGINE": "voice.engine",
+    "HYPRCHAN_VOICE_URL": "voice.url",
+    "SPEECH_TOKEN": "voice.token",
+    "HYPRCHAN_VOICE_TRIM_QUOTES": "voice.trim_quotes",
+    "HYPRCHAN_VOICE_DEVICE": "voice.device",
+    "HYPRCHAN_VOICE_SAMPLE_RATE": "voice.sample_rate",
 }
 
 
@@ -116,6 +135,9 @@ def _set_nested(data: dict[str, Any], path: str, value: Any) -> None:
 
 
 def _coerce_value(raw: str, target: Any) -> Any:
+    if target is None:
+        # Optional field — keep as raw string; model validation handles the type
+        return raw
     if isinstance(target, list):
         return [part.strip() for part in raw.split(",") if part.strip()]
     if isinstance(target, bool):
@@ -140,12 +162,13 @@ def _apply_env_overrides(config: PersonalizationConfig) -> PersonalizationConfig
         if raw is None or raw == "":
             continue
         cursor: Any = data
+        found = True
         for part in path.split("."):
             if not isinstance(cursor, dict) or part not in cursor:
-                cursor = None
+                found = False
                 break
             cursor = cursor[part]
-        if cursor is None:
+        if not found:
             continue
         value = _coerce_value(raw, cursor)
         _set_nested(data, path, value)
