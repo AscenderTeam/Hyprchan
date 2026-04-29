@@ -27,9 +27,41 @@ Hyprchan's behavior is governed by four primary scalars, often referred to as **
 ## Core Capabilities
 
 - **Vision:** Can perceive the user via webcam and the desktop via screenshots.
-- **Speech:** Listens to the user's voice and responds verbally (mirrored in TUI/Overlay).
+- **Speech (input):** Listens via Faster-Whisper with VAD, hallucination filtering, and an `initial_prompt` seeded with her name so transcription is accurate.
+- **Voice (output):** Speaks her responses aloud through **HyprVoice** — only while in the `Active` phase. Her voice is always Hyprchan's, cloned from `assets/voice_samples/main_sample.mp3`. See below.
 - **Desktop Awareness:** Monitors window events (workspace changes, active windows) and can manipulate the desktop using tools.
 - **Memory:** Uses a tiered memory system (WM -> STM -> LTM) to maintain long-term context and personal growth.
+
+## HyprVoice — Voice Output System
+
+Hyprchan can speak her responses out loud. The pipeline is:
+
+```
+on_ai_response hook (ACTIVE phase only)
+  → VoiceManager.speak(text)
+  → strips *roleplay action markers* (trim_quotes)
+  → generator.generate(text) → WAV BytesIO
+  → sounddevice playback (thread executor, non-blocking)
+```
+
+### Voice Identity
+**Hyprchan's voice is fixed.** The reference sample (`assets/voice_samples/main_sample.mp3`) is always used for in-context voice cloning. It is not user-configurable — do not add parameters that change whose voice she uses.
+
+### Generators
+| Engine | File | Notes |
+|---|---|---|
+| `fishaudio` | `generators/fishaudio.py` | Fish Audio API; reference audio hardcoded to `main_sample.mp3` |
+| `hyprchan_audio` | `generators/hyprchan_audio.py` | Custom F5-TTS-compatible server |
+
+### Adding a Generator
+Subclass `VoiceGenerator` in a new file under `generators/`, implement `generate(text) -> BytesIO` (return WAV). Set `engine: your_name` in personalization — discovery is automatic. The constructor receives `url` and `token` from config if non-null.
+
+### Extension API
+Extensions can trigger speech directly:
+```python
+async def on_init(self, executor: ExtensionExecutor):
+    executor.speak("Hello!")  # no-op outside ACTIVE phase
+```
 
 ## Guidelines for Developers
 

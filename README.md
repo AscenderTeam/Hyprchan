@@ -74,6 +74,7 @@ hyprchan tui
     *   **Vision:** Webcam face/motion detection and periodic desktop snapshots.
     *   **Audio:** Continuous speech-to-text via **Faster-Whisper** with auto-language detection.
     *   **OS:** Monitors Hyprland workspace switches and window focus events.
+*   **🔊 Voice Output (HyprVoice):** Hyprchan speaks her responses aloud using in-context voice cloning — her voice is always her own, synthesized from a reference sample via **Fish Audio** or a compatible TTS backend. Speech fires only during the `Active` phase so she never talks over herself or speaks while idle.
 *   **🎨 LLM-Driven Animations:** The assistant can trigger poses (`idle`, `depressed`, `sleeping`) and move herself across your screen using custom tools.
 
 ---
@@ -88,6 +89,25 @@ Hyprchan operates on a **Continuous Kernel Loop** where perception preempts cogn
 3.  **Activity Detector:** Calculates macro-pressure on her attention.
 4.  **Mood Engine:** Updates internal scalars based on interaction quality ($d$ delta) and phase fatigue.
 5.  **Logit Bias:** Mood scalars are projected into token-level biases, subtly altering her speech patterns.
+
+---
+
+## 🔊 Voice Output
+
+Hyprchan speaks using in-context voice cloning. Her voice is always synthesized from `assets/voice_samples/main_sample.mp3` — it is hardcoded and not user-replaceable.
+
+To enable, add to your `hyprchan-configs/personalization.yaml`:
+
+```yaml
+voice:
+  enabled: true
+  engine: fishaudio        # Fish Audio API
+  token: "your-api-key"   # or set SPEECH_TOKEN= in .env
+```
+
+The `fishaudio` engine calls `https://api.fish.audio/v1/tts` with the reference sample every request. The `hyprchan_audio` engine targets a self-hosted F5-TTS-compatible server and additionally requires `url:`.
+
+Speech is suppressed in `Passive` and `Sleep` phases — she only speaks when actively responding to you.
 
 ---
 
