@@ -28,6 +28,7 @@ from hyprchan.core.hypraios.mood.phase_engine import PhaseEngine
 from hyprchan.core.hypraios.perception.watcher import PerceptionWatcher
 from hyprchan.core.hypraios.utils.dynamic_variable import DynamicVariable
 from hyprchan.core.hypraios.utils.fault_adaptive_parameter import FaultAdaptiveParameter
+from hyprchan.core.hyprmemory import HyprMemoryService
 from hyprchan.core.hyprmemory.models import MemoryState
 from hyprchan.core.hyprvoice.manager import VoiceManager
 from hyprchan.settings import (
@@ -48,6 +49,7 @@ class HyprAIOSKernel:
         self,
         logger: Annotated[Logger, Inject("ASC_LOGGER")],
         animations: AnimationEngine,
+        memory_service: HyprMemoryService,
     ) -> None:
         self.logger = logger
         self.animations = animations
@@ -97,9 +99,9 @@ class HyprAIOSKernel:
         )
 
         self.phase_engine = PhaseEngine(self.states)
-        self.linguistic_engine = LinguisticEngine()
+        self.linguistic_engine = LinguisticEngine(memory_service=memory_service)
         self.perception_watcher = PerceptionWatcher(self.main_loop.perception_signal)
-        self.memory_gate = MemoryGate()
+        self.memory_gate = MemoryGate(memory_service=memory_service)
         self.hooks = HookManager(self.logger)
         self.voice_manager = VoiceManager(VOICE_CONFIG)
 
@@ -1195,6 +1197,38 @@ class HyprAIOSKernel:
         self.hooks.register("on_ai_response", _on_ai_response, priority=-10)
         self.logger.info("Voice output hook registered (engine=%s)", self.voice_manager._config.engine)
 
+    async def _tool_sleep_digest(self) -> str:
+        """Light consolidation triggered by the sleep_digest tool — no phase change."""
+        if not self.memory_gate.enabled or not self.memory_gate.sleep_enabled:
+            return "memory consolidation is disabled"
+
+        budget = max(self.pending_memory_units, 1.0)
+        try:
+            report = await self.memory_gate.sleep_consolidate(budget_f=budget)
+        except Exception as exc:
+            return f"consolidation failed: {type(exc).__name__}: {exc}"
+
+        if report is None:
+            return "consolidation produced no report"
+
+        fatigue_reduction = self.k_sleep.value * min(budget, self.states.f.value)
+        self.states.f.value = max(0.0, self.states.f.value - fatigue_reduction)
+        self.pending_memory_units = max(0.0, self.pending_memory_units - budget)
+
+        self.logger.info(
+            "Tool sleep digest complete items=%s episodes=%s facts=%s edges=%s fatigue_spent=%.2f",
+            report.processed_items,
+            report.episodes_written,
+            report.facts_written,
+            report.edges_written,
+            report.fatigue_spent,
+        )
+        return (
+            f"digest complete: {report.processed_items} items processed, "
+            f"{report.episodes_written} episodes, {report.facts_written} facts, "
+            f"{report.edges_written} edges formed"
+        )
+
     async def bootup(self):
         if self._booted:
             return
@@ -1216,6 +1250,9 @@ class HyprAIOSKernel:
         self._shutting_down = False
         self.voice_manager.setup()
         self._register_voice_hook()
+        self.linguistic_engine.tool_runtime.set_sleep_digest_callback(
+            self._tool_sleep_digest
+        )
         await self._set_phase(Phases.PASSIVE, reason="bootup")
         if EXTENSIONS_ENABLED:
             await self._load_enabled_extensions(list(EXTENSIONS_ENABLED))

@@ -2,22 +2,26 @@ import asyncio
 import base64
 import logging
 import mimetypes
-import os
 import subprocess
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable, Literal
+from typing import Any, Callable, Coroutine, Literal
 
 from ascender.core import inject
+from langchain_core.tools import StructuredTool
+from pydantic import BaseModel, Field
+
 from hyprchan.core.animations.engine import AnimationEngine
 from hyprchan.core.hypraios.constants import Phases
 from hyprchan.core.hypraios.perception.opencv_module import OpenCVPerceptionModule
 from hyprchan.core.hypraios.tools.constants import (
     TOOL_ANSWER_USER,
     TOOL_CAMERA,
+    TOOL_EPISODIC_RECALL,
     TOOL_HYPRCTL_COMMAND,
     TOOL_LIST_SKILLS,
+    TOOL_MEMORIZE,
     TOOL_MEMORY_RECALL,
     TOOL_MOVE_SELF,
     TOOL_PATCH_SKILL,
@@ -25,6 +29,7 @@ from hyprchan.core.hypraios.tools.constants import (
     TOOL_SAVE_SKILL,
     TOOL_SCREENSHOT,
     TOOL_SET_ANIMATION_POSE,
+    TOOL_SLEEP_DIGEST,
 )
 from hyprchan.core.hypraios.tools.registry import ToolRegistry
 from hyprchan.core.hypraios.tools.types import ToolContext, ToolSpec
@@ -32,8 +37,6 @@ from hyprchan.core.hyprland.exceptions import UnknownRequestError
 from hyprchan.core.hyprland.socket import HyprlandSocket
 from hyprchan.core.hyprmemory import HyprMemoryService
 from hyprchan.core.hyprmemory.models import MemoryState
-from langchain_core.tools import StructuredTool
-from pydantic import BaseModel, Field
 from hyprchan.settings import (
     WEBCAM_AUTO_FIND_DEVICE,
     WEBCAM_DEVICE_INDEX,
@@ -95,11 +98,27 @@ class CameraInput(BaseModel):
 class MemoryRecallInput(BaseModel):
     query: str = Field(
         description=(
-            "Recall prompt for HyprMemory. Use a short phrase or question to retrieve "
-            "relevant episodes, facts, and concepts."
+            "Semantic recall query. Use a short phrase or question to retrieve "
+            "relevant episodes, facts, and concept anchors from associative memory."
         ),
         min_length=1,
         max_length=400,
+    )
+
+
+class EpisodicRecallInput(BaseModel):
+    period: str = Field(
+        default="recent",
+        description=(
+            "Time window to retrieve episodes from. "
+            "Examples: 'today', 'yesterday', 'last 3 hours', 'last 2 days', 'last week', 'recent' (no filter)."
+        ),
+    )
+    limit: int = Field(
+        default=8,
+        ge=1,
+        le=20,
+        description="Max episodes to return.",
     )
 
 
@@ -164,6 +183,26 @@ class PatchSkillInput(BaseModel):
     )
 
 
+class MemorizeInput(BaseModel):
+    content: str = Field(
+        description=(
+            "The fact, experience, or insight to permanently remember. "
+            "Write it as a self-contained statement — it will be stored with maximum salience."
+        ),
+        min_length=1,
+        max_length=1000,
+    )
+    note: str = Field(
+        default="",
+        description="Optional context note explaining why this is important.",
+        max_length=400,
+    )
+
+
+class SleepDigestInput(BaseModel):
+    pass
+
+
 @dataclass
 class ToolExecutionResult:
     answer_user_called: bool
@@ -179,6 +218,7 @@ class LinguisticToolRuntime:
     def __init__(
         self,
         animation_engine_resolver: Callable[[], AnimationEngine | None] | None = None,
+        memory_service: "HyprMemoryService | None" = None,
     ) -> None:
         self._resolve_animation_engine = (
             animation_engine_resolver or self._resolve_animation_engine_from_di
@@ -189,14 +229,22 @@ class LinguisticToolRuntime:
         self._camera_fallback_cooldown_sec = 5.0
         self._memory_state: MemoryState | None = None
         self._memory_phase: Phases | None = None
-        self._memory_service = None
+        self._memory_service: HyprMemoryService | None = memory_service
+        self._sleep_digest_callback: Callable[[], Coroutine[Any, Any, str]] | None = (
+            None
+        )
         self._register_builtin_tools()
+
+    def set_sleep_digest_callback(
+        self, callback: Callable[[], Coroutine[Any, Any, str]]
+    ) -> None:
+        self._sleep_digest_callback = callback
 
     def build_tools(self) -> list[StructuredTool]:
         self._refresh_builtin_tool_descriptions()
         context = ToolContext(
             phase=self._memory_phase,
-            memory_enabled=self._memory_is_enabled(),
+            memory_enabled=self._memory_service is not None,
             animation_poses=self.available_animations(),
         )
         return self.tool_registry.build(context)
@@ -305,13 +353,32 @@ class LinguisticToolRuntime:
                     coroutine=self._memory_recall,
                     name=TOOL_MEMORY_RECALL,
                     description=(
-                        "Recall relevant episodic, semantic, and associative memories "
-                        "from HyprMemory using a short query."
+                        "Semantic+associative recall from HyprMemory. "
+                        "Use a short query to retrieve relevant facts, concept anchors, and episode gists."
                     ),
                     args_schema=MemoryRecallInput,
                 ),
                 priority=10,
                 marker="optional",
+            ),
+            replace=True,
+        )
+        self.tool_registry.register(
+            ToolSpec(
+                name=TOOL_EPISODIC_RECALL,
+                tool=StructuredTool.from_function(
+                    coroutine=self._episodic_recall,
+                    name=TOOL_EPISODIC_RECALL,
+                    description=(
+                        "Retrieve the most recent episodic memories in time order — "
+                        "what actually happened, with emotional context, entities, and topics. "
+                        "Use when you want to know *what occurred* recently, not search for a fact."
+                    ),
+                    args_schema=EpisodicRecallInput,
+                ),
+                priority=10,
+                marker="optional",
+                predicate=lambda ctx: ctx.memory_enabled,
             ),
             replace=True,
         )
@@ -398,6 +465,44 @@ class LinguisticToolRuntime:
                 ),
                 priority=15,
                 marker="mandatory",
+                predicate=lambda ctx: ctx.memory_enabled,
+            ),
+            replace=True,
+        )
+        self.tool_registry.register(
+            ToolSpec(
+                name=TOOL_MEMORIZE,
+                tool=StructuredTool.from_function(
+                    coroutine=self._memorize,
+                    name=TOOL_MEMORIZE,
+                    description=(
+                        "Permanently mark something as critically important memory with maximum salience. "
+                        "Use when the user shares something that must never be forgotten, "
+                        "or when you form an insight worth keeping forever."
+                    ),
+                    args_schema=MemorizeInput,
+                ),
+                priority=12,
+                marker="optional",
+                predicate=lambda ctx: ctx.memory_enabled,
+            ),
+            replace=True,
+        )
+        self.tool_registry.register(
+            ToolSpec(
+                name=TOOL_SLEEP_DIGEST,
+                tool=StructuredTool.from_function(
+                    coroutine=self._sleep_digest,
+                    name=TOOL_SLEEP_DIGEST,
+                    description=(
+                        "Voluntarily digest and consolidate accumulated short-term memories into "
+                        "long-term storage right now. Use after absorbing a lot of new information "
+                        "or when you want to solidify recent experiences before continuing."
+                    ),
+                    args_schema=SleepDigestInput,
+                ),
+                priority=11,
+                marker="optional",
                 predicate=lambda ctx: ctx.memory_enabled,
             ),
             replace=True,
@@ -551,30 +656,8 @@ class LinguisticToolRuntime:
             )
         return False, "hyprland move failed", True
 
-    @staticmethod
-    def _memory_is_enabled() -> bool:
-        return os.getenv("HYPRMEMORY_ENABLED", "0").strip().lower() == "1"
-
-    def _resolve_memory_service(self):
-        if not self._memory_is_enabled():
-            return None
-        if self._memory_service is not None:
-            return self._memory_service
-        fallback = object()
-        try:
-            service = inject(HyprMemoryService, fallback=fallback)
-        except Exception:
-            return None
-        if service is fallback:
-            return None
-        self._memory_service = service
-        return service
-
     async def _memory_recall(self, query: str) -> str:
-        if not self._memory_is_enabled():
-            return "hyprmemory disabled"
-
-        memory = self._resolve_memory_service()
+        memory = self._memory_service
         if memory is None:
             return "hyprmemory unavailable"
 
@@ -591,9 +674,87 @@ class LinguisticToolRuntime:
 
         if not blocks:
             return "no relevant memories found"
+        return "HyprMemory recall:\n\n" + "\n\n".join(blocks)
 
-        rendered = "\n\n".join(blocks)
-        return f"HyprMemory recall:\n{rendered}"
+    @staticmethod
+    def _parse_period(period: str) -> tuple[Any, Any]:
+        """Parse a natural language period into (ts_from, ts_to). Returns (None, None) for 'recent'."""
+        import re
+        from datetime import datetime, timedelta, timezone
+
+        now = datetime.now(tz=timezone.utc)
+        p = period.strip().lower()
+
+        if p in ("recent", ""):
+            return None, None
+
+        if p == "today":
+            start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+            return start, now
+
+        if p == "yesterday":
+            today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+            start = today_start - timedelta(days=1)
+            return start, today_start
+
+        if p in ("last week", "this week"):
+            return now - timedelta(weeks=1), now
+
+        m = re.fullmatch(r"last\s+(\d+)\s+(hour|hours|hr|hrs)", p)
+        if m:
+            return now - timedelta(hours=int(m.group(1))), now
+
+        m = re.fullmatch(r"last\s+(\d+)\s+(day|days)", p)
+        if m:
+            return now - timedelta(days=int(m.group(1))), now
+
+        m = re.fullmatch(r"last\s+(\d+)\s+(week|weeks)", p)
+        if m:
+            return now - timedelta(weeks=int(m.group(1))), now
+
+        return None, None
+
+    async def _episodic_recall(self, period: str = "recent", limit: int = 8) -> str:
+        memory = self._memory_service
+        if memory is None:
+            return "hyprmemory unavailable"
+
+        ts_from, ts_to = self._parse_period(period)
+        try:
+            blocks = await memory.recall_episodic(ts_from=ts_from, ts_to=ts_to, limit=limit)
+        except Exception as exc:
+            return f"episodic recall failed: {type(exc).__name__}: {exc}"
+
+        if not blocks:
+            return "no episodic memories found"
+        return "Episode log:\n\n" + "\n\n".join(blocks)
+
+    async def _memorize(self, content: str, note: str = "") -> str:
+        memory = self._memory_service
+        if memory is None:
+            return "hyprmemory unavailable"
+
+        state = self._memory_state or MemoryState(f=0.0, v=0.0, e=0.0, a=0.0)
+        try:
+            await memory.memorize_important(
+                content=content.strip(), state=state, note=note.strip() if note else ""
+            )
+        except Exception as exc:
+            return f"memorize failed: {type(exc).__name__}: {exc}"
+
+        snippet = content.strip()[:80]
+        return (
+            f'memorized (salience=1.0): "{snippet}{"..." if len(content) > 80 else ""}"'
+        )
+
+    async def _sleep_digest(self) -> str:
+        callback = self._sleep_digest_callback
+        if callback is None:
+            return "sleep digest unavailable (kernel callback not wired)"
+        try:
+            return await callback()
+        except Exception as exc:
+            return f"sleep digest failed: {type(exc).__name__}: {exc}"
 
     async def _save_skill(
         self,
@@ -603,7 +764,7 @@ class LinguisticToolRuntime:
         success_score: float = 0.1,
         tool_sequence: list[dict[str, Any]] | None = None,
     ) -> str:
-        memory = self._resolve_memory_service()
+        memory = self._memory_service
         if memory is None:
             return "hyprmemory unavailable"
         procedural = getattr(memory, "procedural_memory", None)
@@ -622,7 +783,7 @@ class LinguisticToolRuntime:
         return str(result)
 
     async def _recall_skill(self, query: str, max: int = 20) -> str:
-        memory = self._resolve_memory_service()
+        memory = self._memory_service
         if memory is None:
             return "hyprmemory unavailable"
         procedural = getattr(memory, "procedural_memory", None)
@@ -635,7 +796,7 @@ class LinguisticToolRuntime:
         return str(result)
 
     async def _list_skills(self, max: int = 20) -> str:
-        memory = self._resolve_memory_service()
+        memory = self._memory_service
         if memory is None:
             return "hyprmemory unavailable"
         procedural = getattr(memory, "procedural_memory", None)
@@ -655,7 +816,7 @@ class LinguisticToolRuntime:
         success_score: float | None = None,
         tool_sequence: list[dict[str, Any]] | None = None,
     ) -> str:
-        memory = self._resolve_memory_service()
+        memory = self._memory_service
         if memory is None:
             return "hyprmemory unavailable"
         procedural = getattr(memory, "procedural_memory", None)
@@ -868,6 +1029,54 @@ class LinguisticToolRuntime:
                 if not query:
                     continue
                 summary = await self._memory_recall(query)
+                self._append_followup_message(
+                    followup_messages,
+                    followup_events,
+                    tool_name=name,
+                    summary=summary,
+                    images=[],
+                )
+                executed += 1
+                logger.debug("Tool executed name=%s", name)
+                continue
+
+            if name == "episodic_recall":
+                period = str(args.get("period", "recent")).strip()
+                try:
+                    limit = int(args.get("limit", 8))
+                except (TypeError, ValueError):
+                    limit = 8
+                summary = await self._episodic_recall(period=period, limit=limit)
+                self._append_followup_message(
+                    followup_messages,
+                    followup_events,
+                    tool_name=name,
+                    summary=summary,
+                    images=[],
+                )
+                executed += 1
+                logger.debug("Tool executed name=%s", name)
+                continue
+
+            if name == "memorize":
+                content = str(args.get("content", "")).strip()
+                if not content:
+                    continue
+                note = str(args.get("note", "")).strip()
+                summary = await self._memorize(content, note)
+                self._append_followup_message(
+                    followup_messages,
+                    followup_events,
+                    tool_name=name,
+                    summary=summary,
+                    images=[],
+                )
+                executed += 1
+                logger.debug("Tool executed name=%s", name)
+                continue
+
+            if name == "sleep_digest":
+                summary = await self._sleep_digest()
                 self._append_followup_message(
                     followup_messages,
                     followup_events,

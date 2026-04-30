@@ -15,6 +15,7 @@ from hyprchan.core.hypraios.linguistic.passive_inference import PassiveProcessor
 from hyprchan.core.hypraios.linguistic.persona_memory import PersonaMemory
 from hyprchan.core.hypraios.linguistic.tool_runtime import LinguisticToolRuntime
 from hyprchan.core.hypraios.utils.dynamic_variable import DynamicVariable
+from hyprchan.core.hyprmemory import HyprMemoryService
 from hyprchan.core.hyprmemory.models import MemoryState
 from langchain_openai import ChatOpenAI
 from pydantic import SecretStr
@@ -23,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 
 class LinguisticEngine:
-    def __init__(self) -> None:
+    def __init__(self, memory_service: "HyprMemoryService | None" = None) -> None:
         self.top_p = DynamicVariable(value=0.9, min_val=0.1, max_val=1.0)
         self.top_k = DynamicVariable(value=10, min_val=5, max_val=100)
         self.temperature = DynamicVariable(value=0.35, min_val=0, max_val=1)
@@ -31,7 +32,7 @@ class LinguisticEngine:
         self.inference_engine = InferenceEngine()
         self.logit_bias_builder = StateLogitBiasBuilder()
         self.persona_memory = PersonaMemory()
-        self.tool_runtime = LinguisticToolRuntime()
+        self.tool_runtime = LinguisticToolRuntime(memory_service=memory_service)
         self.last_bias_profile = "neutral"
         self.last_lexical_bias: dict[str, float] = {}
         self._passive_system_intro_sent = False

@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any
 
 from ascender.core.database import DatabaseEngine
-from sqlalchemy import delete, or_, select
+from sqlalchemy import and_, delete, or_, select
 
 from hyprchan.core.hyprmemory.interfaces import LTMStore
 from hyprchan.core.hyprmemory.models import (
@@ -97,6 +98,17 @@ class PostgresLTMStore(LTMStore):
         async with self._context() as session:
             stmt = (
                 select(EpisodeEntity).order_by(EpisodeEntity.ts_end.desc()).limit(limit)
+            )
+            result = await session.execute(stmt)
+            return [self.episode_from_entity(row[0]) for row in result.all()]
+
+    async def episodes_in_range(self, ts_from: datetime, ts_to: datetime, limit: int) -> list[Episode]:
+        async with self._context() as session:
+            stmt = (
+                select(EpisodeEntity)
+                .where(and_(EpisodeEntity.ts_end >= ts_from, EpisodeEntity.ts_start <= ts_to))
+                .order_by(EpisodeEntity.ts_start.asc())
+                .limit(limit)
             )
             result = await session.execute(stmt)
             return [self.episode_from_entity(row[0]) for row in result.all()]

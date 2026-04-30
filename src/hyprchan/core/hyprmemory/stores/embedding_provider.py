@@ -22,6 +22,7 @@ class OpenAIEmbeddingProvider(EmbeddingProvider):
             raise RuntimeError("langchain-openai is not installed") from exc
 
         api_key = SecretStr(self.api_key) if self.api_key else None
+        print("OPENAI BASE URL:", self.base_url)
         embeddings = OpenAIEmbeddings(
             model=self.model,
             api_key=api_key,

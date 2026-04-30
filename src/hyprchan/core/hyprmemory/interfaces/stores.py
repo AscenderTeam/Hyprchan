@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Protocol
 
 from hyprchan.core.hyprmemory.models import (
@@ -37,6 +38,8 @@ class LTMStore(Protocol):
     async def store_edge(self, edge: GraphEdge) -> None: ...
 
     async def recent_episodes(self, limit: int) -> list[Episode]: ...
+
+    async def episodes_in_range(self, ts_from: datetime, ts_to: datetime, limit: int) -> list[Episode]: ...
 
     async def list_concepts(self, limit: int) -> list[ConceptNode]: ...
 

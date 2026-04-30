@@ -8,7 +8,6 @@ from importlib import import_module
 from typing import Any
 
 from ascender.core import inject
-from ascender.core.database import DatabaseEngine
 
 from hyprchan.config.personalization import load_personalization_config
 
@@ -53,7 +52,7 @@ logger = logging.getLogger(__name__)
 class MemoryGate:
     wm_buffer: list[MemoryBuffer]
 
-    def __init__(self) -> None:
+    def __init__(self, memory_service: "HyprMemoryService | None" = None) -> None:
         config = load_personalization_config()
         self.enabled = bool(config.memory.enabled)
         self.read_active = bool(config.memory.read_active)
@@ -62,7 +61,7 @@ class MemoryGate:
         self.stm_mode = str(config.memory.stm.mode).strip().lower() or "redis"
         self.buffer_key = os.getenv("HYPRMEMORY_BUFFER_KEY", "hyprchan:wm_buffer")
         self.wm_buffer = []
-        self._memory_service: Any | None = None
+        self._memory_service: HyprMemoryService | None = memory_service if self.enabled else None
         self._redis: Any | None = None
         self._pending_dream_log: str | None = None
         self._last_error: str | None = None
@@ -96,63 +95,13 @@ class MemoryGate:
         self._redis = client
         return client
 
-    def _resolve_memory_service(self) -> Any | None:
-        if not self.enabled:
-            return None
-        if self._memory_service is not None:
-            return self._memory_service
-        fallback = object()
-        try:
-            service = inject(HyprMemoryService, fallback=fallback)
-        except Exception as exc:
-            self._last_error = f"{type(exc).__name__}: {exc}"
-            service = fallback
-        if service is fallback:
-            service = self._build_memory_service_manually()
-            if service is None:
-                return None
-        required_methods = (
-            "observe",
-            "store_message",
-            "recall_working_memory",
-            "sleep_consolidate",
-            "fetch_dream_log",
-        )
-        if not all(hasattr(service, name) for name in required_methods):
-            self._last_error = "HyprMemoryService provider unresolved"
-            return None
-        self._memory_service = service
-        self._last_error = None
-        return service
-
-    def _build_memory_service_manually(self) -> Any | None:
-        fallback = object()
-        try:
-            database = inject(DatabaseEngine, fallback=fallback)
-        except Exception as exc:
-            self._last_error = f"{type(exc).__name__}: {exc}"
-            return None
-        if database is fallback:
-            self._last_error = "DatabaseEngine unresolved for HyprMemoryService"
-            return None
-
-        try:
-            service = HyprMemoryService(
-                database=database,
-                logger=logging.getLogger("HyprMemoryService"),
-            )
-        except Exception as exc:
-            self._last_error = f"{type(exc).__name__}: {exc}"
-            return None
-        return service
-
     def _clamp_buffer(self):
         if len(self.wm_buffer) > self.buffer_limit:
             self.wm_buffer = self.wm_buffer[-self.buffer_limit :]
 
     @property
-    def memory(self) -> Any | None:
-        return self._resolve_memory_service()
+    def memory(self) -> "HyprMemoryService | None":
+        return self._memory_service
 
     async def reset_buffer(self):
         """
@@ -204,7 +153,7 @@ class MemoryGate:
         return self._decode_buffer_list(raw_items)
 
     async def _flush_evicted(self, evicted: list[MemoryBuffer]) -> None:
-        memory = self._resolve_memory_service()
+        memory = self._memory_service
         if memory is None:
             return
 
@@ -295,7 +244,7 @@ class MemoryGate:
     ) -> None:
         if not self.enabled:
             return
-        memory = self._resolve_memory_service()
+        memory = self._memory_service
         if memory is None:
             self._last_error = (
                 "HyprMemoryService unavailable while HYPRMEMORY_ENABLED=1"
@@ -342,7 +291,7 @@ class MemoryGate:
     ) -> None:
         if not self.enabled:
             return
-        memory = self._resolve_memory_service()
+        memory = self._memory_service
         if memory is None:
             return
         await memory.store_message(
@@ -375,7 +324,7 @@ class MemoryGate:
 
         should_read = phase != Phases.ACTIVE or self.read_active
         if should_read and query_text.strip():
-            memory = self._resolve_memory_service()
+            memory = self._memory_service
             if memory is not None:
                 try:
                     blocks = await memory.recall_working_memory(
@@ -398,7 +347,7 @@ class MemoryGate:
     async def sleep_consolidate(self, budget_f: float) -> ConsolidationReport | None:
         if not self.enabled or not self.sleep_enabled:
             return None
-        memory = self._resolve_memory_service()
+        memory = self._memory_service
         if memory is None:
             self._last_error = (
                 "HyprMemoryService unavailable during sleep consolidation"
@@ -412,7 +361,7 @@ class MemoryGate:
     async def fetch_dream_log(self) -> list[DreamEntry]:
         if not self.enabled or not self.sleep_enabled:
             return []
-        memory = self._resolve_memory_service()
+        memory = self._memory_service
         if memory is None:
             return []
         dreams = await memory.fetch_dream_log(clear=False, limit=32)

@@ -20,6 +20,13 @@ class ProceduralMemory:
         success_score: float = 0.0,
         tool_sequence: list[dict[str, Any]] | None = None,
     ):
+        embedding: list = []
+        if self.embeddings:
+            try:
+                embedding = await self.embeddings.embed(content)
+            except Exception:
+                pass
+
         await self.store.upsert(
             ProcMem(
                 memory_id=name,
@@ -29,9 +36,7 @@ class ProceduralMemory:
                 tool_sequence=tool_sequence or [],
                 failure_notes=[],
                 success_score=success_score,
-                embedding=(await self.embeddings.embed(content))
-                if self.embeddings
-                else [],
+                embedding=embedding,
             )
         )
 

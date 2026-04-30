@@ -14,6 +14,7 @@ from hyprchan.animations.idle_sit import IdleSitAnimation
 from hyprchan.animations.sleeping_sit import SleepingSitAnimation
 from hyprchan.animations.startle_wakeup_sit import StartleWakeupSitAnimation
 from hyprchan.core.animations.provider import provideAnimations
+from hyprchan.core.hyprmemory.provider import provideHyprmemory
 from hyprchan.routes import routes
 from hyprchan.scripts.animation_cli import AnimationCLI
 from hyprchan.scripts.extensions.cli import ExtensionsCLI
@@ -54,6 +55,7 @@ providers = [
     useCLI(HyprTuiCLI),
     useCLI(WizardCLI),
     useCLI(StartCLI),
+    provideHyprmemory(),
     provideALP(),
     provideAnimations(
         [

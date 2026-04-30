@@ -37,7 +37,7 @@ class ReActAgentExecutor:
         # The ReAct instructions are assumed to be part of the system_prompt.
         prompt = ChatPromptTemplate.from_messages(
             [
-                ("system", system_prompt),
+                ("system", system_prompt.replace("{", "{{").replace("}", "}}")),
                 MessagesPlaceholder("chat_history", optional=True),
                 ("human", "{input}"),
                 MessagesPlaceholder("agent_scratchpad"),

@@ -8,7 +8,7 @@ authors = [
 readme = "README.md"
 requires-python = ">=3.11,<3.14"
 dependencies = [
-    "ascender-framework (>=2.1.0,<3.0.0)",
+    "ascender-framework (==2.1.0a4)",
     "hyprland (>=0.2.54,<0.3.0)",
     "langchain (>=0.3.0,<0.4.0)",
     "langchain-core (>=0.3.78,<0.4.0)",

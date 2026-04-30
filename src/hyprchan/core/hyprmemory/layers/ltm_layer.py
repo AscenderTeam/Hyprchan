@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import datetime
+
 from hyprchan.core.hyprmemory.interfaces import LTMStore
 from hyprchan.core.hyprmemory.models import ConceptNode, DreamEntry, Episode, GraphEdge, SemanticFact
 
@@ -29,6 +31,10 @@ class LongTermMemoryLayer:
     async def recent_episodes(self, limit: int) -> list[Episode]:
         """Fetch recent episodic memories."""
         return await self.store.recent_episodes(limit=limit)
+
+    async def episodes_in_range(self, ts_from: datetime, ts_to: datetime, limit: int) -> list[Episode]:
+        """Fetch episodes whose window overlaps [ts_from, ts_to], ordered by ts_start asc."""
+        return await self.store.episodes_in_range(ts_from=ts_from, ts_to=ts_to, limit=limit)
 
     async def list_facts(self, limit: int) -> list[SemanticFact]:
         """Fetch semantic facts."""

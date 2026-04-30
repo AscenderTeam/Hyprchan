@@ -30,6 +30,7 @@ class MemoryConfig(BaseModel):
     read_active: bool = True
     sleep_enabled: bool = True
     buffer_limit: int = Field(default=3, ge=1, le=32)
+    k_sleep: float = Field(default=1.0, ge=0.01, le=10.0)
     stm: StmConfig = Field(default_factory=StmConfig)
     ltm: LtmConfig = Field(default_factory=LtmConfig)
 
@@ -72,8 +73,15 @@ _ENV_MAP: dict[str, str] = {
     "HYPRCHAN_MEMORY_READ_ACTIVE": "memory.read_active",
     "HYPRCHAN_MEMORY_SLEEP_ENABLED": "memory.sleep_enabled",
     "HYPRCHAN_MEMORY_BUFFER_LIMIT": "memory.buffer_limit",
+    "HYPRCHAN_MEMORY_K_SLEEP": "memory.k_sleep",
     "HYPRCHAN_MEMORY_STM_MODE": "memory.stm.mode",
     "HYPRCHAN_MEMORY_LTM_PROVIDER": "memory.ltm.provider",
+    # Legacy / alternate prefix aliases
+    "HYPRMEMORY_ENABLED": "memory.enabled",
+    "HYPRMEMORY_READ_ACTIVE": "memory.read_active",
+    "HYPRMEMORY_SLEEP_ENABLED": "memory.sleep_enabled",
+    "HYPRMEMORY_BUFFER_LIMIT": "memory.buffer_limit",
+    "HYPRMEMORY_K_SLEEP": "memory.k_sleep",
     "HYPRCHAN_TUI_POLL_INTERVAL": "tui.poll_interval",
     "HYPRCHAN_TUI_THEME": "tui.theme",
     "HYPRCHAN_TUI_VI_MODE": "tui.vi_mode",
