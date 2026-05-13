@@ -1,6 +1,6 @@
 <div align="center">
 
-<img width="200" height="5000" alt="hyprchan_present" src="https://github.com/user-attachments/assets/976529e7-063f-4f35-8acd-69b3ae311c4c" />
+<img width="400" height="600" alt="hyprchan_present" src="https://github.com/user-attachments/assets/976529e7-063f-4f35-8acd-69b3ae311c4c" />
 
 
 # 🌌 HyprAI OS: Hyprchan
