@@ -11,17 +11,22 @@ from hyprchan.config.personalization import load_personalization_config
 
 
 def _hydrate_env_from_dotenv():
-    # Priority order: Shell Env > User Config .env > Repo Root .env
+    
+    #       Priority order: Shell Env > User Config .env > Repo Root .env
+    #---------------------------------------------------------------------------
     # We load in priority order and only set if key is not already in os.environ
+    
     for env_file in reversed(env_paths()):
         if not env_file.exists():
             continue
 
+        
         try:
             lines = env_file.read_text(encoding="utf-8").splitlines()
         except OSError:
             continue
 
+        
         for line in lines:
             stripped = line.strip()
             if not stripped or stripped.startswith("#") or "=" not in stripped:
@@ -33,7 +38,9 @@ def _hydrate_env_from_dotenv():
             os.environ[key] = value.strip().strip('"').strip("'")
 
 
+
 _hydrate_env_from_dotenv()
+
 
 
 def _env_flag(key: str, default: bool) -> bool:
@@ -42,6 +49,7 @@ def _env_flag(key: str, default: bool) -> bool:
         return default
     normalized = value.strip().lower()
     return normalized in {"1", "true", "yes", "on"}
+
 
 
 PRODUCTION = _env_flag("PRODUCTION", False)
@@ -54,11 +62,14 @@ else:
     os.environ.setdefault("LOG_LEVEL", "DEBUG")
 
 
+
 DATABASE_CONNECTION = {
     "type": "dbstring",
     "content": os.getenv(
         "DATABASE_URL",
         "postgresql+asyncpg://postgres:mysecretpassword@localhost:5432/hyprchan",
+   
+    
     ),
     "entities": [
         "hyprchan.entities.episode",
@@ -115,6 +126,7 @@ def _resolve_sprites_base_dir() -> str:
         return str(package_sprites)
 
     # Dev fallback when running from repository root.
+    
     repo_sprites = Path.cwd() / "public" / "assets" / "sprites"
     return str(repo_sprites.resolve())
 
