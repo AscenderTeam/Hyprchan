@@ -4,7 +4,6 @@
 
 
 # 🌌 HyprAI OS: Hyprchan
-# UPDATE 11.08.2026: we have ordered a 3d model which will be free for everyone
 **The homeostatic system companion that lives in your Hyprland workspace.**
 
 [![Python Version](https://img.shields.io/badge/python-3.11%2B-blue.svg?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
