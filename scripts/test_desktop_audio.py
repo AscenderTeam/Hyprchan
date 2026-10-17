@@ -43,6 +43,7 @@ class AudioTests(unittest.TestCase):
         tracker = AudioNodes()
         tracker.update([])
         self.assertEqual(tracker.update([node(3, "Hyprchan listen_in", "running", "Stream/Input/Audio")]), [])
+        self.assertEqual(tracker.update([node(4, "Hyprchan voice", "running", "Stream/Output/Audio")]), [])
         self.assertEqual(tracker.playback(), [])
 
     def test_listening_is_bounded_and_long_requests_have_five_chunks(self):

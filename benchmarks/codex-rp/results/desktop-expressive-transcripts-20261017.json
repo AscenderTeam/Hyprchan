@@ -1,0 +1,59 @@
+{
+  "healthAndTimingOnly": true,
+  "engine": "expressive",
+  "voices": {
+    "ru": "Silero kseniya (high)",
+    "en": "Kokoro af_bella"
+  },
+  "publicAudioFixture": "faster-whisper JFK",
+  "passed": true,
+  "rows": [
+    {
+      "case": "live_stop_control",
+      "ackMs": 2.2,
+      "interruptions": 1
+    },
+    {
+      "case": "live_transcripts",
+      "chunksShown": 5,
+      "chunks": [
+        {
+          "index": 1,
+          "total": 5,
+          "sttMs": 281.1,
+          "observedAfterMs": 5029.6
+        },
+        {
+          "index": 2,
+          "total": 5,
+          "sttMs": 253.1,
+          "observedAfterMs": 7443.8
+        },
+        {
+          "index": 3,
+          "total": 5,
+          "sttMs": 242.5,
+          "observedAfterMs": 9852.7
+        },
+        {
+          "index": 4,
+          "total": 5,
+          "sttMs": 289.0,
+          "observedAfterMs": 12190.9
+        },
+        {
+          "index": 5,
+          "total": 5,
+          "sttMs": 259.6,
+          "observedAfterMs": 14531.7
+        }
+      ],
+      "microphoneActive": true,
+      "visualSources": [
+        "screen",
+        "webcam"
+      ],
+      "lastError": null
+    }
+  ]
+}

@@ -1,0 +1,104 @@
+{
+  "healthAndTimingOnly": true,
+  "publicAudioFixture": "faster-whisper JFK",
+  "passed": true,
+  "rows": [
+    {
+      "case": "live_ru_greeting",
+      "voiceObserved": true,
+      "modelTiming": {
+        "firstTextMs": 1496.694,
+        "lastTextMs": 1646.499,
+        "completedMs": 1669.872,
+        "imageCount": 2,
+        "toolCalls": 0,
+        "source": "keyboard",
+        "sttMs": null,
+        "firstGuiMs": 1502.8480599999057,
+        "lastGuiMs": 1654.9135259997456,
+        "visualWaitMs": 111.11874900007024,
+        "inputToFullTextMs": 1766.2847359997613
+      },
+      "speechTiming": {
+        "firstPcmMs": 59.4,
+        "synthMs": 59.3,
+        "language": "ru",
+        "firstWriteMs": 66.8,
+        "inputToPlaybackWriteMs": 1832.6
+      },
+      "lastError": null
+    },
+    {
+      "case": "live_en_greeting",
+      "voiceObserved": true,
+      "modelTiming": {
+        "firstTextMs": 1331.136,
+        "lastTextMs": 1448.788,
+        "completedMs": 1518.714,
+        "imageCount": 2,
+        "toolCalls": 0,
+        "source": "keyboard",
+        "sttMs": null,
+        "firstGuiMs": 1334.3796350000048,
+        "lastGuiMs": 1452.3481750002247,
+        "visualWaitMs": 105.59101599983478,
+        "inputToFullTextMs": 1558.3509010002672
+      },
+      "speechTiming": {
+        "firstPcmMs": 68.8,
+        "synthMs": 68.7,
+        "language": "en",
+        "firstWriteMs": 69.3,
+        "inputToPlaybackWriteMs": 1596.6
+      },
+      "lastError": null
+    },
+    {
+      "case": "live_stop_control",
+      "ackMs": 1.2,
+      "interruptions": 1
+    },
+    {
+      "case": "live_transcripts",
+      "chunksShown": 5,
+      "chunks": [
+        {
+          "index": 1,
+          "total": 5,
+          "sttMs": 267.0,
+          "observedAfterMs": 4333.3
+        },
+        {
+          "index": 2,
+          "total": 5,
+          "sttMs": 235.5,
+          "observedAfterMs": 6736.7
+        },
+        {
+          "index": 3,
+          "total": 5,
+          "sttMs": 261.8,
+          "observedAfterMs": 9227.8
+        },
+        {
+          "index": 4,
+          "total": 5,
+          "sttMs": 274.7,
+          "observedAfterMs": 11499.1
+        },
+        {
+          "index": 5,
+          "total": 5,
+          "sttMs": 334.8,
+          "observedAfterMs": 13982.3
+        }
+      ],
+      "microphoneActive": true,
+      "visualSources": [
+        "screen",
+        "webcam"
+      ],
+      "lastError": null
+    }
+  ]
+}

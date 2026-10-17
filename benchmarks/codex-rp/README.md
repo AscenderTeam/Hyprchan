@@ -68,16 +68,21 @@ python scripts/desktop_codex_rp.py --no-reactions
 # Optional: disable saved facts or playback awareness independently.
 python scripts/desktop_codex_rp.py --no-memory --no-audio-awareness
 
+# Optional: keep replies as text without spoken playback.
+python scripts/desktop_codex_rp.py --no-voice
+
 # Inspect timing/health without reading conversation text, or close the preview.
 python scripts/desktop_codex_rp.py --control '{"type":"status"}'
 python scripts/desktop_codex_rp.py --control '{"type":"quit"}'
 ```
 
-The preview reuses Hyprchan's native GTK sprite renderer, animation assets, OpenCV perception module, and multimodal snapshot source. It adds streamed chat, microphone selection and mute, automatic visual context, optional reactions, saved user facts, playback listening, and current mood selection. Its character prompt calls for playful gestures, opinions, and natural Russian/English expression. It is a separate local preview: desktop-tool execution, durable chat history, speech synthesis, and the full kernel's memory/state evolution are not started. Mood choices supply the native FVEA units on every turn. Closing the chat window stops capture and the Codex process; reopening an existing instance presents its windows.
+The preview reuses Hyprchan's native GTK sprite renderer, animation assets, OpenCV perception module, and multimodal snapshot source. It adds streamed chat, microphone selection and mute, local spoken replies, automatic visual context, optional reactions, saved user facts, playback listening, and current mood selection. Its character prompt calls for playful gestures, opinions, and natural Russian/English expression. Desktop-tool execution, durable chat history, and the full kernel's memory/state evolution are not started. Mood choices supply the native FVEA units on every turn. Closing the chat window stops capture, speech playback, and the Codex process; reopening an existing instance presents its windows.
 
 Camera and screen capture start automatically. The visible **Camera + screen** toggle releases the camera and stops screenshots; `--no-vision` starts with capture off. Images accompany chat requests and automatic reaction checks. With memory enabled, periodic observations include the webcam so she can learn tentative facts from either source; with memory off, background checks include only the screen. Audio remains local, but recognized text, captured images, relevant saved facts, and audio metadata leave the machine for inference. Turning capture off prevents new attachments; earlier images remain in the current temporary conversation until it is closed.
 
 The existing snapshot provider supplies JPEGs with source labels and capture timestamps. The preview refreshes while speech starts and before a message if its snapshot is older than two seconds, waiting at most 700 ms for that refresh. It also takes periodic snapshots (60 seconds by default, configurable with `MULTIMODAL_SNAPSHOT_INTERVAL_SEC`, minimum 10). It reports image age and missing camera input. The first webcam snapshot follows the three-second warmup instead of waiting for the next periodic interval. Each source from a given capture is attached only once; a new capture is eligible even when its pixels look similar.
+
+She can also call **`look(source)` on demand**, choosing `screen`, `camera`, or `both`. The tool requests a fresh capture and attaches the requested images to her current model turn with labels and timestamps. It reports missing sources, rejects stale frames, times out after five seconds, and cancels if interrupted or capture is switched off. The model is prompted to use it when asked to look again and to avoid tools for greetings. On the tested Codex version, direct dynamic-tool image outputs failed color probes; the bridge therefore uses the supported `turn/steer` input path with explicit `detail: auto`. `node --test scripts/test_desktop_look.mjs` checks cancellation and freshness; `node scripts/verify_desktop_look.mjs /tmp/hyprchan-look-new.json` verifies actual model vision with synthetic colors and capture off.
 
 **Screen reactions** are on by default. Around once a minute while idle, the same conversation receives a fresh screen image and a conditional prompt: volunteer one short kawaii observation if there is something new worth saying; otherwise return exactly `NO_REPLY`. The model makes this decision, including for similar screens. It is prompted to avoid repeating observations, generic offers, and reacting to its own chat/sprite changes. `NO_REPLY` is hidden, with no empty bubble or invented user message. Reactions are buffered until the final decision finishes, including after tool calls; ordinary replies still stream immediately.
 
@@ -94,7 +99,46 @@ uv venv --python 3.13 ~/.local/share/hyprchan-codex/venv
 uv pip install --python ~/.local/share/hyprchan-codex/venv/bin/python 'faster-whisper==1.2.1' 'opencv-python-headless==4.10.0.84'
 ```
 
-This preview needs existing GTK4/PyGObject, FFmpeg, PulseAudio/PipeWire (`pw-dump`, `pw-record`), grim, Node with `node:sqlite` (tested on 26.5.1), and the signed-in Codex CLI (tested on 0.163.0). It does not install or upgrade system packages. Override the speech/vision interpreter with `HYPRCHAN_SPEECH_PYTHON`, language with `HYPRCHAN_STT_LANGUAGE=en|ru|auto`, or recognition model with `HYPRCHAN_STT_MODEL`. Codex model/effort/tier overrides are the same as the terminal demo. No login token is printed or passed as an API key.
+This preview needs existing GTK4/PyGObject, FFmpeg, PulseAudio/PipeWire (`pw-dump`, `pw-record`, `pw-play`), grim, Node with `node:sqlite` (tested on 26.5.1), and the signed-in Codex CLI (tested on 0.163.0). It does not install or upgrade system packages. Override the speech/vision interpreter with `HYPRCHAN_SPEECH_PYTHON`, language with `HYPRCHAN_STT_LANGUAGE=en|ru|auto`, or recognition model with `HYPRCHAN_STT_MODEL`. Codex model/effort/tier overrides are the same as the terminal demo. No login token is printed or passed as an API key.
+
+### Local spoken replies
+
+The separate worker keeps the audition-selected female voices warm: **Kokoro Bella** (`af_bella`, speed 1.08) for English and **Silero Kseniya** (`v5_5_ru`, native SSML pitch `high`) for Russian. Both run locally on CPU with four threads; ONNX idle spinning is disabled. Completed sentences and bounded clauses enter playback while later text is still arriving. Stage directions such as `*waves*`, Markdown markers, code, and `NO_REPLY` are not spoken. Background reactions wait for their final decision before speaking; pre-tool commentary is excluded. Synthesized audio stays in RAM and is played locally through PipeWire. The first spoken phrase selects the language for that reply; mixed-language speech is not a separate multilingual voice.
+
+**Voice on/off** controls spoken replies independently of the microphone. **Stop speaking**, typing, or detected microphone speech cancels the current utterance and drops pending audio. Turning voice back on does not replay old replies. Headphones are recommended for reliable interruption: the preview does not supply acoustic echo cancellation, so loudspeaker output can reach the microphone. Her own PipeWire speech stream is excluded from audio-awareness events and listening targets.
+
+The expressive backend uses an isolated user environment. The following setup uses the CPU-only PyTorch wheel and downloads models from their upstream locations; it does not change system packages:
+
+```sh
+uv venv --python 3.13 ~/.local/share/hyprchan-codex/tts-expressive
+uv pip install --python ~/.local/share/hyprchan-codex/tts-expressive/bin/python \
+  --index https://download.pytorch.org/whl/cpu 'torch==2.13.0+cpu'
+uv pip install --python ~/.local/share/hyprchan-codex/tts-expressive/bin/python \
+  'kokoro-onnx==0.6.1' 'onnxruntime==1.31.0'
+mkdir -p ~/.local/share/hyprchan-codex/voices
+curl --fail --location https://models.silero.ai/models/tts/ru/v5_5_ru.pt \
+  -o ~/.local/share/hyprchan-codex/voices/silero-v5_5_ru.pt
+curl --fail --location https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.1/kokoro-v1.0.onnx \
+  -o ~/.local/share/hyprchan-codex/voices/kokoro-v1.0.onnx
+curl --fail --location https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.1/voices-v1.0.bin \
+  -o ~/.local/share/hyprchan-codex/voices/voices-v1.0.bin
+python scripts/desktop_codex_rp.py
+```
+
+Without an override, `HYPRCHAN_TTS_PYTHON` selects `tts-expressive/bin/python` if it exists, otherwise the GUI's Python. Model paths default to `~/.local/share/hyprchan-codex/voices/`; override the directory with `HYPRCHAN_TTS_VOICE_DIR`, or individual model paths with `HYPRCHAN_TTS_VOICE_EN` and `HYPRCHAN_TTS_VOICE_RU`. Kokoro also needs `voices-v1.0.bin` in the voice directory. `HYPRCHAN_TTS_SPEAKER_EN`, `HYPRCHAN_TTS_EN_SPEED`, `HYPRCHAN_TTS_SPEAKER_RU`, and `HYPRCHAN_TTS_RU_PITCH` override the selected voices/prosody. `HYPRCHAN_TTS_THREADS` accepts 1–8. Missing voices/dependencies leave text chat usable and display a voice error. The worker pins the default output at startup; `HYPRCHAN_TTS_SINK` selects a PipeWire output explicitly. Restart after changing the desired output. `HYPRCHAN_TTS_VOLUME` is a 0–1 stream multiplier, default 0.65; system volume is untouched.
+
+**License restriction:** the selected [Silero Russian model](https://github.com/snakers4/silero-models#licence) is covered by [CC BY-NC-SA 4.0](https://github.com/snakers4/silero-models/blob/master/LICENSE). A commercial product needs an appropriately licensed Russian voice or permission from its author. [Kokoro's weights](https://huggingface.co/hexgrad/Kokoro-82M) use Apache 2.0. Voice weights are downloaded separately and are not included in this repository. Implementation references: [Silero SSML](https://github.com/snakers4/silero-models/wiki/SSML), [kokoro-onnx](https://github.com/thewh1teagle/kokoro-onnx), [ONNX Runtime sessions](https://onnxruntime.ai/docs/api/python/api_summary.html), and [PipeWire playback](https://docs.pipewire.org/page_man_pw-cat_1.html).
+
+`python scripts/test_desktop_speech_output.py` checks phrase streaming, action/Markdown cleanup, silent decisions, language choice, and transcript formatting. Run the following with the voice environment to reproduce synthesis and isolated PipeWire output tests:
+
+```sh
+~/.local/share/hyprchan-codex/tts-expressive/bin/python scripts/bench_speech_output.py /tmp/hyprchan-tts-new.json
+~/.local/share/hyprchan-codex/tts-expressive/bin/python scripts/verify_speech_output.py /tmp/hyprchan-playback-new.json
+```
+
+The output test uses a temporary silent sink to measure actual output onset, playback before the reply ends, cancellation, and rejection of cancelled audio. See the [speech-output results](REPORT.md#local-speech-output-and-visible-transcripts). These timings exclude remote inference and physical headphone latency.
+
+The earlier Piper baseline remains available with `HYPRCHAN_TTS_BACKEND=piper`. It requires an interpreter with `piper-tts` (tested 1.8.0), selected via `HYPRCHAN_TTS_PYTHON`, and `en_US-lessac-medium.onnx` / `ru_RU-irina-medium.onnx` plus adjacent `.onnx.json` files in `~/.local/share/piper/voices/`. The benchmark accepts `--backend piper --threads 1,2,4`. Piper's engine is GPL; voice permissions are separate. The [Irina model card](https://huggingface.co/rhasspy/piper-voices/blob/main/ru/ru_RU/irina/medium/MODEL_CARD) lists its dataset license as unknown; check it and the [Lessac model card](https://huggingface.co/rhasspy/piper-voices/blob/main/en/en_US/lessac/medium/MODEL_CARD) before distribution.
 
 ### Personal memory and audio awareness
 
@@ -104,11 +148,11 @@ Facts survive restarts in `$XDG_DATA_HOME/hyprchan-codex/memory.sqlite3` (normal
 
 **Audio awareness on** watches new PipeWire nodes and playback starts and sends their names, application, stream serial, and state to the same character conversation. Existing nodes are treated as the startup baseline. Notifications are coalesced briefly, and her own capture streams are excluded. She may react or return `NO_REPLY`; metadata alone does not mean she heard the audio.
 
-The model can call `listen_in(serial, seconds, language)` for one available playback stream, from 1 to **20 seconds**. Requests of **more than 10 seconds deliver five transcript chunks**; shorter requests deliver one. The tool returns immediately, then chunks enter the conversation as local speech recognition completes. Incomplete fragments normally produce `NO_REPLY`, so five chunks need not create five chat bubbles. Capture targets the exact PipeWire playback serial, never a fallback microphone or the whole desktop mix. Only one listening job runs at a time, raw audio stays in RAM, and microphone transcription takes queue priority. Recognition can miss or mishear words, especially across short chunk boundaries; it does not identify melodies or other non-speech sounds. Turning audio awareness off cancels capture and pending audio reactions.
+The model can call `listen_in(serial, seconds, language)` for one available playback stream, from 1 to **20 seconds**. Requests of **more than 10 seconds deliver five transcript chunks**; shorter requests deliver one. The tool returns immediately, then chunks enter the conversation as local speech recognition completes. Every chunk is also displayed immediately in one **Heard · application** bubble with `[1/5]` through `[5/5]` labels, including an explicit message when no clear speech is recognized. These transcripts remain visible even when she chooses `NO_REPLY`; they are not spoken aloud. Incomplete fragments normally produce no character reaction, so five chunks need not create five reply bubbles. Capture targets the exact PipeWire playback serial, never a fallback microphone or the whole desktop mix. Only one listening job runs at a time, raw audio stays in RAM, and microphone transcription takes queue priority. Recognition can miss or mishear words, especially across short chunk boundaries; it does not identify melodies or other non-speech sounds. Turning audio awareness off cancels capture and pending audio reactions.
 
 Audio observations use the same interruptible background path as screen checks; user typing/speech has priority. Channel events and each transcript chunk can consume inference even when she chooses silence. Saving facts adds tool round trips, so those turns can take several seconds. A greeting needs no tools.
 
-Control examples: `--control '{"type":"memory","active":false}'`, `--control '{"type":"audio","active":false}'`, and `--control '{"type":"reactions","active":false}'`. The microphone mute button controls microphone capture independently of playback awareness and camera capture.
+Control examples: `--control '{"type":"memory","active":false}'`, `--control '{"type":"audio","active":false}'`, `--control '{"type":"reactions","active":false}'`, `--control '{"type":"voice","active":false}'`, and `--control '{"type":"stop_voice"}'`. The microphone mute button controls microphone capture independently of playback awareness and camera capture.
 
 Run the targeted checks with:
 
@@ -140,7 +184,7 @@ Test recordings: [English hi](https://en.wiktionary.org/wiki/File:En-us-hi.ogg),
 - Fresh-thread trials are not guaranteed cold provider-cache trials. Cache-hit token counts are recorded per response.
 - Warm trials reuse the same live thread. Idle trials wait the stated duration without sending another turn to that thread.
 
-All times include local Codex processing and remote inference/network latency, but exclude the existing Hyprchan kernel, memory retrieval, UI rendering, audio transcription, and speech synthesis. Three- and five-sample screens establish candidates, not production tail latency. Sample p95 in `results/summary.json` uses nearest-rank quantiles and must not be treated as an SLA.
+The original text-suite times include local Codex processing and remote inference/network latency, but exclude the existing Hyprchan kernel, memory retrieval, UI rendering, audio transcription, and speech synthesis. Later GUI and speech checks identify their own measurement boundaries. `last_tts.firstWriteMs` and `inputToPlaybackWriteMs` measure the first write to the playback pipe, not audible output; the isolated sink verifier measures actual output samples separately. Three- and five-sample screens establish candidates, not production tail latency. Sample p95 in `results/summary.json` uses nearest-rank quantiles and must not be treated as an SLA.
 
 The harness confirms the configured model, reasoning effort, and service tier. It cannot expose the actual backend service-tier receipt. An `ultrafast` request in the first comparison resolved to `null`; those rows are retained for transparency and marked `tierAccepted=false`. The current script rejects such a mismatch rather than reporting it as an Ultrafast result. Model availability is established only by successful inference, not by a model's appearance in the catalog.
 

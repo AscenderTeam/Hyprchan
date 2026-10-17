@@ -18,12 +18,14 @@ import subprocess
 import sys
 import threading
 import time
+from desktop_speech_output import SpeechPhrases, transcript_line
 
 ROOT = Path(__file__).resolve().parents[1]
 RUNTIME = Path(os.getenv("XDG_RUNTIME_DIR", f"/run/user/{os.getuid()}")) / "hyprchan-codex"
 SOCKET = RUNTIME / "desktop.sock"
 SPEECH_PYTHON = Path(os.getenv("HYPRCHAN_SPEECH_PYTHON",
                               str(Path.home() / ".local/share/hyprchan-codex/venv/bin/python")))
+TTS_PYTHON = Path.home() / ".local/share/hyprchan-codex/tts-expressive/bin/python"
 
 
 def control(command: dict) -> dict:
@@ -41,6 +43,7 @@ def main() -> int:
     parser.add_argument("--no-reactions", action="store_true", help="Keep automatic screen reactions off")
     parser.add_argument("--no-memory", action="store_true", help="Keep persistent user memory off")
     parser.add_argument("--no-audio-awareness", action="store_true", help="Keep playback awareness and listen_in off")
+    parser.add_argument("--no-voice", action="store_true", help="Keep spoken replies off")
     parser.add_argument("--control", help='Send JSON, e.g. {"type":"status"} or {"type":"quit"}')
     args = parser.parse_args()
     if args.control:
@@ -79,6 +82,12 @@ def main() -> int:
             self.reactions_wanted = not args.no_reactions
             self.memory_wanted = not args.no_memory
             self.audio_wanted = not args.no_audio_awareness
+            self.voice_wanted = not args.no_voice
+            self.tts_ready = False
+            self.tts_id = None
+            self.tts_started_at = None
+            self.listen_views = {}
+            self.look_requests = {}
             self.pending_audio = []
             self.audio_pending_at = 0.0
             self.reaction_interval = max(10, float(os.getenv("HYPRCHAN_REACTION_INTERVAL_SEC", "60")))
@@ -160,6 +169,9 @@ def main() -> int:
             self.scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
             self.chat = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
             self.scroll.set_child(self.chat)
+            # Text wrapping changes the content height during GTK layout, after
+            # an idle scroll may have used the previous scroll range.
+            self.scroll.get_vadjustment().connect("changed", lambda *_: self.scroll_bottom())
             body.append(self.scroll)
             self.add_message("Hyprchan", "*Выглядываю из капюшона.* Секундочку, я просыпаюсь, ня~"
                              if os.getenv("HYPRCHAN_STT_LANGUAGE") == "ru" else
@@ -227,6 +239,19 @@ def main() -> int:
             self.audio_status.add_css_class("muted")
             audio_row.append(self.audio_status)
             outer.append(audio_row)
+            voice_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+            self.voice_button = Gtk.ToggleButton(label="Voice on" if self.voice_wanted else "Voice off")
+            self.voice_button.set_active(self.voice_wanted)
+            self.voice_button.connect("toggled", self.toggle_voice)
+            voice_row.append(self.voice_button)
+            stop_voice = Gtk.Button(label="Stop speaking")
+            stop_voice.connect("clicked", lambda *_: self.stop_voice())
+            voice_row.append(stop_voice)
+            self.voice_status = Gtk.Label(label="Warming local voices…", xalign=0)
+            self.voice_status.add_css_class("muted")
+            self.voice_status.set_wrap(True)
+            voice_row.append(self.voice_status)
+            outer.append(voice_row)
             self.timing = Gtk.Label(label="Audio stays local · recognized text goes to the model", xalign=0)
             self.timing.add_css_class("muted")
             outer.append(self.timing)
@@ -255,6 +280,8 @@ def main() -> int:
             self.start_control_socket()
             self.spawn("model", ["node", str(ROOT / "scripts/desktop_codex_bridge.mjs")])
             self.spawn("pipewire", [sys.executable, str(ROOT / "scripts/desktop_pipewire_worker.py")])
+            self.spawn("tts", [os.getenv("HYPRCHAN_TTS_PYTHON", str(TTS_PYTHON) if TTS_PYTHON.exists() else sys.executable),
+                               str(ROOT / "scripts/desktop_tts_worker.py")])
             if SPEECH_PYTHON.exists():
                 self.spawn("speech", [str(SPEECH_PYTHON), str(ROOT / "scripts/desktop_speech_worker.py")])
                 self.spawn("vision", [str(SPEECH_PYTHON), str(ROOT / "scripts/desktop_vision_worker.py")])
@@ -382,6 +409,8 @@ def main() -> int:
                     if event.get("fatal"):
                         self.model_ready = False
                 elif name == "vision":
+                    for request_id in list(self.look_requests):
+                        self.finish_look(request_id, error=event.get("message", "Visual capture failed"))
                     self.cancel_reaction()
                     self.vision_ready = False
                     self.vision_active = False
@@ -391,6 +420,12 @@ def main() -> int:
                 elif name == "pipewire":
                     self.stats["audio_error"] = event.get("message")
                     self.audio_status.set_label("Audio awareness unavailable: " + event.get("message", ""))
+                elif name == "tts":
+                    if event.get("fatal"):
+                        self.tts_ready = False
+                    self.tts_id = None
+                    self.stats["tts_error"] = event.get("message")
+                    self.voice_status.set_label("Voice unavailable: " + event.get("message", ""))
                 else:
                     self.mic_status.set_label("Speech error: " + event.get("message", ""))
                 return False
@@ -401,6 +436,7 @@ def main() -> int:
                     self.status.set_label("Ready · say hello or type below")
                     self.send("model", {"type": "memory_mode", "active": self.memory_wanted})
                     self.send("model", {"type": "audio_mode", "active": self.audio_wanted})
+                    self.send("model", {"type": "vision_mode", "active": self.vision_wanted})
                     self.start_next()
                 elif kind == "memory":
                     self.stats["memory_active"] = event["active"]
@@ -408,6 +444,15 @@ def main() -> int:
                     self.stats["memory_error"] = event.get("error")
                     self.memory_status.set_label(event.get("error") or
                         (f"{event['count']} saved facts · chats + observations" if event["active"] else "Memory off · saved facts kept locally"))
+                elif kind == "look_request":
+                    self.look_requests[event["requestId"]] = event
+                    self.stats["look_requests"] = self.stats.get("look_requests", 0) + 1
+                    if not self.vision_wanted or not self.vision_ready:
+                        self.finish_look(event["requestId"], error="Camera and screen capture are off or unavailable")
+                    elif not self.send("vision", {"type": "refresh", "reason": "look", "id": event["requestId"]}):
+                        self.finish_look(event["requestId"], error="Visual capture worker is unavailable")
+                elif kind == "look_cancelled":
+                    self.look_requests.pop(event["requestId"], None)
                 elif kind == "listen_request":
                     if self.audio_wanted and self.speech_ready:
                         if not self.send("speech", {**event, "type": "listen_in"}):
@@ -420,6 +465,7 @@ def main() -> int:
                     self.current["last_gui_ms"] = (time.monotonic() - self.current["started"]) * 1000
                     self.answer.set_label("Hyprchan\n" + self.response)
                     self.overlay.set_overlay_text(self.response)
+                    self.speak_response(event["text"])
                     GLib.idle_add(self.scroll_bottom)
                 elif kind == "done" and self.current and event["id"] == self.current["id"]:
                     if self.current["source"] in {"screen", "audio"}:
@@ -428,7 +474,13 @@ def main() -> int:
                     self.response = event["text"]
                     self.answer.set_label("Hyprchan\n" + self.response)
                     self.overlay.set_overlay_text(self.response)
-                    timing = {key: event.get(key) for key in ("firstTextMs", "lastTextMs", "completedMs", "imageCount", "toolCalls")}
+                    if event["status"] == "completed":
+                        # Normally deltas supplied the text; retain a non-streaming fallback.
+                        delta = event["text"] if not self.current["speech_phrases"].raw else ""
+                        self.speak_response(delta, final=True)
+                    else:
+                        self.stop_voice()
+                    timing = {key: event.get(key) for key in ("firstTextMs", "lastTextMs", "completedMs", "imageCount", "toolCalls", "lookCalls")}
                     timing.update(source=self.current["source"], sttMs=self.current.get("sttMs"),
                                   firstGuiMs=self.current.get("first_gui_ms"), lastGuiMs=self.current.get("last_gui_ms"),
                                   visualWaitMs=self.current.get("visual_wait_ms", 0))
@@ -451,6 +503,24 @@ def main() -> int:
                     if event["status"] != "completed":
                         self.show_error("; ".join(event.get("errors", [])) or event["status"])
                     self.start_next()
+            elif name == "tts":
+                if kind == "ready":
+                    self.tts_ready = True
+                    self.stats["tts_voices"] = event["voices"]
+                    self.stats["tts_engine"] = event.get("engine")
+                    self.stats["tts_sink"] = event["sink"]
+                    self.voice_status.set_label("Local Russian + English · interrupt by speaking or typing" if self.voice_wanted else "Voice off")
+                elif event.get("id") == self.tts_id:
+                    if kind == "generated":
+                        self.stats["last_tts"] = {key: event.get(key) for key in ("firstPcmMs", "synthMs", "language")}
+                    elif kind == "playing":
+                        self.stats.setdefault("last_tts", {}).update(firstWriteMs=event["firstWriteMs"])
+                        if self.tts_started_at is not None:
+                            self.stats["last_tts"]["inputToPlaybackWriteMs"] = round((time.monotonic() - self.tts_started_at) * 1000, 1)
+                        self.voice_status.set_label("Speaking · tap Stop or speak to interrupt")
+                    elif kind in {"done", "cancelled"}:
+                        self.tts_id = None
+                        self.voice_status.set_label("Ready · local Russian + English" if self.voice_wanted else "Voice off")
             elif name == "pipewire":
                 if kind == "ready":
                     self.stats["audio_ready"] = True
@@ -483,6 +553,9 @@ def main() -> int:
                         self.stats["camera"] = event.get("camera")
                         self.stats["capture_ms"] = event.get("captureMs")
                         self.stats["vision_error"] = event.get("cameraError")
+                        for request_id in event.get("requestIds", []):
+                            if request_id in self.look_requests:
+                                self.finish_look(request_id, snapshot=event["snapshot"])
                         if (self.reactions_wanted and event.get("reason") == "periodic" and
                                 not event.get("requestIds")):
                             self.pending_reaction = event["snapshot"]
@@ -498,6 +571,8 @@ def main() -> int:
                     self.stats["listen_active"] = True
                     self.stats["listen_job"] = event["jobId"]
                     self.audio_status.set_label(f"Listening to {event['name']} · up to {event['seconds']}s")
+                    self.listen_views[event["jobId"]] = {"name": event["name"], "lines": [],
+                        "label": self.add_message("Heard · " + event["name"], "Listening…")}
                 elif kind == "listen_chunk" and self.audio_wanted:
                     self.stats["listen_chunks"] = self.stats.get("listen_chunks", 0) + 1
                     self.stats["last_listen_chunk"] = {key: event.get(key) for key in ("jobId", "index", "total", "sttMs")}
@@ -505,9 +580,19 @@ def main() -> int:
                                                 f"{event['name']} · no clear speech in {event['index']}/{event['total']}")
                     self.pending_audio.append({**event, "observedAt": time.time()})
                     self.audio_pending_at = 0
+                    view = self.listen_views.get(event["jobId"])
+                    if view:
+                        view["lines"].append(transcript_line(event))
+                        view["label"].set_label("Heard · " + view["name"] + "\n" + "\n".join(view["lines"]))
+                        self.stats["transcript_chunks_shown"] = self.stats.get("transcript_chunks_shown", 0) + 1
+                        GLib.idle_add(self.scroll_bottom)
                 elif kind in {"listen_done", "listen_error"}:
                     self.stats["listen_active"] = False
                     self.send("model", {"type": "listen_finished", "jobId": event["jobId"]})
+                    view = self.listen_views.pop(event["jobId"], None)
+                    if view and (event.get("cancelled") or kind == "listen_error" or not view["lines"]):
+                        view["lines"].append(event.get("message") or ("Listening cancelled" if event.get("cancelled") else "No clear speech recognized"))
+                        view["label"].set_label("Heard · " + view["name"] + "\n" + "\n".join(view["lines"]))
                     if kind == "listen_error":
                         self.stats["listen_error"] = event["message"]
                         self.audio_status.set_label(event["message"])
@@ -606,12 +691,43 @@ def main() -> int:
         def user_activity(self):
             self.last_user_activity = time.monotonic()
             self.cancel_reaction()
+            self.stop_voice()
+
+        def toggle_voice(self, button):
+            self.voice_wanted = button.get_active()
+            button.set_label("Voice on" if self.voice_wanted else "Voice off")
+            if not self.voice_wanted:
+                self.stop_voice()
+            self.voice_status.set_label("Ready · local Russian + English" if self.voice_wanted and self.tts_ready else "Voice off")
+
+        def stop_voice(self):
+            if self.current:
+                self.current["voice_cancelled"] = True
+            if self.tts_id is not None:
+                self.send("tts", {"type": "stop"})
+                self.stats["voice_interruptions"] = self.stats.get("voice_interruptions", 0) + 1
+                self.tts_id = None
+                self.voice_status.set_label("Speech stopped" if self.voice_wanted else "Voice off")
+
+        def speak_response(self, delta="", final=False):
+            item = self.current
+            if not item or not self.tts_ready or not self.voice_wanted or item.get("voice_cancelled"):
+                return
+            phrases = item["speech_phrases"].feed(delta, final=final)
+            if phrases and not item.get("voice_started"):
+                self.tts_id = item["id"]
+                self.tts_started_at = item.get("received", item["started"])
+                item["voice_started"] = self.send("tts", {"type": "begin", "id": item["id"]})
+            for phrase in phrases:
+                self.send("tts", {"type": "text", "id": item["id"], "text": phrase})
+            if final and item.get("voice_started"):
+                self.send("tts", {"type": "end", "id": item["id"]})
 
         def maybe_react(self):
             if self.closing:
                 return False
             now = time.monotonic()
-            if (not self.model_ready or self.busy or self.pending or self.user_speaking or self.transcribing or
+            if (not self.model_ready or self.busy or self.pending or self.tts_id is not None or self.user_speaking or self.transcribing or
                     self.entry.get_text().strip() or now - self.last_user_activity < 2):
                 return True
             if self.audio_wanted and self.pending_audio and now - self.audio_pending_at >= 1:
@@ -671,6 +787,8 @@ def main() -> int:
                         (self.current["source"] == "screen" and self.reactions_wanted and self.vision_wanted)):
                     self.add_message("Hyprchan", event["text"])
                     self.overlay.set_overlay_text(event["text"])
+                    self.current["speech_phrases"] = SpeechPhrases()
+                    self.speak_response(event["text"], final=True)
                     self.stats["reactions"] += 1
             elif event["status"] == "interrupted" or self.current.get("cancelled"):
                 self.stats["reactions_interrupted"] += 1
@@ -683,7 +801,31 @@ def main() -> int:
                 self.show_error(error)
             self.start_next()
 
+        def finish_look(self, request_id, snapshot=None, error=None):
+            request = self.look_requests.pop(request_id, None)
+            if request is None:
+                return
+            if not self.vision_wanted:
+                error = "Camera and screen capture are off"
+            result = {"type": "look_result", "requestId": request_id}
+            if error:
+                result["error"] = error
+            else:
+                source = request["source"]
+                wanted = {"screen", "webcam"} if source == "both" else {"webcam" if source == "camera" else "screen"}
+                images = [image for image in snapshot["images"] if image["kind"] in wanted]
+                result["snapshot"] = {**snapshot, "images": images}
+                self.stats["look_captures"] = self.stats.get("look_captures", 0) + 1
+                self.stats["last_look"] = {"source": source, "capturedAt": snapshot["captured_at"],
+                                           "images": [image["kind"] for image in images]}
+            self.send("model", result)
+
         def apply_vision(self):
+            if self.model_ready:
+                self.send("model", {"type": "vision_mode", "active": self.vision_wanted})
+            if not self.vision_wanted:
+                for request_id in list(self.look_requests):
+                    self.finish_look(request_id, error="Camera and screen capture are off")
             self.vision_generation += 1
             self.stats["vision_error"] = None
             if self.vision_ready:
@@ -755,6 +897,7 @@ def main() -> int:
             if self.current.get("vision_requested"):
                 self.current["visual_wait_ms"] = (time.monotonic() - self.current["vision_requested"]) * 1000
             self.current["started"] = time.monotonic()
+            self.current["speech_phrases"] = SpeechPhrases()
             self.response = ""
             self.answer = self.add_message("Hyprchan", "…")
             self.busy = True
@@ -814,6 +957,10 @@ def main() -> int:
                     self.memory_button.set_active(bool(command["active"]))
                 elif kind == "audio":
                     self.audio_button.set_active(bool(command["active"]))
+                elif kind == "voice":
+                    self.voice_button.set_active(bool(command["active"]))
+                elif kind == "stop_voice":
+                    self.stop_voice()
                 elif kind == "snapshot":
                     self.send("vision", {"type": "refresh", "reason": "periodic"})
                 elif kind == "test_audio":
@@ -834,6 +981,8 @@ def main() -> int:
                             "vision_active": self.vision_active, "vision_wanted": self.vision_wanted,
                             "reactions_active": self.reactions_wanted,
                             "memory_wanted": self.memory_wanted, "audio_active": self.audio_wanted,
+                            "voice_active": self.voice_wanted, "tts_ready": self.tts_ready,
+                            "tts_playing": self.tts_id is not None,
                             "audio_pending": len(self.pending_audio),
                             "reaction_interval_sec": self.reaction_interval,
                             "reaction_pending": self.pending_reaction is not None,

@@ -1,0 +1,91 @@
+{
+  "syntheticImagesOnly": true,
+  "passed": true,
+  "rows": [
+    {
+      "source": "screen",
+      "colors": {
+        "screen": "red"
+      },
+      "requests": [
+        "screen"
+      ],
+      "type": "done",
+      "id": 0,
+      "text": "*peeks over the edge* It’s solid red!",
+      "status": "completed",
+      "quiet": false,
+      "firstTextMs": 3529.464,
+      "lastTextMs": 3547.165,
+      "completedMs": 3608.527,
+      "errors": [],
+      "imageCount": 0,
+      "toolCalls": 1,
+      "lookCalls": 1,
+      "memoryCount": 0
+    },
+    {
+      "source": "camera",
+      "colors": {
+        "webcam": "blue"
+      },
+      "requests": [
+        "camera"
+      ],
+      "type": "done",
+      "id": 1,
+      "text": "*blinks at the camera* It’s solid blue!",
+      "status": "completed",
+      "quiet": false,
+      "firstTextMs": 3702.76,
+      "lastTextMs": 3730.885,
+      "completedMs": 3806.719,
+      "errors": [],
+      "imageCount": 0,
+      "toolCalls": 1,
+      "lookCalls": 1,
+      "memoryCount": 0
+    },
+    {
+      "source": "both",
+      "colors": {
+        "screen": "green",
+        "webcam": "yellow"
+      },
+      "requests": [
+        "both"
+      ],
+      "type": "done",
+      "id": 2,
+      "text": "*glances between them* Screen: solid green. Camera: solid yellow!",
+      "status": "completed",
+      "quiet": false,
+      "firstTextMs": 3532.09,
+      "lastTextMs": 3632.931,
+      "completedMs": 3697.271,
+      "errors": [],
+      "imageCount": 0,
+      "toolCalls": 1,
+      "lookCalls": 1,
+      "memoryCount": 0
+    },
+    {
+      "source": "off",
+      "colors": {},
+      "requests": [],
+      "type": "done",
+      "id": 3,
+      "text": "*peeks, then pouts* Nope—capture’s off, so I can’t see your screen right now.",
+      "status": "completed",
+      "quiet": false,
+      "firstTextMs": 1694.857,
+      "lastTextMs": 1864.552,
+      "completedMs": 1961.011,
+      "errors": [],
+      "imageCount": 0,
+      "toolCalls": 0,
+      "lookCalls": 0,
+      "memoryCount": 0
+    }
+  ]
+}

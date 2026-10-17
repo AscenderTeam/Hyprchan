@@ -1,0 +1,227 @@
+{
+  "syntheticTextOnly": true,
+  "backend": "expressive",
+  "versions": {
+    "torch": "2.13.0+cpu",
+    "kokoro-onnx": "0.6.1",
+    "onnxruntime": "1.31.0"
+  },
+  "voices": {
+    "ru": "Silero kseniya (high)",
+    "en": "Kokoro af_bella"
+  },
+  "assets": [
+    {
+      "name": "silero-v5_5_ru.pt",
+      "sha256": "50081637b602126ee06cb3bc8a744d25651d2da149ee8864b9a379bfdd934437"
+    },
+    {
+      "name": "kokoro-v1.0.onnx",
+      "sha256": "beb0d1848dee9a49da392cc3df26958d46cfa35d321edf434f52949153f0df3a"
+    },
+    {
+      "name": "voices-v1.0.bin",
+      "sha256": "bca610b8308e8d99f32e6fe4197e7ec01679264efed0cac9140fe9c29f1fbf7d"
+    }
+  ],
+  "rows": [
+    {
+      "language": "ru",
+      "voice": "Silero kseniya (high)",
+      "threads": 4,
+      "round": 0,
+      "text": "Привет!",
+      "loadBothMs": 1241.1,
+      "firstPcmMs": 57.7,
+      "allPcmMs": 57.8,
+      "audioSec": 0.631
+    },
+    {
+      "language": "ru",
+      "voice": "Silero kseniya (high)",
+      "threads": 4,
+      "round": 0,
+      "text": "Привет, я уже тут!",
+      "loadBothMs": 1241.1,
+      "firstPcmMs": 67.5,
+      "allPcmMs": 67.5,
+      "audioSec": 1.22
+    },
+    {
+      "language": "ru",
+      "voice": "Silero kseniya (high)",
+      "threads": 4,
+      "round": 0,
+      "text": "Ура, все тесты прошли. Маленькая победа!",
+      "loadBothMs": 1241.1,
+      "firstPcmMs": 72.3,
+      "allPcmMs": 72.3,
+      "audioSec": 3.241
+    },
+    {
+      "language": "ru",
+      "voice": "Silero kseniya (high)",
+      "threads": 4,
+      "round": 1,
+      "text": "Привет!",
+      "loadBothMs": 1241.1,
+      "firstPcmMs": 37.4,
+      "allPcmMs": 37.4,
+      "audioSec": 0.631
+    },
+    {
+      "language": "ru",
+      "voice": "Silero kseniya (high)",
+      "threads": 4,
+      "round": 1,
+      "text": "Привет, я уже тут!",
+      "loadBothMs": 1241.1,
+      "firstPcmMs": 33.2,
+      "allPcmMs": 33.2,
+      "audioSec": 1.22
+    },
+    {
+      "language": "ru",
+      "voice": "Silero kseniya (high)",
+      "threads": 4,
+      "round": 1,
+      "text": "Ура, все тесты прошли. Маленькая победа!",
+      "loadBothMs": 1241.1,
+      "firstPcmMs": 55.2,
+      "allPcmMs": 55.3,
+      "audioSec": 3.241
+    },
+    {
+      "language": "ru",
+      "voice": "Silero kseniya (high)",
+      "threads": 4,
+      "round": 2,
+      "text": "Привет!",
+      "loadBothMs": 1241.1,
+      "firstPcmMs": 36.8,
+      "allPcmMs": 36.8,
+      "audioSec": 0.631
+    },
+    {
+      "language": "ru",
+      "voice": "Silero kseniya (high)",
+      "threads": 4,
+      "round": 2,
+      "text": "Привет, я уже тут!",
+      "loadBothMs": 1241.1,
+      "firstPcmMs": 33.9,
+      "allPcmMs": 33.9,
+      "audioSec": 1.22
+    },
+    {
+      "language": "ru",
+      "voice": "Silero kseniya (high)",
+      "threads": 4,
+      "round": 2,
+      "text": "Ура, все тесты прошли. Маленькая победа!",
+      "loadBothMs": 1241.1,
+      "firstPcmMs": 58.1,
+      "allPcmMs": 58.1,
+      "audioSec": 3.241
+    },
+    {
+      "language": "en",
+      "voice": "Kokoro af_bella",
+      "threads": 4,
+      "round": 0,
+      "text": "Hi!",
+      "loadBothMs": 1241.1,
+      "firstPcmMs": 247.4,
+      "allPcmMs": 247.4,
+      "audioSec": 0.401
+    },
+    {
+      "language": "en",
+      "voice": "Kokoro af_bella",
+      "threads": 4,
+      "round": 0,
+      "text": "Hi, I am right here!",
+      "loadBothMs": 1241.1,
+      "firstPcmMs": 380.3,
+      "allPcmMs": 380.3,
+      "audioSec": 1.095
+    },
+    {
+      "language": "en",
+      "voice": "Kokoro af_bella",
+      "threads": 4,
+      "round": 0,
+      "text": "The tests passed. Tiny victory!",
+      "loadBothMs": 1241.1,
+      "firstPcmMs": 548.3,
+      "allPcmMs": 548.3,
+      "audioSec": 1.894
+    },
+    {
+      "language": "en",
+      "voice": "Kokoro af_bella",
+      "threads": 4,
+      "round": 1,
+      "text": "Hi!",
+      "loadBothMs": 1241.1,
+      "firstPcmMs": 242.8,
+      "allPcmMs": 242.8,
+      "audioSec": 0.401
+    },
+    {
+      "language": "en",
+      "voice": "Kokoro af_bella",
+      "threads": 4,
+      "round": 1,
+      "text": "Hi, I am right here!",
+      "loadBothMs": 1241.1,
+      "firstPcmMs": 379.4,
+      "allPcmMs": 379.4,
+      "audioSec": 1.094
+    },
+    {
+      "language": "en",
+      "voice": "Kokoro af_bella",
+      "threads": 4,
+      "round": 1,
+      "text": "The tests passed. Tiny victory!",
+      "loadBothMs": 1241.1,
+      "firstPcmMs": 545.9,
+      "allPcmMs": 545.9,
+      "audioSec": 1.894
+    },
+    {
+      "language": "en",
+      "voice": "Kokoro af_bella",
+      "threads": 4,
+      "round": 2,
+      "text": "Hi!",
+      "loadBothMs": 1241.1,
+      "firstPcmMs": 246.9,
+      "allPcmMs": 246.9,
+      "audioSec": 0.402
+    },
+    {
+      "language": "en",
+      "voice": "Kokoro af_bella",
+      "threads": 4,
+      "round": 2,
+      "text": "Hi, I am right here!",
+      "loadBothMs": 1241.1,
+      "firstPcmMs": 379.1,
+      "allPcmMs": 379.1,
+      "audioSec": 1.094
+    },
+    {
+      "language": "en",
+      "voice": "Kokoro af_bella",
+      "threads": 4,
+      "round": 2,
+      "text": "The tests passed. Tiny victory!",
+      "loadBothMs": 1241.1,
+      "firstPcmMs": 540.2,
+      "allPcmMs": 540.2,
+      "audioSec": 1.894
+    }
+  ]
+}

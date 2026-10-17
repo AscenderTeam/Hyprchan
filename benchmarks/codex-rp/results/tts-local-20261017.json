@@ -1,0 +1,557 @@
+{
+  "syntheticTextOnly": true,
+  "piper": "1.8.0",
+  "onnxruntime": "1.30.0",
+  "voices": {
+    "en": {
+      "name": "en_US-lessac-medium",
+      "sha256": "5efe09e69902187827af646e1a6e9d269dee769f9877d17b16b1b46eeaaf019f"
+    },
+    "ru": {
+      "name": "ru_RU-irina-medium",
+      "sha256": "8ff38212d23da300bbe3705c645e6e5b9475f0bfde01558eb17813e22acaaaaa"
+    }
+  },
+  "rows": [
+    {
+      "language": "en",
+      "threads": 1,
+      "round": 0,
+      "text": "Hi!",
+      "loadMs": 564.1,
+      "firstPcmMs": 50.4,
+      "allPcmMs": 50.4,
+      "audioSec": 0.604
+    },
+    {
+      "language": "en",
+      "threads": 1,
+      "round": 0,
+      "text": "Hi, I am right here!",
+      "loadMs": 564.1,
+      "firstPcmMs": 125.0,
+      "allPcmMs": 125.0,
+      "audioSec": 1.544
+    },
+    {
+      "language": "en",
+      "threads": 1,
+      "round": 0,
+      "text": "The tests passed. Tiny victory!",
+      "loadMs": 564.1,
+      "firstPcmMs": 95.3,
+      "allPcmMs": 181.3,
+      "audioSec": 2.183
+    },
+    {
+      "language": "en",
+      "threads": 1,
+      "round": 1,
+      "text": "Hi!",
+      "loadMs": 564.1,
+      "firstPcmMs": 50.2,
+      "allPcmMs": 50.2,
+      "audioSec": 0.592
+    },
+    {
+      "language": "en",
+      "threads": 1,
+      "round": 1,
+      "text": "Hi, I am right here!",
+      "loadMs": 564.1,
+      "firstPcmMs": 128.8,
+      "allPcmMs": 128.8,
+      "audioSec": 1.625
+    },
+    {
+      "language": "en",
+      "threads": 1,
+      "round": 1,
+      "text": "The tests passed. Tiny victory!",
+      "loadMs": 564.1,
+      "firstPcmMs": 94.8,
+      "allPcmMs": 182.1,
+      "audioSec": 2.229
+    },
+    {
+      "language": "en",
+      "threads": 1,
+      "round": 2,
+      "text": "Hi!",
+      "loadMs": 564.1,
+      "firstPcmMs": 49.8,
+      "allPcmMs": 49.8,
+      "audioSec": 0.58
+    },
+    {
+      "language": "en",
+      "threads": 1,
+      "round": 2,
+      "text": "Hi, I am right here!",
+      "loadMs": 564.1,
+      "firstPcmMs": 126.7,
+      "allPcmMs": 126.7,
+      "audioSec": 1.602
+    },
+    {
+      "language": "en",
+      "threads": 1,
+      "round": 2,
+      "text": "The tests passed. Tiny victory!",
+      "loadMs": 564.1,
+      "firstPcmMs": 96.5,
+      "allPcmMs": 178.6,
+      "audioSec": 2.159
+    },
+    {
+      "language": "en",
+      "threads": 2,
+      "round": 0,
+      "text": "Hi!",
+      "loadMs": 524.7,
+      "firstPcmMs": 49.6,
+      "allPcmMs": 49.6,
+      "audioSec": 0.604
+    },
+    {
+      "language": "en",
+      "threads": 2,
+      "round": 0,
+      "text": "Hi, I am right here!",
+      "loadMs": 524.7,
+      "firstPcmMs": 75.1,
+      "allPcmMs": 75.1,
+      "audioSec": 1.544
+    },
+    {
+      "language": "en",
+      "threads": 2,
+      "round": 0,
+      "text": "The tests passed. Tiny victory!",
+      "loadMs": 524.7,
+      "firstPcmMs": 58.3,
+      "allPcmMs": 110.8,
+      "audioSec": 2.183
+    },
+    {
+      "language": "en",
+      "threads": 2,
+      "round": 1,
+      "text": "Hi!",
+      "loadMs": 524.7,
+      "firstPcmMs": 31.5,
+      "allPcmMs": 31.6,
+      "audioSec": 0.592
+    },
+    {
+      "language": "en",
+      "threads": 2,
+      "round": 1,
+      "text": "Hi, I am right here!",
+      "loadMs": 524.7,
+      "firstPcmMs": 79.2,
+      "allPcmMs": 79.2,
+      "audioSec": 1.625
+    },
+    {
+      "language": "en",
+      "threads": 2,
+      "round": 1,
+      "text": "The tests passed. Tiny victory!",
+      "loadMs": 524.7,
+      "firstPcmMs": 58.0,
+      "allPcmMs": 110.2,
+      "audioSec": 2.229
+    },
+    {
+      "language": "en",
+      "threads": 2,
+      "round": 2,
+      "text": "Hi!",
+      "loadMs": 524.7,
+      "firstPcmMs": 30.6,
+      "allPcmMs": 30.6,
+      "audioSec": 0.58
+    },
+    {
+      "language": "en",
+      "threads": 2,
+      "round": 2,
+      "text": "Hi, I am right here!",
+      "loadMs": 524.7,
+      "firstPcmMs": 74.0,
+      "allPcmMs": 74.1,
+      "audioSec": 1.602
+    },
+    {
+      "language": "en",
+      "threads": 2,
+      "round": 2,
+      "text": "The tests passed. Tiny victory!",
+      "loadMs": 524.7,
+      "firstPcmMs": 58.4,
+      "allPcmMs": 108.7,
+      "audioSec": 2.159
+    },
+    {
+      "language": "en",
+      "threads": 4,
+      "round": 0,
+      "text": "Hi!",
+      "loadMs": 526.9,
+      "firstPcmMs": 33.2,
+      "allPcmMs": 33.2,
+      "audioSec": 0.604
+    },
+    {
+      "language": "en",
+      "threads": 4,
+      "round": 0,
+      "text": "Hi, I am right here!",
+      "loadMs": 526.9,
+      "firstPcmMs": 85.9,
+      "allPcmMs": 85.9,
+      "audioSec": 1.544
+    },
+    {
+      "language": "en",
+      "threads": 4,
+      "round": 0,
+      "text": "The tests passed. Tiny victory!",
+      "loadMs": 526.9,
+      "firstPcmMs": 41.2,
+      "allPcmMs": 78.8,
+      "audioSec": 2.183
+    },
+    {
+      "language": "en",
+      "threads": 4,
+      "round": 1,
+      "text": "Hi!",
+      "loadMs": 526.9,
+      "firstPcmMs": 23.6,
+      "allPcmMs": 23.6,
+      "audioSec": 0.592
+    },
+    {
+      "language": "en",
+      "threads": 4,
+      "round": 1,
+      "text": "Hi, I am right here!",
+      "loadMs": 526.9,
+      "firstPcmMs": 53.5,
+      "allPcmMs": 53.6,
+      "audioSec": 1.625
+    },
+    {
+      "language": "en",
+      "threads": 4,
+      "round": 1,
+      "text": "The tests passed. Tiny victory!",
+      "loadMs": 526.9,
+      "firstPcmMs": 41.8,
+      "allPcmMs": 79.2,
+      "audioSec": 2.229
+    },
+    {
+      "language": "en",
+      "threads": 4,
+      "round": 2,
+      "text": "Hi!",
+      "loadMs": 526.9,
+      "firstPcmMs": 20.4,
+      "allPcmMs": 20.4,
+      "audioSec": 0.58
+    },
+    {
+      "language": "en",
+      "threads": 4,
+      "round": 2,
+      "text": "Hi, I am right here!",
+      "loadMs": 526.9,
+      "firstPcmMs": 52.6,
+      "allPcmMs": 52.6,
+      "audioSec": 1.602
+    },
+    {
+      "language": "en",
+      "threads": 4,
+      "round": 2,
+      "text": "The tests passed. Tiny victory!",
+      "loadMs": 526.9,
+      "firstPcmMs": 41.5,
+      "allPcmMs": 78.0,
+      "audioSec": 2.159
+    },
+    {
+      "language": "ru",
+      "threads": 1,
+      "round": 0,
+      "text": "Привет!",
+      "loadMs": 525.5,
+      "firstPcmMs": 57.9,
+      "allPcmMs": 57.9,
+      "audioSec": 0.592
+    },
+    {
+      "language": "ru",
+      "threads": 1,
+      "round": 0,
+      "text": "Привет, я уже тут, ня!",
+      "loadMs": 525.5,
+      "firstPcmMs": 226.9,
+      "allPcmMs": 226.9,
+      "audioSec": 2.833
+    },
+    {
+      "language": "ru",
+      "threads": 1,
+      "round": 0,
+      "text": "Ура, все тесты прошли. Маленькая победа!",
+      "loadMs": 525.5,
+      "firstPcmMs": 181.2,
+      "allPcmMs": 296.5,
+      "audioSec": 3.692
+    },
+    {
+      "language": "ru",
+      "threads": 1,
+      "round": 1,
+      "text": "Привет!",
+      "loadMs": 525.5,
+      "firstPcmMs": 57.0,
+      "allPcmMs": 57.0,
+      "audioSec": 0.58
+    },
+    {
+      "language": "ru",
+      "threads": 1,
+      "round": 1,
+      "text": "Привет, я уже тут, ня!",
+      "loadMs": 525.5,
+      "firstPcmMs": 239.1,
+      "allPcmMs": 239.1,
+      "audioSec": 2.995
+    },
+    {
+      "language": "ru",
+      "threads": 1,
+      "round": 1,
+      "text": "Ура, все тесты прошли. Маленькая победа!",
+      "loadMs": 525.5,
+      "firstPcmMs": 191.1,
+      "allPcmMs": 301.5,
+      "audioSec": 3.773
+    },
+    {
+      "language": "ru",
+      "threads": 1,
+      "round": 2,
+      "text": "Привет!",
+      "loadMs": 525.5,
+      "firstPcmMs": 56.9,
+      "allPcmMs": 56.9,
+      "audioSec": 0.58
+    },
+    {
+      "language": "ru",
+      "threads": 1,
+      "round": 2,
+      "text": "Привет, я уже тут, ня!",
+      "loadMs": 525.5,
+      "firstPcmMs": 229.9,
+      "allPcmMs": 229.9,
+      "audioSec": 2.914
+    },
+    {
+      "language": "ru",
+      "threads": 1,
+      "round": 2,
+      "text": "Ура, все тесты прошли. Маленькая победа!",
+      "loadMs": 525.5,
+      "firstPcmMs": 186.5,
+      "allPcmMs": 308.6,
+      "audioSec": 3.831
+    },
+    {
+      "language": "ru",
+      "threads": 2,
+      "round": 0,
+      "text": "Привет!",
+      "loadMs": 529.2,
+      "firstPcmMs": 36.6,
+      "allPcmMs": 36.6,
+      "audioSec": 0.592
+    },
+    {
+      "language": "ru",
+      "threads": 2,
+      "round": 0,
+      "text": "Привет, я уже тут, ня!",
+      "loadMs": 529.2,
+      "firstPcmMs": 132.6,
+      "allPcmMs": 132.6,
+      "audioSec": 2.833
+    },
+    {
+      "language": "ru",
+      "threads": 2,
+      "round": 0,
+      "text": "Ура, все тесты прошли. Маленькая победа!",
+      "loadMs": 529.2,
+      "firstPcmMs": 113.4,
+      "allPcmMs": 182.2,
+      "audioSec": 3.692
+    },
+    {
+      "language": "ru",
+      "threads": 2,
+      "round": 1,
+      "text": "Привет!",
+      "loadMs": 529.2,
+      "firstPcmMs": 38.9,
+      "allPcmMs": 38.9,
+      "audioSec": 0.58
+    },
+    {
+      "language": "ru",
+      "threads": 2,
+      "round": 1,
+      "text": "Привет, я уже тут, ня!",
+      "loadMs": 529.2,
+      "firstPcmMs": 142.0,
+      "allPcmMs": 142.0,
+      "audioSec": 2.995
+    },
+    {
+      "language": "ru",
+      "threads": 2,
+      "round": 1,
+      "text": "Ура, все тесты прошли. Маленькая победа!",
+      "loadMs": 529.2,
+      "firstPcmMs": 112.7,
+      "allPcmMs": 179.5,
+      "audioSec": 3.773
+    },
+    {
+      "language": "ru",
+      "threads": 2,
+      "round": 2,
+      "text": "Привет!",
+      "loadMs": 529.2,
+      "firstPcmMs": 38.4,
+      "allPcmMs": 38.4,
+      "audioSec": 0.58
+    },
+    {
+      "language": "ru",
+      "threads": 2,
+      "round": 2,
+      "text": "Привет, я уже тут, ня!",
+      "loadMs": 529.2,
+      "firstPcmMs": 142.1,
+      "allPcmMs": 142.1,
+      "audioSec": 2.914
+    },
+    {
+      "language": "ru",
+      "threads": 2,
+      "round": 2,
+      "text": "Ура, все тесты прошли. Маленькая победа!",
+      "loadMs": 529.2,
+      "firstPcmMs": 114.3,
+      "allPcmMs": 188.6,
+      "audioSec": 3.831
+    },
+    {
+      "language": "ru",
+      "threads": 4,
+      "round": 0,
+      "text": "Привет!",
+      "loadMs": 528.6,
+      "firstPcmMs": 31.3,
+      "allPcmMs": 31.3,
+      "audioSec": 0.592
+    },
+    {
+      "language": "ru",
+      "threads": 4,
+      "round": 0,
+      "text": "Привет, я уже тут, ня!",
+      "loadMs": 528.6,
+      "firstPcmMs": 119.9,
+      "allPcmMs": 119.9,
+      "audioSec": 2.833
+    },
+    {
+      "language": "ru",
+      "threads": 4,
+      "round": 0,
+      "text": "Ура, все тесты прошли. Маленькая победа!",
+      "loadMs": 528.6,
+      "firstPcmMs": 88.5,
+      "allPcmMs": 140.2,
+      "audioSec": 3.692
+    },
+    {
+      "language": "ru",
+      "threads": 4,
+      "round": 1,
+      "text": "Привет!",
+      "loadMs": 528.6,
+      "firstPcmMs": 27.2,
+      "allPcmMs": 27.2,
+      "audioSec": 0.58
+    },
+    {
+      "language": "ru",
+      "threads": 4,
+      "round": 1,
+      "text": "Привет, я уже тут, ня!",
+      "loadMs": 528.6,
+      "firstPcmMs": 103.9,
+      "allPcmMs": 103.9,
+      "audioSec": 2.995
+    },
+    {
+      "language": "ru",
+      "threads": 4,
+      "round": 1,
+      "text": "Ура, все тесты прошли. Маленькая победа!",
+      "loadMs": 528.6,
+      "firstPcmMs": 85.6,
+      "allPcmMs": 132.6,
+      "audioSec": 3.773
+    },
+    {
+      "language": "ru",
+      "threads": 4,
+      "round": 2,
+      "text": "Привет!",
+      "loadMs": 528.6,
+      "firstPcmMs": 28.5,
+      "allPcmMs": 28.5,
+      "audioSec": 0.58
+    },
+    {
+      "language": "ru",
+      "threads": 4,
+      "round": 2,
+      "text": "Привет, я уже тут, ня!",
+      "loadMs": 528.6,
+      "firstPcmMs": 101.5,
+      "allPcmMs": 101.5,
+      "audioSec": 2.914
+    },
+    {
+      "language": "ru",
+      "threads": 4,
+      "round": 2,
+      "text": "Ура, все тесты прошли. Маленькая победа!",
+      "loadMs": 528.6,
+      "firstPcmMs": 77.3,
+      "allPcmMs": 127.8,
+      "audioSec": 3.831
+    }
+  ]
+}
