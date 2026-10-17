@@ -1,0 +1,64 @@
+{
+  "publicPromptOnly": true,
+  "passed": true,
+  "healthOnly": true,
+  "last_timing": {
+    "firstTextMs": 12159.509,
+    "lastTextMs": 12159.538,
+    "completedMs": 12321.472,
+    "imageCount": 0,
+    "toolCalls": 1,
+    "webSearches": 2,
+    "tangentWords": 154,
+    "lookCalls": 0,
+    "source": "keyboard",
+    "sttMs": null,
+    "firstGuiMs": 10902.378204000343,
+    "lastGuiMs": 10902.3849539999,
+    "visualWaitMs": 0,
+    "inputToFullTextMs": 10902.737538999645
+  },
+  "last_tts": {
+    "firstPcmMs": 72.4,
+    "synthMs": 72.3,
+    "language": "ru",
+    "firstWriteMs": 73.3,
+    "inputToPlaybackWriteMs": 10979.5,
+    "segments": 10,
+    "elapsedMs": 62331.2
+  },
+  "last_notification": {
+    "sent": null,
+    "notificationId": null,
+    "reason": null,
+    "cooldownSec": 900,
+    "retryAfterSec": 419,
+    "stateError": null
+  },
+  "tts_voices": {
+    "ru": "Silero kseniya (high)",
+    "en": "Kokoro af_bella"
+  },
+  "tts_engine": "expressive",
+  "last_error": null,
+  "tts_error": null,
+  "restored": {
+    "mic_active": false,
+    "vision_wanted": true,
+    "reactions_active": true,
+    "memory_wanted": true,
+    "audio_active": true,
+    "voice_active": true,
+    "notifications_active": true
+  },
+  "restoredAfterCaptureAck": {
+    "mic_active": true,
+    "vision_wanted": true,
+    "reactions_active": true,
+    "memory_wanted": true,
+    "audio_active": true,
+    "voice_active": true,
+    "notifications_active": true
+  },
+  "chatRenderInspectedLocally": true
+}

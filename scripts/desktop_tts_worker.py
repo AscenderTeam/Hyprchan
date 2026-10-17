@@ -77,28 +77,33 @@ class SpeechOutput:
     def synthesize(self):
         while self.running:
             try:
-                job, text = self.synthesis.get(timeout=.2)
+                job, phrases = self.synthesis.get(timeout=.2)
             except queue.Empty:
                 continue
             if job.cancelled.is_set():
                 continue
-            if text is None:
+            if phrases is None:
                 self.enqueue(self.audio, (job, None), job)
                 continue
             started = time.monotonic()
             try:
-                if job.language is None:
-                    job.language = speech_language(text)
-                for chunk in self.voices[job.language].synthesize(text):
+                for text in phrases:
                     if job.cancelled.is_set():
                         break
-                    now = time.monotonic()
-                    if job.first_pcm_ms is None:
-                        job.first_pcm_ms = (now - job.started) * 1000
-                        emit("generated", id=job.identity, language=job.language,
-                             firstPcmMs=round(job.first_pcm_ms, 1), synthMs=round((now - started) * 1000, 1))
-                    if not self.enqueue(self.audio, (job, chunk), job):
-                        break
+                    if job.language is None:
+                        job.language = speech_language(text)
+                    for chunk in self.voices[job.language].synthesize(text):
+                        if job.cancelled.is_set():
+                            break
+                        now = time.monotonic()
+                        if job.first_pcm_ms is None:
+                            job.first_pcm_ms = (now - job.started) * 1000
+                            emit("generated", id=job.identity, language=job.language,
+                                 firstPcmMs=round(job.first_pcm_ms, 1), synthMs=round((now - started) * 1000, 1))
+                        if not self.enqueue(self.audio, (job, chunk), job):
+                            break
+                    if not job.cancelled.is_set():
+                        job.segments += 1
             except Exception as exc:
                 self.fail(job, str(exc))
 
@@ -149,6 +154,7 @@ class SpeechOutput:
                             else:
                                 emit("done", id=job.identity, language=job.language,
                                      firstPcmMs=job.first_pcm_ms, firstWriteMs=job.first_write_ms,
+                                     segments=job.segments,
                                      elapsedMs=round((time.monotonic() - job.started) * 1000, 1))
                     child = playing = None
                     continue
@@ -210,11 +216,16 @@ class SpeechOutput:
                         job = self.current
                         if not job or job.identity != command["id"] or job.cancelled.is_set():
                             continue
-                        text = str(command.get("text", ""))[:500] if kind == "text" else None
-                        if text == "":
+                        phrases = command.get("phrases", [str(command.get("text", ""))[:500]]) if kind == "text" else None
+                        if phrases is not None and (not isinstance(phrases, list) or len(phrases) > 256 or
+                                any(not isinstance(text, str) or len(text) > 500 for text in phrases) or
+                                sum(map(len, phrases)) > 8000):
+                            self.fail(job, "Invalid speech phrase batch")
+                            continue
+                        if phrases == [] or phrases == [""]:
                             continue
                         try:
-                            self.synthesis.put_nowait((job, text))
+                            self.synthesis.put_nowait((job, phrases))
                         except queue.Full:
                             self.fail(job, "Speech queue full; playback cancelled")
         finally:

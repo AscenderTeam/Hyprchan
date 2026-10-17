@@ -85,7 +85,7 @@ def main():
         time.sleep(.2)
 
         send({"type": "begin", "id": 4})
-        send({"type": "text", "id": 4, "text": "This is a long spoken sentence that should stop immediately when the user starts speaking or presses the stop button."})
+        send({"type": "text", "id": 4, "phrases": ["This is a long spoken sentence that should stop immediately when the user starts speaking or presses the stop button."] * 12})
         wait("playing", 4)
         time.sleep(.15)
         stopped = time.monotonic()
@@ -116,6 +116,17 @@ def main():
                 break
         assert not old_played
         rows.append({"case": "cancel_before_audio", "oldPlayed": old_played, "nextCompleted": True})
+
+        # A complete tangent arrives in a single delta, exceeding the GUI's
+        # eight-command transport queue if sent as separate phrase commands.
+        phrases = ["Ня!"] * 9 + ["GoGo Penguin уже здесь!"]
+        send({"type": "begin", "id": 7})
+        send({"type": "text", "id": 7, "phrases": phrases})
+        send({"type": "end", "id": 7})
+        done = wait("done", 7, 25)
+        assert done["segments"] == len(phrases), 'Part of the tangent was dropped'
+        rows.append({"case": "whole_tangent_batch", "submittedPhrases": len(phrases),
+                     "completedPhrases": done["segments"], "completedMs": done["elapsedMs"]})
         passed = True
         print(json.dumps({"passed": passed, "rows": rows}, ensure_ascii=False, indent=2))
     finally:

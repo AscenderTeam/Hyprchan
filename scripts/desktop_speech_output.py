@@ -31,6 +31,8 @@ class SpeechPhrases:
             skipped = len(clean[self.consumed:]) - len(remaining)
             boundary = re.search(r"(?<!\d)[.!?…]+[\"»’)]*(?=\s|$)", remaining)
             end = boundary.end() if boundary else None
+            if end is not None and end > 150:
+                end = None
             if end is None and len(remaining) >= 90:
                 clause = re.search(r"[,;:](?=\s)", remaining[24:120])
                 if clause:

@@ -1,0 +1,52 @@
+{
+  "publicAndSyntheticOnly": true,
+  "passed": false,
+  "rows": [
+    {
+      "case": "greeting",
+      "type": "done",
+      "id": 1,
+      "text": "*Машу рукавом с края рабочего стола.* Приве-ет! ня~",
+      "status": "completed",
+      "quiet": false,
+      "firstTextMs": 1623.066,
+      "lastTextMs": 1703.377,
+      "completedMs": 1752.816,
+      "errors": [],
+      "imageCount": 0,
+      "toolCalls": 0,
+      "webSearches": 0,
+      "lookCalls": 0,
+      "memoryCount": 0
+    },
+    {
+      "case": "artist_rabbit_hole",
+      "words": 119,
+      "type": "done",
+      "id": 2,
+      "text": "*Высовываюсь из капюшона, будто сейчас объявлю важную пингвинью тайну.* GoGo Penguin придумали название почти в последний момент: их позвали сыграть на концерте в Манчестере, а имени у группы ещё не было. Всплывали варианты «Penguin», потом «Go Penguin» — и в итоге победило «GoGo Penguin». Вот так: срочный концерт, срочное имя, никакого многолетнего совета по брендингу. [В интервью Project Revolver](https://projectrevolver.org/features/interviews/humdrum-star-gogo-penguin-interview/)\n\nА я представляю, как где-то за сценой один воображаемый пингвин в бабочке важно семенит с табличкой «Penguin», а второй подталкивает его: «Нет-нет, ты должен идти бодрее!» — и вот уже готово «GoGo Penguin». Потом они выходят играть, а пингвин-менеджер требует отдельный гонорар за консультацию по темпу. Бесполезно? Абсолютно. Но имя теперь звучит так, будто даже пингвину нельзя просто постоять спокойно.",
+      "status": "completed",
+      "quiet": false,
+      "firstTextMs": 6602.706,
+      "lastTextMs": 8627.161,
+      "completedMs": 8666.691,
+      "errors": [],
+      "imageCount": 0,
+      "toolCalls": 1,
+      "webSearches": 1,
+      "lookCalls": 0,
+      "memoryCount": 0
+    }
+  ],
+  "notifications": [
+    {
+      "type": "notification_status",
+      "sent": true,
+      "notificationId": "59",
+      "enabled": true,
+      "cooldownSec": 900,
+      "retryAfterSec": 900,
+      "stateError": null
+    }
+  ]
+}

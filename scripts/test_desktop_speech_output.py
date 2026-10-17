@@ -25,6 +25,13 @@ class SpeechTextTests(unittest.TestCase):
         self.assertEqual(" ".join(chunks), text.strip())
         self.assertTrue(all(len(chunk) <= 150 for chunk in chunks))
 
+    def test_a_whole_tangent_arriving_at_once_preserves_every_word_in_bounded_phrases(self):
+        text = 'This deliberately long sentence has many words ' * 30 + '. And another thought!'
+        chunks = SpeechPhrases().feed(text, final=True)
+        self.assertGreater(len(chunks), 8)
+        self.assertTrue(all(len(chunk) <= 150 for chunk in chunks))
+        self.assertEqual(' '.join(chunks), text)
+
     def test_transcripts_show_exact_recognized_text_or_empty_result(self):
         self.assertEqual(transcript_line({"index": 2, "total": 5, "text": "  hello there  "}), "[2/5] hello there")
         self.assertEqual(transcript_line({"index": 1, "total": 1, "text": ""}), "[1/1] No clear speech recognized")

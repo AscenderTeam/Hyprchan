@@ -1,0 +1,50 @@
+{
+  "publicAndSyntheticOnly": true,
+  "notificationReady": false,
+  "passed": false,
+  "rows": [
+    {
+      "case": "greeting",
+      "type": "done",
+      "id": 1,
+      "text": "*машу рукавом* Приве-ет! Тут тихонько устроилась, ня~",
+      "status": "completed",
+      "quiet": false,
+      "firstTextMs": 1056.351,
+      "lastTextMs": 1180.421,
+      "completedMs": 1258.459,
+      "errors": [],
+      "imageCount": 0,
+      "toolCalls": 0,
+      "webSearches": 0,
+      "lookCalls": 0,
+      "memoryCount": 0
+    },
+    {
+      "case": "artist_rabbit_hole",
+      "words": 89,
+      "type": "done",
+      "id": 2,
+      "text": "*поджимаю ноги на краю окна* Забавная штука: название GoGo Penguin, похоже, началось с оперного реквизита — в репетиционной студии случайно увидели игрушечного пингвина и решили, что он подходит группе. А ещё им пришлось выбирать имя под дедлайн, так что, возможно, решение принимал самый пунктуальный пингвин в Манчестере. [Источник](https://www.zvuki.ru/R/P/79790/)\n\nПредставляю его в крошечном галстуке-бабочке: «Так, господа музыканты, у нас пять минут до срока. Предлагаю пингвина. Добавим “GoGo” — чтобы звучало, будто он уже опаздывает на репетицию!» Увы, тизер уведомлением сейчас не ушёл: сработал лимит ожидания. *фыркаю на этот строгий таймер*",
+      "status": "completed",
+      "quiet": false,
+      "firstTextMs": 9249.543,
+      "lastTextMs": 11170.569,
+      "completedMs": 11206.44,
+      "errors": [],
+      "imageCount": 0,
+      "toolCalls": 1,
+      "webSearches": 1,
+      "lookCalls": 0,
+      "memoryCount": 0
+    }
+  ],
+  "notifications": [
+    {
+      "type": "notification_status",
+      "sent": false,
+      "reason": "cooldown",
+      "retryAfterSec": 838
+    }
+  ]
+}

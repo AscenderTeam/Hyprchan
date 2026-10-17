@@ -44,6 +44,7 @@ def main() -> int:
     parser.add_argument("--no-memory", action="store_true", help="Keep persistent user memory off")
     parser.add_argument("--no-audio-awareness", action="store_true", help="Keep playback awareness and listen_in off")
     parser.add_argument("--no-voice", action="store_true", help="Keep spoken replies off")
+    parser.add_argument("--no-notifications", action="store_true", help="Keep optional desktop notifications off")
     parser.add_argument("--control", help='Send JSON, e.g. {"type":"status"} or {"type":"quit"}')
     args = parser.parse_args()
     if args.control:
@@ -61,7 +62,7 @@ def main() -> int:
     import gi
     gi.require_version("Gtk", "4.0")
     gi.require_version("Gdk", "4.0")
-    from gi.repository import Gdk, GLib, GLibUnix, Gtk
+    from gi.repository import Gdk, GLib, GLibUnix, Gtk, Pango
     sys.path.insert(0, str(ROOT / "src"))
     from hyprchan.core.animations.renderer.window import HyprchanWindow, PixelArtImage
     from hyprchan.shared.utils.animations import load_animation_frames
@@ -83,6 +84,7 @@ def main() -> int:
             self.memory_wanted = not args.no_memory
             self.audio_wanted = not args.no_audio_awareness
             self.voice_wanted = not args.no_voice
+            self.notifications_wanted = not args.no_notifications and os.getenv("HYPRCHAN_NOTIFICATIONS") != "off"
             self.tts_ready = False
             self.tts_id = None
             self.tts_started_at = None
@@ -216,6 +218,11 @@ def main() -> int:
             self.reaction_button.set_active(self.reactions_wanted)
             self.reaction_button.connect("toggled", self.toggle_reactions)
             reactions.append(self.reaction_button)
+            self.notification_button = Gtk.ToggleButton(label="Notifications on" if self.notifications_wanted else "Notifications off")
+            self.notification_button.set_active(self.notifications_wanted)
+            self.notification_button.set_tooltip_text("Optional little discoveries and tangents · maximum once per 15 minutes by default")
+            self.notification_button.connect("toggled", self.toggle_notifications)
+            reactions.append(self.notification_button)
             reaction_note = Gtk.Label(label="About once a minute · quiet when there’s nothing new", xalign=0)
             reaction_note.add_css_class("muted")
             reactions.append(reaction_note)
@@ -267,6 +274,9 @@ def main() -> int:
             outer.append(compose)
 
             self.overlay = HyprchanWindow()
+            self.overlay.answer_label.set_ellipsize(Pango.EllipsizeMode.END)
+            self.overlay.answer_label.set_lines(6)
+            self.overlay.answer_label.set_tooltip_text("Full reply in the chat window")
             self.overlay.set_application(self)
             self.overlay.set_title("hyprchan-overlay")
             self.overlay.set_default_size(230, 340)
@@ -432,12 +442,18 @@ def main() -> int:
             if name == "model":
                 if kind == "ready":
                     self.model_ready = True
-                    self.stats.update(model=event["model"], tier=event["tier"])
+                    self.stats.update(model=event["model"], tier=event["tier"], web_search=event.get("webSearch"))
                     self.status.set_label("Ready · say hello or type below")
                     self.send("model", {"type": "memory_mode", "active": self.memory_wanted})
                     self.send("model", {"type": "audio_mode", "active": self.audio_wanted})
                     self.send("model", {"type": "vision_mode", "active": self.vision_wanted})
+                    self.send("model", {"type": "notification_mode", "active": self.notifications_wanted})
                     self.start_next()
+                elif kind == "notification_status":
+                    if event.get("sent"):
+                        self.stats["notifications_sent"] = self.stats.get("notifications_sent", 0) + 1
+                    self.stats["last_notification"] = {key: event.get(key) for key in (
+                        "sent", "notificationId", "reason", "cooldownSec", "retryAfterSec", "stateError")}
                 elif kind == "memory":
                     self.stats["memory_active"] = event["active"]
                     self.stats["memory_count"] = event["count"]
@@ -480,7 +496,7 @@ def main() -> int:
                         self.speak_response(delta, final=True)
                     else:
                         self.stop_voice()
-                    timing = {key: event.get(key) for key in ("firstTextMs", "lastTextMs", "completedMs", "imageCount", "toolCalls", "lookCalls")}
+                    timing = {key: event.get(key) for key in ("firstTextMs", "lastTextMs", "completedMs", "imageCount", "toolCalls", "webSearches", "tangentWords", "lookCalls")}
                     timing.update(source=self.current["source"], sttMs=self.current.get("sttMs"),
                                   firstGuiMs=self.current.get("first_gui_ms"), lastGuiMs=self.current.get("last_gui_ms"),
                                   visualWaitMs=self.current.get("visual_wait_ms", 0))
@@ -519,6 +535,9 @@ def main() -> int:
                             self.stats["last_tts"]["inputToPlaybackWriteMs"] = round((time.monotonic() - self.tts_started_at) * 1000, 1)
                         self.voice_status.set_label("Speaking · tap Stop or speak to interrupt")
                     elif kind in {"done", "cancelled"}:
+                        if kind == "done":
+                            self.stats.setdefault("last_tts", {}).update(
+                                segments=event.get("segments"), elapsedMs=event.get("elapsedMs"))
                         self.tts_id = None
                         self.voice_status.set_label("Ready · local Russian + English" if self.voice_wanted else "Voice off")
             elif name == "pipewire":
@@ -686,6 +705,12 @@ def main() -> int:
             if self.model_ready:
                 self.send("model", {"type": "memory_mode", "active": self.memory_wanted})
 
+        def toggle_notifications(self, button):
+            self.notifications_wanted = button.get_active()
+            button.set_label("Notifications on" if self.notifications_wanted else "Notifications off")
+            if self.model_ready:
+                self.send("model", {"type": "notification_mode", "active": self.notifications_wanted})
+
         def toggle_audio(self, button):
             self.audio_wanted = button.get_active()
             button.set_label("Audio awareness on" if self.audio_wanted else "Audio awareness off")
@@ -734,8 +759,11 @@ def main() -> int:
                 self.tts_id = item["id"]
                 self.tts_started_at = item.get("received", item["started"])
                 item["voice_started"] = self.send("tts", {"type": "begin", "id": item["id"]})
-            for phrase in phrases:
-                self.send("tts", {"type": "text", "id": item["id"], "text": phrase})
+            if phrases:
+                # A creative tool can deliver its whole story in one delta.
+                # Keep that burst in one transport slot; synthesis still streams
+                # each phrase and checks cancellation between audio chunks.
+                self.send("tts", {"type": "text", "id": item["id"], "phrases": phrases})
             if final and item.get("voice_started"):
                 self.send("tts", {"type": "end", "id": item["id"]})
 
@@ -797,7 +825,7 @@ def main() -> int:
 
         def finish_reaction(self, event):
             self.stats["last_reaction_timing"] = {
-                key: event.get(key) for key in ("firstTextMs", "lastTextMs", "completedMs", "imageCount", "status", "quiet")}
+                key: event.get(key) for key in ("firstTextMs", "lastTextMs", "completedMs", "imageCount", "status", "quiet", "toolCalls", "webSearches", "tangentWords")}
             self.stats["last_reaction_timing"].update(
                 capturedAt=self.current["captured_at"],
                 elapsedMs=round((time.monotonic() - self.current["started"]) * 1000, 1))
@@ -992,6 +1020,8 @@ def main() -> int:
                     self.audio_button.set_active(bool(command["active"]))
                 elif kind == "voice":
                     self.voice_button.set_active(bool(command["active"]))
+                elif kind == "notifications":
+                    self.notification_button.set_active(bool(command["active"]))
                 elif kind == "stop_voice":
                     self.stop_voice()
                 elif kind == "snapshot":
@@ -1015,6 +1045,7 @@ def main() -> int:
                             "reactions_active": self.reactions_wanted,
                             "memory_wanted": self.memory_wanted, "audio_active": self.audio_wanted,
                             "voice_active": self.voice_wanted, "tts_ready": self.tts_ready,
+                            "notifications_active": self.notifications_wanted,
                             "tts_playing": self.tts_id is not None,
                             "audio_pending": len(self.pending_audio),
                             "reaction_interval_sec": self.reaction_interval,

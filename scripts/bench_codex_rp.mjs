@@ -16,8 +16,9 @@ const cleanError = error => String(error?.message ?? error)
   .replace(/Bearer\s+\S+|sk-[A-Za-z0-9_-]+|eyJ[A-Za-z0-9_.-]+/g, '[redacted]').slice(0, 1400);
 
 export class CodexHarness extends EventEmitter {
-  constructor({ binary = process.env.HYPRCHAN_CODEX_BIN || 'codex', timeoutMs = 30000, configLines = [], toolHandler = null } = {}) {
+  constructor({ binary = process.env.HYPRCHAN_CODEX_BIN || 'codex', timeoutMs = 30000, configLines = [], toolHandler = null, webSearch = 'disabled' } = {}) {
     super();
+    if (!['disabled', 'cached', 'live'].includes(webSearch)) throw new Error('Invalid web search mode');
     this.binary = binary;
     this.timeoutMs = timeoutMs;
     this.toolHandler = toolHandler;
@@ -36,7 +37,7 @@ export class CodexHarness extends EventEmitter {
       ...configLines,
       'model = "gpt-6-luna"', 'model_reasoning_effort = "low"',
       'service_tier = "fast"', 'approval_policy = "never"',
-      'sandbox_mode = "read-only"', 'web_search = "disabled"',
+      'sandbox_mode = "read-only"', `web_search = "${webSearch}"`,
       'project_doc_max_bytes = 0', 'model_reasoning_summary = "none"',
       '[features]', ...['apps', 'plugins', 'remote_plugin', 'memories', 'shell_tool',
         'shell_snapshot', 'multi_agent', 'browser_use', 'browser_use_external',
@@ -158,7 +159,7 @@ export class CodexHarness extends EventEmitter {
     if (signal?.aborted) return { status: 'interrupted', text: '', errors: [] };
     const started = performance.now();
     const data = { text: '', firstTextMs: null, lastTextMs: null, completedMs: null,
-      toolCalls: 0, reasoningItems: 0, usage: null, errors: [], warnings: [], eventTypes: new Set() };
+      toolCalls: 0, webSearches: 0, reasoningItems: 0, usage: null, errors: [], warnings: [], eventTypes: new Set() };
     let resolveTurn;
     const done = new Promise(resolvePromise => { resolveTurn = resolvePromise; });
     const receive = message => {
@@ -172,6 +173,7 @@ export class CodexHarness extends EventEmitter {
         data.text += p.delta;
       }
       if (message.method === 'item/started' && p.item?.type === 'reasoning') data.reasoningItems++;
+      if (message.method === 'item/started' && p.item?.type === 'webSearch') data.webSearches++;
       if (message.method === 'item/completed' && p.item?.type === 'agentMessage' && !data.text) {
         data.text = p.item.text || '';
         if (data.text) data.firstTextMs = data.lastTextMs = performance.now() - started;

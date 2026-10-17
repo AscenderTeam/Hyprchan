@@ -80,6 +80,39 @@ class KokoroVoice:
         yield pcm(samples, rate)
 
 
+def speech_spans(text):
+    """Keep names and technical words intact when switching Russian/English."""
+    start, language = 0, None
+    for index, character in enumerate(text):
+        if not character.isalpha():
+            continue
+        current = "ru" if "\u0400" <= character <= "\u052f" else "en"
+        if language and current != language:
+            yield language, text[start:index].strip()
+            start = index
+        language = current
+    remaining = text[start:].strip()
+    if any(character.isalnum() for character in remaining):
+        yield language or "ru", remaining
+
+
+class BilingualVoice:
+    """Silero's Russian SSML parser cannot process Latin names; let Bella read them.
+
+    Both expressive models output 24 kHz, so their spans can share one player.
+    Route each phrase independently, even if a reply starts in another language.
+    """
+    def __init__(self, voices):
+        self.voices = voices
+
+    def synthesize(self, text):
+        for language, span in speech_spans(text):
+            for chunk in self.voices[language].synthesize(span):
+                if chunk.sample_rate != 24000:
+                    raise RuntimeError("Expressive voices must both output 24000 Hz")
+                yield chunk
+
+
 def load_voices(threads=4, backend=None):
     backend = backend or os.getenv("HYPRCHAN_TTS_BACKEND", "expressive")
     if backend == "piper":
@@ -97,4 +130,6 @@ def load_voices(threads=4, backend=None):
         "en": KokoroVoice(Path(os.getenv("HYPRCHAN_TTS_VOICE_EN", str(directory / "kokoro-v1.0.onnx"))),
                           directory / "voices-v1.0.bin", threads),
     }
-    return voices, {language: voice.label for language, voice in voices.items()}, backend
+    labels = {language: voice.label for language, voice in voices.items()}
+    bilingual = BilingualVoice(voices)
+    return {language: bilingual for language in voices}, labels, backend
