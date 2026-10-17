@@ -1065,7 +1065,7 @@ def main() -> int:
                 elif kind == 'avatar':
                     self.avatar.set_mode(command['mode'])
                 elif kind == 'emote':
-                    self.avatar.play(command['id'], command.get('seconds', 6))
+                    self.avatar.play(command['id'], command.get('seconds'))
                 elif kind == 'emote_stop':
                     self.avatar.stop()
                 elif kind == 'avatar_capture':
@@ -1095,6 +1095,7 @@ def main() -> int:
                             "notifications_active": self.notifications_wanted,
                             'avatar': self.avatar.status(), 'mic_wanted': self.mic_wanted,
                             "tts_playing": self.tts_id is not None,
+                            "transcribing": self.transcribing, "user_speaking": self.user_speaking,
                             "audio_pending": len(self.pending_audio),
                             "reaction_interval_sec": self.reaction_interval,
                             "reaction_pending": self.pending_reaction is not None,

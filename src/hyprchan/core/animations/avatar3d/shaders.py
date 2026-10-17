@@ -16,20 +16,56 @@ uniform sampler2D outlineMask;
 uniform int kind;
 uniform int outlinePass;
 uniform float outlineWidth;
+uniform int shadowPass;
+uniform sampler2D collisionTexture;
+uniform vec3 collisionMin;
+uniform vec3 collisionMax;
 out vec3 worldPosition;
 out vec3 worldNormal;
 out vec2 texCoord;
 out vec3 bindPosition;
+// The rig provides the main bend. A cloth-only front/back envelope clears
+// residual ribbon thickness around the fitted torso without pulling hair onto
+// raised hands. The same correction is used by color, outline and shadow passes.
+vec3 drapeHair(vec3 p) {
+  vec3 relative=(p-collisionMin)/(collisionMax-collisionMin);
+  float side=position.z>-.015?1.0:-1.0;
+  float surface=side*p.z;
+  vec2 offset=side>0.0?vec2(0,0):vec2(.5,0);
+  for(int i=-2;i<=2;i++) for(int j=-2;j<=2;j++) {
+    vec2 delta=vec2(i,j)*.005;
+    vec2 uv=relative.xy+delta/(collisionMax-collisionMin).xy;
+    if(any(lessThanEqual(uv,vec2(0))) || any(greaterThanEqual(uv,vec2(1)))) continue;
+    float depth=texture(collisionTexture,uv*vec2(.5,1)+offset).r;
+    if(depth>=.99999) continue;
+    float extent=side>0.0?collisionMax.z-depth*(collisionMax.z-collisionMin.z)
+                         :collisionMin.z+depth*(collisionMax.z-collisionMin.z);
+    surface=max(surface,side*extent+.010-length(delta)*.7);
+  }
+  p.z=side*surface;
+  return p;
+}
 void main() {
   mat4 skin = weights.x*bones[int(joints.x)] + weights.y*bones[int(joints.y)]
             + weights.z*bones[int(joints.z)] + weights.w*bones[int(joints.w)];
   vec4 p = skin*vec4(position,1.0);
-  if(kind==1 && position.z>-.015 && p.y<1.34 && p.y>.98 && abs(p.x)<.19) {
-    float front=.016+.155*sqrt(max(0.0,1.0-p.x*p.x/(.19*.19)));
-    p.z+=max(0.0,front-p.z)*.9*(1.0-smoothstep(1.26,1.34,p.y));
+  vec3 n=normalize(mat3(skin)*normal);
+  if(kind==1 && position.y<1.40) {
+    vec3 original=p.xyz;
+    p.xyz=drapeHair(original);
+    if(shadowPass==0) {
+      // Transform the normal with the same curved deformation as the strand.
+      // Keeping the old normal would leave a flat painted highlight at contact.
+      vec3 t=normalize(cross(n,abs(n.y)<.9?vec3(0,1,0):vec3(1,0,0)));
+      vec3 b=cross(n,t);
+      vec3 dt=drapeHair(original+t*.006)-p.xyz;
+      vec3 db=drapeHair(original+b*.006)-p.xyz;
+      vec3 bent=cross(dt,db);
+      if(length(bent)>.0000001) n=normalize(bent);
+    }
   }
   worldPosition=p.xyz;
-  worldNormal=normalize(mat3(skin)*normal);
+  worldNormal=n;
   texCoord=uv;
   bindPosition=position;
   if(outlinePass==1) p.xyz+=worldNormal*outlineWidth*texture(outlineMask,uv).g;
@@ -49,6 +85,7 @@ uniform sampler2D colorTexture;
 uniform sampler2D shadowTexture;
 uniform mat4 lightProjection;
 uniform int shadowPass;
+uniform int collisionPass;
 uniform vec4 baseColor;
 uniform int kind;
 uniform int outlinePass;
@@ -72,6 +109,7 @@ vec3 srgb(vec3 c) {
 void main() {
   vec4 tex=texture(colorTexture,texCoord)*baseColor;
   if(tex.a<alphaCutoff) discard;
+  if(collisionPass==1 && (abs(bindPosition.x)>.18 || bindPosition.y>1.37)) discard;
   if(shadowPass==1) { color=vec4(1); return; }
   if(outlinePass==1) { color=vec4(srgb(outlineColor),tex.a); return; }
   vec3 paint=srgb(tex.rgb);

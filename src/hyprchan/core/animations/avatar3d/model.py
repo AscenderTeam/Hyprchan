@@ -189,4 +189,7 @@ class AvatarModel:
                 local[index][:3, :3] = rest @ rotation([*(axis*np.sin(angle*c.get('weight', 1)/2)),
                                                         np.cos(angle*c.get('weight', 1)/2)])[:3, :3]
             update(index)
+        if getattr(self,'hoodie_contact',False):
+            from .hair_rig import solve_hair
+            solve_hair(self,local,world,update)
         return world

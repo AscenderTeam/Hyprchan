@@ -232,9 +232,10 @@ were preserved. See [live verification metadata](../benchmarks/codex-rp/results/
 The renderer is tailored to the bundled rig; it is not a general VRM importer
 or a complete implementation of MToon or VRM spring physics. The supported
 MToon lighting/outline subset is implemented natively in GLSL; this is not a Unity
-lilToon runtime. Hair has damped secondary
-motion and a chest-volume collision approximation. Extreme user-authored poses
-can still intersect clothing or leave the bust framing.
+lilToon runtime. Hair has damped secondary motion, length-preserving joint
+contact around the chest, hood, sleeves and hands, and a small GPU clearance pass
+against the actual posed torso. Extreme user-authored poses can still intersect
+clothing or leave the bust framing; the checks below cover a finite set of poses.
 
 ## Reasoning and latency
 
@@ -291,3 +292,47 @@ web search or notifications.
 The gold-orange background and rounded teal W now inherit the actual hoodie surface, interpolated normals and skin weights. They receive the same MToon light ramp and cast shadows as the fabric. The print does not have a separate outline hull or cast a floating shadow. Front and hand-over-chest GL captures were reviewed.
 
 The model chose a four-second gesture in an authenticated local Codex test and its script completed 121 frames in 4.025 seconds without timeout. A separate subprocess regression retimed a 20-second script to the selected 3.2 seconds and verified its final frame; invalid sub-three-second, over-limit and nonfinite choices are rejected. All 45 Python and 39 Node checks passed. Evidence: [avatar-duration-20261017.json](../benchmarks/codex-rp/results/avatar-duration-20261017.json).
+
+## Hair contact and responsive verification (2026-10-17)
+
+Long hair now bends through its authored joint chains instead of receiving a
+fixed oval chest offset. Contact volumes follow the posed chest, hood, arms,
+palms, fingers and thumbs. Root attachments and segment lengths stay fixed.
+Each segment restores towards its authored direction so an elbow contact does
+not turn the entire lower strand into a straight horizontal extension.
+
+A front/back depth pass of the actual posed torso clears residual ribbon
+thickness. One-time mesh subdivision prevents coarse triangles cutting across
+the curved garment. The visible surface, outlines, cast shadows and normals use
+the same deformation. This is tailored to the bundled model, not a complete
+VRMC SpringBone implementation.
+
+The [collision report](../benchmarks/codex-rp/results/avatar-hair-20261017.json)
+checks actual GPU positions and triangle intersections in 15 views/poses,
+including turns, nods, a lean, looking up, one-hand waves and two-hand peeks at
+half and full reach. All had zero measured intersections with the hoodie,
+neck or hands. Authored scalp/face attachment overlaps remain separately
+reported. The reference disables contact on the same refined mesh; it is a
+geometry diagnostic, not a performance comparison with the previous release.
+
+The benchmark checks copied arrays in a worker thread and yields between GL
+frames. Its GUI heartbeat stayed responsive (448 ms maximum gap); closing the
+window cancels the check. An earlier blocking version triggered compositor
+unresponsive-app dialogs; those test dialogs were closed and the repeat run
+completed without new ones. Captures contain only the bundled avatar:
+[front](avatar3d-hair/rest.png), [turn](avatar3d-hair/left.png),
+[half-raised hand](avatar3d-hair/wave_mid.png), [peek](avatar3d-hair/peek.png).
+
+All 47 Python checks pass, including rigid hair lengths and refinement that
+preserves surface area, winding, UVs and normalized skin weights. The deployed
+source files match the tested checkout, and an actual overlay capture was
+reviewed without GL errors. The live microphone remained on with Russian
+selected and voice output stayed off. [Live metadata](../benchmarks/codex-rp/results/avatar-hair-live-20261017.json)
+records frame cadence as well: about 7 fps for both portraits in the initial
+desktop state, then 23.4 fps for the chat portrait during a focus attempt while
+the other portrait paused. Visibility affects compositor scheduling; these
+samples do not establish sustained 24 fps for both with the new hair pass.
+
+```sh
+python scripts/bench_avatar_collision.py --output /tmp/hyprchan-hair/result.json
+```

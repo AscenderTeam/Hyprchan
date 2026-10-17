@@ -9,6 +9,7 @@ from .cloth import hoodie_shell
 
 
 def add_hoodie(model):
+    model.hoodie_contact=True
     hoodie_shell(model)
     shell = model.primitives[-1]
     shell_attributes = shell['attributes']

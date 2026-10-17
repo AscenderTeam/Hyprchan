@@ -1,0 +1,753 @@
+{
+  "syntheticOnly": true,
+  "poses": [
+    {
+      "pose": "rest",
+      "skinningOnly": {
+        "pairs": 15378,
+        "crossings": 1318,
+        "materials": {
+          "Face_00_SKIN": 291,
+          "Hoodie outer hood": 521,
+          "Hoodie shell": 506
+        },
+        "bounds": [
+          [
+            -0.11400000005960464,
+            1.0621000528335571,
+            -0.1656000018119812
+          ],
+          [
+            0.12370000034570694,
+            1.454200029373169,
+            0.11159999668598175
+          ]
+        ],
+        "outfitAndBodyCrossings": 1027,
+        "triangles": 73487
+      },
+      "contact": {
+        "pairs": 5480,
+        "crossings": 255,
+        "materials": {
+          "Face_00_SKIN": 255
+        },
+        "bounds": [
+          [
+            -0.10750000178813934,
+            1.4042999744415283,
+            -0.05999999865889549
+          ],
+          [
+            0.10639999806880951,
+            1.4538999795913696,
+            0.032099999487400055
+          ]
+        ],
+        "outfitAndBodyCrossings": 0,
+        "triangles": 73487,
+        "drawMedianMs": 11.32
+      }
+    },
+    {
+      "pose": "side",
+      "skinningOnly": {
+        "pairs": 15378,
+        "crossings": 1318,
+        "materials": {
+          "Face_00_SKIN": 291,
+          "Hoodie outer hood": 521,
+          "Hoodie shell": 506
+        },
+        "bounds": [
+          [
+            -0.11400000005960464,
+            1.0621000528335571,
+            -0.1656000018119812
+          ],
+          [
+            0.12370000034570694,
+            1.454200029373169,
+            0.11159999668598175
+          ]
+        ],
+        "outfitAndBodyCrossings": 1027,
+        "triangles": 73487
+      },
+      "contact": {
+        "pairs": 5480,
+        "crossings": 255,
+        "materials": {
+          "Face_00_SKIN": 255
+        },
+        "bounds": [
+          [
+            -0.10750000178813934,
+            1.4042999744415283,
+            -0.05999999865889549
+          ],
+          [
+            0.10639999806880951,
+            1.4538999795913696,
+            0.032099999487400055
+          ]
+        ],
+        "outfitAndBodyCrossings": 0,
+        "triangles": 73487,
+        "drawMedianMs": 13.764
+      }
+    },
+    {
+      "pose": "back",
+      "skinningOnly": {
+        "pairs": 15378,
+        "crossings": 1318,
+        "materials": {
+          "Face_00_SKIN": 291,
+          "Hoodie outer hood": 521,
+          "Hoodie shell": 506
+        },
+        "bounds": [
+          [
+            -0.11400000005960464,
+            1.0621000528335571,
+            -0.1656000018119812
+          ],
+          [
+            0.12370000034570694,
+            1.454200029373169,
+            0.11159999668598175
+          ]
+        ],
+        "outfitAndBodyCrossings": 1027,
+        "triangles": 73487
+      },
+      "contact": {
+        "pairs": 5480,
+        "crossings": 255,
+        "materials": {
+          "Face_00_SKIN": 255
+        },
+        "bounds": [
+          [
+            -0.10750000178813934,
+            1.4042999744415283,
+            -0.05999999865889549
+          ],
+          [
+            0.10639999806880951,
+            1.4538999795913696,
+            0.032099999487400055
+          ]
+        ],
+        "outfitAndBodyCrossings": 0,
+        "triangles": 73487,
+        "drawMedianMs": 16.163
+      }
+    },
+    {
+      "pose": "left",
+      "skinningOnly": {
+        "pairs": 28654,
+        "crossings": 3011,
+        "materials": {
+          "Face_00_SKIN": 291,
+          "Hoodie cord": 73,
+          "Hoodie hood seam": 2,
+          "Hoodie outer hood": 442,
+          "Hoodie shell": 2203
+        },
+        "bounds": [
+          [
+            -0.16920000314712524,
+            1.023900032043457,
+            -0.1647000014781952
+          ],
+          [
+            0.20810000598430634,
+            1.4687000513076782,
+            0.11869999766349792
+          ]
+        ],
+        "outfitAndBodyCrossings": 2720,
+        "triangles": 73487
+      },
+      "contact": {
+        "pairs": 5062,
+        "crossings": 273,
+        "materials": {
+          "Face_00_SKIN": 273
+        },
+        "bounds": [
+          [
+            -0.10369999706745148,
+            1.3941999673843384,
+            -0.1088000014424324
+          ],
+          [
+            0.08810000121593475,
+            1.4687000513076782,
+            0.03840000182390213
+          ]
+        ],
+        "outfitAndBodyCrossings": 0,
+        "triangles": 73487,
+        "drawMedianMs": 26.612
+      }
+    },
+    {
+      "pose": "right",
+      "skinningOnly": {
+        "pairs": 21937,
+        "crossings": 2032,
+        "materials": {
+          "Body_00_SKIN": 2,
+          "Face_00_SKIN": 291,
+          "Hoodie hood lining": 24,
+          "Hoodie hood seam": 41,
+          "Hoodie outer hood": 486,
+          "Hoodie shell": 1188
+        },
+        "bounds": [
+          [
+            -0.21930000185966492,
+            1.035599946975708,
+            -0.15440000593662262
+          ],
+          [
+            0.15389999747276306,
+            1.4674999713897705,
+            0.1088000014424324
+          ]
+        ],
+        "outfitAndBodyCrossings": 1741,
+        "triangles": 73487
+      },
+      "contact": {
+        "pairs": 4944,
+        "crossings": 255,
+        "materials": {
+          "Face_00_SKIN": 255
+        },
+        "bounds": [
+          [
+            -0.06449999660253525,
+            1.3941999673843384,
+            -0.10790000110864639
+          ],
+          [
+            0.10670000314712524,
+            1.4673999547958374,
+            0.06920000165700912
+          ]
+        ],
+        "outfitAndBodyCrossings": 0,
+        "triangles": 73487,
+        "drawMedianMs": 25.364
+      }
+    },
+    {
+      "pose": "nod",
+      "skinningOnly": {
+        "pairs": 14218,
+        "crossings": 1640,
+        "materials": {
+          "Body_00_SKIN": 97,
+          "Face_00_SKIN": 291,
+          "Hoodie outer hood": 287,
+          "Hoodie shell": 965
+        },
+        "bounds": [
+          [
+            -0.15189999341964722,
+            1.045799970626831,
+            -0.06300000101327896
+          ],
+          [
+            0.13680000603199005,
+            1.4580999612808228,
+            0.04089999943971634
+          ]
+        ],
+        "outfitAndBodyCrossings": 1349,
+        "triangles": 73487
+      },
+      "contact": {
+        "pairs": 4701,
+        "crossings": 291,
+        "materials": {
+          "Face_00_SKIN": 291
+        },
+        "bounds": [
+          [
+            -0.10450000315904617,
+            1.3818000555038452,
+            -0.03830000013113022
+          ],
+          [
+            0.10649999976158142,
+            1.4580999612808228,
+            0.04089999943971634
+          ]
+        ],
+        "outfitAndBodyCrossings": 0,
+        "triangles": 73487,
+        "drawMedianMs": 20.405
+      }
+    },
+    {
+      "pose": "lean",
+      "skinningOnly": {
+        "pairs": 34135,
+        "crossings": 3241,
+        "materials": {
+          "Body_00_SKIN": 85,
+          "Face_00_SKIN": 291,
+          "Hoodie cord": 68,
+          "Hoodie hood lining": 5,
+          "Hoodie hood seam": 24,
+          "Hoodie outer hood": 983,
+          "Hoodie shell": 1785
+        },
+        "bounds": [
+          [
+            -0.17309999465942383,
+            1.0128999948501587,
+            -0.14270000159740448
+          ],
+          [
+            0.1501999944448471,
+            1.4782999753952026,
+            0.19460000097751617
+          ]
+        ],
+        "outfitAndBodyCrossings": 2950,
+        "triangles": 73487
+      },
+      "contact": {
+        "pairs": 5311,
+        "crossings": 263,
+        "materials": {
+          "Face_00_SKIN": 263
+        },
+        "bounds": [
+          [
+            -0.17749999463558197,
+            1.374899983406067,
+            -0.07649999856948853
+          ],
+          [
+            0.010200000368058681,
+            1.4782999753952026,
+            0.04670000076293945
+          ]
+        ],
+        "outfitAndBodyCrossings": 0,
+        "triangles": 73487,
+        "drawMedianMs": 17.426
+      }
+    },
+    {
+      "pose": "nod_mid",
+      "skinningOnly": {
+        "pairs": 15824,
+        "crossings": 1890,
+        "materials": {
+          "Body_00_SKIN": 24,
+          "Face_00_SKIN": 291,
+          "Hoodie outer hood": 221,
+          "Hoodie shell": 1354
+        },
+        "bounds": [
+          [
+            -0.15850000083446503,
+            1.0444999933242798,
+            -0.049800001084804535
+          ],
+          [
+            0.13539999723434448,
+            1.457800030708313,
+            0.061400000005960464
+          ]
+        ],
+        "outfitAndBodyCrossings": 1599,
+        "triangles": 73487
+      },
+      "contact": {
+        "pairs": 5152,
+        "crossings": 283,
+        "materials": {
+          "Face_00_SKIN": 283
+        },
+        "bounds": [
+          [
+            -0.10509999841451645,
+            1.3947999477386475,
+            -0.049800001084804535
+          ],
+          [
+            0.10649999976158142,
+            1.457800030708313,
+            0.03779999911785126
+          ]
+        ],
+        "outfitAndBodyCrossings": 0,
+        "triangles": 73487,
+        "drawMedianMs": 10.816
+      }
+    },
+    {
+      "pose": "left_mid",
+      "skinningOnly": {
+        "pairs": 25593,
+        "crossings": 2595,
+        "materials": {
+          "Face_00_SKIN": 291,
+          "Hoodie outer hood": 438,
+          "Hoodie shell": 1866
+        },
+        "bounds": [
+          [
+            -0.19020000100135803,
+            1.0262000560760498,
+            -0.16820000112056732
+          ],
+          [
+            0.18889999389648438,
+            1.4641000032424927,
+            0.10010000318288803
+          ]
+        ],
+        "outfitAndBodyCrossings": 2304,
+        "triangles": 73487
+      },
+      "contact": {
+        "pairs": 5202,
+        "crossings": 271,
+        "materials": {
+          "Face_00_SKIN": 271
+        },
+        "bounds": [
+          [
+            -0.11259999871253967,
+            1.398300051689148,
+            -0.08749999850988388
+          ],
+          [
+            0.09059999883174896,
+            1.4641000032424927,
+            0.00559999980032444
+          ]
+        ],
+        "outfitAndBodyCrossings": 0,
+        "triangles": 73487,
+        "drawMedianMs": 11.932
+      }
+    },
+    {
+      "pose": "right_mid",
+      "skinningOnly": {
+        "pairs": 21777,
+        "crossings": 2215,
+        "materials": {
+          "Face_00_SKIN": 291,
+          "Hoodie outer hood": 500,
+          "Hoodie shell": 1424
+        },
+        "bounds": [
+          [
+            -0.2046000063419342,
+            1.0296000242233276,
+            -0.1664000004529953
+          ],
+          [
+            0.1597999930381775,
+            1.4630000591278076,
+            0.09740000218153
+          ]
+        ],
+        "outfitAndBodyCrossings": 1924,
+        "triangles": 73487
+      },
+      "contact": {
+        "pairs": 5253,
+        "crossings": 248,
+        "materials": {
+          "Face_00_SKIN": 248
+        },
+        "bounds": [
+          [
+            -0.08990000188350677,
+            1.3977999687194824,
+            -0.08720000088214874
+          ],
+          [
+            0.11219999939203262,
+            1.4630000591278076,
+            0.055799998342990875
+          ]
+        ],
+        "outfitAndBodyCrossings": 0,
+        "triangles": 73487,
+        "drawMedianMs": 17.75
+      }
+    },
+    {
+      "pose": "look_up",
+      "skinningOnly": {
+        "pairs": 35982,
+        "crossings": 3851,
+        "materials": {
+          "Face_00_SKIN": 291,
+          "Hoodie hood lining": 20,
+          "Hoodie hood seam": 50,
+          "Hoodie outer hood": 1017,
+          "Hoodie shell": 2473
+        },
+        "bounds": [
+          [
+            -0.18770000338554382,
+            1.020300030708313,
+            -0.1551000028848648
+          ],
+          [
+            0.15549999475479126,
+            1.4457999467849731,
+            0.2232999950647354
+          ]
+        ],
+        "outfitAndBodyCrossings": 3560,
+        "triangles": 73487
+      },
+      "contact": {
+        "pairs": 5323,
+        "crossings": 239,
+        "materials": {
+          "Face_00_SKIN": 239
+        },
+        "bounds": [
+          [
+            -0.11400000005960464,
+            1.4012999534606934,
+            -0.09749999642372131
+          ],
+          [
+            0.09830000251531601,
+            1.4457999467849731,
+            0.00139999995008111
+          ]
+        ],
+        "outfitAndBodyCrossings": 0,
+        "triangles": 73487,
+        "drawMedianMs": 29.51
+      }
+    },
+    {
+      "pose": "wave_mid",
+      "skinningOnly": {
+        "pairs": 21301,
+        "crossings": 1984,
+        "materials": {
+          "Body_00_SKIN": 152,
+          "Face_00_SKIN": 291,
+          "Hoodie cuff": 89,
+          "Hoodie outer hood": 521,
+          "Hoodie shell": 931
+        },
+        "bounds": [
+          [
+            -0.15889999270439148,
+            1.0621000528335571,
+            -0.1656000018119812
+          ],
+          [
+            0.12370000034570694,
+            1.454200029373169,
+            0.11540000140666962
+          ]
+        ],
+        "outfitAndBodyCrossings": 1693,
+        "triangles": 73487
+      },
+      "contact": {
+        "pairs": 5480,
+        "crossings": 255,
+        "materials": {
+          "Face_00_SKIN": 255
+        },
+        "bounds": [
+          [
+            -0.10750000178813934,
+            1.4042999744415283,
+            -0.05999999865889549
+          ],
+          [
+            0.10639999806880951,
+            1.4538999795913696,
+            0.032099999487400055
+          ]
+        ],
+        "outfitAndBodyCrossings": 0,
+        "triangles": 73487,
+        "drawMedianMs": 50.14
+      }
+    },
+    {
+      "pose": "wave",
+      "skinningOnly": {
+        "pairs": 17969,
+        "crossings": 1580,
+        "materials": {
+          "Face_00_SKIN": 291,
+          "Hoodie outer hood": 521,
+          "Hoodie shell": 768
+        },
+        "bounds": [
+          [
+            -0.1509000062942505,
+            1.0621000528335571,
+            -0.1656000018119812
+          ],
+          [
+            0.12370000034570694,
+            1.454200029373169,
+            0.11159999668598175
+          ]
+        ],
+        "outfitAndBodyCrossings": 1289,
+        "triangles": 73487
+      },
+      "contact": {
+        "pairs": 5480,
+        "crossings": 255,
+        "materials": {
+          "Face_00_SKIN": 255
+        },
+        "bounds": [
+          [
+            -0.10750000178813934,
+            1.4042999744415283,
+            -0.05999999865889549
+          ],
+          [
+            0.10639999806880951,
+            1.4538999795913696,
+            0.032099999487400055
+          ]
+        ],
+        "outfitAndBodyCrossings": 0,
+        "triangles": 73487,
+        "drawMedianMs": 28.068
+      }
+    },
+    {
+      "pose": "peek_mid",
+      "skinningOnly": {
+        "pairs": 20522,
+        "crossings": 1994,
+        "materials": {
+          "Body_00_SKIN": 182,
+          "Face_00_SKIN": 291,
+          "Hoodie cuff": 59,
+          "Hoodie outer hood": 521,
+          "Hoodie shell": 941
+        },
+        "bounds": [
+          [
+            -0.15889999270439148,
+            1.0621000528335571,
+            -0.1656000018119812
+          ],
+          [
+            0.1370999962091446,
+            1.454200029373169,
+            0.11540000140666962
+          ]
+        ],
+        "outfitAndBodyCrossings": 1703,
+        "triangles": 73487
+      },
+      "contact": {
+        "pairs": 5498,
+        "crossings": 255,
+        "materials": {
+          "Face_00_SKIN": 255
+        },
+        "bounds": [
+          [
+            -0.10750000178813934,
+            1.4042999744415283,
+            -0.05999999865889549
+          ],
+          [
+            0.10639999806880951,
+            1.4538999795913696,
+            0.032099999487400055
+          ]
+        ],
+        "outfitAndBodyCrossings": 0,
+        "triangles": 73487,
+        "drawMedianMs": 18.184
+      }
+    },
+    {
+      "pose": "peek",
+      "skinningOnly": {
+        "pairs": 21210,
+        "crossings": 1668,
+        "materials": {
+          "Face_00_SKIN": 291,
+          "Hoodie outer hood": 521,
+          "Hoodie shell": 856
+        },
+        "bounds": [
+          [
+            -0.15240000188350677,
+            1.0621000528335571,
+            -0.1656000018119812
+          ],
+          [
+            0.13210000097751617,
+            1.454200029373169,
+            0.10949999839067459
+          ]
+        ],
+        "outfitAndBodyCrossings": 1377,
+        "triangles": 73487
+      },
+      "contact": {
+        "pairs": 5647,
+        "crossings": 255,
+        "materials": {
+          "Face_00_SKIN": 255
+        },
+        "bounds": [
+          [
+            -0.10750000178813934,
+            1.4042999744415283,
+            -0.05999999865889549
+          ],
+          [
+            0.10639999806880951,
+            1.4538999795913696,
+            0.032099999487400055
+          ]
+        ],
+        "outfitAndBodyCrossings": 0,
+        "triangles": 73487,
+        "drawMedianMs": 15.28
+      }
+    }
+  ],
+  "reference": "Same refined mesh with joint contact and cloth clearance disabled",
+  "method": "Actual GPU vertices; triangle intersection with posed surfaces. Authored scalp/Face_00_SKIN overlaps are reported but excluded from the clothing/neck/hands assertion.",
+  "pixels": [
+    960,
+    1200
+  ],
+  "passed": true,
+  "guiHeartbeat": {
+    "ticks": 279,
+    "maxGapMs": 447.657
+  }
+}

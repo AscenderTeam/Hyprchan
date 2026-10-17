@@ -19,6 +19,8 @@ from .wardrobe import add_hoodie
 
 from .shaders import VERTEX, FRAGMENT
 from .materials import portrait_material
+from .hair_collision import HairCollision
+from .hair_mesh import refine_hair
 
 _model = None
 
@@ -28,6 +30,7 @@ def model():
     if _model is None:
         _model = AvatarModel()
         add_hoodie(_model)
+        refine_hair(_model)
     return _model
 
 
@@ -45,6 +48,7 @@ class Avatar3D(Gtk.GLArea):
         self.program = None
         self.shadow_fbo = None
         self.shadow_texture = None
+        self.hair_collision = None
         self.failed = None
         self.frames = 0
         self.draw_ms = 0
@@ -83,7 +87,8 @@ class Avatar3D(Gtk.GLArea):
                              ['bones', 'viewProjection', 'colorTexture', 'baseColor', 'kind', 'blush', 'alphaCutoff',
                               'outlineMask', 'outlinePass', 'outlineWidth', 'outlineColor', 'shadeColor',
                               'rimColor', 'rimPower', 'shadingShift', 'shadingToony', 'viewDirection',
-                              'shadowPass', 'shadowTexture', 'lightProjection']}
+                              'collisionPass', 'shadowPass', 'shadowTexture', 'lightProjection',
+                              'collisionTexture', 'collisionMin', 'collisionMax']}
             for index, pixels in enumerate([*self.data.images, np.full((1, 1, 4), 255, dtype=np.uint8)]):
                 if pixels is None:
                     self.textures.append(0)
@@ -115,6 +120,8 @@ class Avatar3D(Gtk.GLArea):
             complete = gl.glCheckFramebufferStatus(gl.GL_FRAMEBUFFER) == gl.GL_FRAMEBUFFER_COMPLETE
             gl.glBindFramebuffer(gl.GL_FRAMEBUFFER, framebuffer)
             if not complete: raise RuntimeError('Avatar shadow framebuffer is incomplete')
+            self.hair_collision = HairCollision()
+            gl.glBindFramebuffer(gl.GL_FRAMEBUFFER, framebuffer)
             for primitive in self.data.primitives:
                 # The custom hoodie replaces the base shirt; legs are outside the portrait.
                 if primitive['material']['name'].startswith(('Tops_', 'Bottoms_', 'Shoes_')):
@@ -153,6 +160,8 @@ class Avatar3D(Gtk.GLArea):
         if self.program: gl.glDeleteProgram(self.program)
         if self.shadow_fbo: gl.glDeleteFramebuffers(1, [self.shadow_fbo])
         if self.shadow_texture: gl.glDeleteTextures([self.shadow_texture])
+        if self.hair_collision: self.hair_collision.close()
+        self.hair_collision = None
         self.shadow_fbo = self.shadow_texture = None
         self.meshes = []; self.textures = []; self.program = None
 
@@ -217,6 +226,7 @@ class Avatar3D(Gtk.GLArea):
                     gl.glBindBuffer(gl.GL_ARRAY_BUFFER, vbo)
                     gl.glBufferSubData(gl.GL_ARRAY_BUFFER, 0, packed.nbytes, packed)
                 primitive['palette'] = skins[primitive['skin']] if primitive['skin'] is not None else np.array([world[primitive['node']]])
+            self.hair_collision.render(self)
             for shadow in (True, False):
                 gl.glUniform1i(self.uniforms['shadowPass'], int(shadow))
                 gl.glUniformMatrix4fv(self.uniforms['viewProjection'], 1, True, lighting if shadow else projection)
