@@ -13,6 +13,7 @@ import json
 import os
 from pathlib import Path
 import signal
+import subprocess
 import sys
 import tempfile
 import threading
@@ -32,13 +33,17 @@ def emit(event):
     print(json.dumps(event, ensure_ascii=False), flush=True)
 
 
-def camera_device():
+def camera_device(sysfs=Path("/sys/class/video4linux")):
     override = os.getenv("HYPRCHAN_CAMERA_INDEX", os.getenv("WEBCAM_DEVICE_INDEX"))
-    cameras = sorted(Path("/sys/class/video4linux").glob("video*"))
+    cameras = sorted(sysfs.glob("video*"))
     if override is not None:
         index = int(override)
-        name_file = Path(f"/sys/class/video4linux/video{index}/name")
+        name_file = sysfs / f"video{index}" / "name"
         return index, name_file.read_text().strip() if name_file.exists() else f"Camera {index}"
+    for camera in cameras:
+        name = (camera / "name").read_text().strip()
+        if name == "Hyprchan Camera Context":
+            return int(camera.name.removeprefix("video")), name
     for camera in cameras:
         name = (camera / "name").read_text().strip()
         # Never silently send an OBS scene in place of the physical camera.
@@ -102,6 +107,13 @@ class VisionWorker:
             index, self.camera_name = camera_device()
             if index is None:
                 raise RuntimeError("No physical camera found")
+            # Probing an occupied physical Asahi camera can disrupt its owner.
+            # The shared feed has a producer by design, so only guard hardware.
+            if self.camera_name != "Hyprchan Camera Context":
+                owners = await asyncio.to_thread(subprocess.run, ["fuser", f"/dev/video{index}"],
+                                                 capture_output=True, timeout=2)
+                if owners.stdout.strip():
+                    raise RuntimeError("Camera is already in use; select the shared camera feed")
             camera = OpenCVPerceptionModule(lambda event: None,
                                            config=OpenCVPerceptionConfig(device_index=index))
             await camera.start()

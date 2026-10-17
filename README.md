@@ -71,6 +71,9 @@ Choose **Pixel art** or **3D · turquoise hoodie** in the GUI. The optional nati
 and a persistent library of executable Python emotes she can create and play.
 See [3D controls, script permissions, asset credits and measured reasoning settings](docs/avatar3d.md).
 
+For simultaneous OBS and Hyprchan webcam access on Asahi, see
+[the independent shared-camera setup](docs/shared-camera.md).
+
 ---
 
 ## ✨ Features
