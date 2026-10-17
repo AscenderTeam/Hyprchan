@@ -2,10 +2,11 @@ from math import sin, pi
 from hyprchan.core.animations.avatar3d.emote_api import animate, ease, hand_target
 
 from time import sleep
-from hyprchan.core.animations.avatar3d.emote_api import frame
+from hyprchan.core.animations.avatar3d.emote_api import frame, duration
 
-for i in range(91):
-    t = i/90
+steps = round(duration(3)*30)
+for i in range(steps+1):
+    t = i/steps
     w = sin(pi*t)**2
     frame(expressions={'smile': .5*w, 'blush': .2*w},
           bones={'head': [0, 0, 6*w]},

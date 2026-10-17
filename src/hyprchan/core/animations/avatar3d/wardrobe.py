@@ -11,10 +11,15 @@ from .cloth import hoodie_shell
 def add_hoodie(model):
     hoodie_shell(model)
     shell = model.primitives[-1]
-    triangles = shell['attributes']['POSITION'][shell['indices'].reshape(-1,3)]
-    triangles = triangles[(triangles[:,:,2].mean(1)>0) & (np.abs(triangles[:,:,0]).max(1)<.17)]
-    def front_z(x,y):
-        a,b,c=triangles.transpose(1,0,2)
+    shell_attributes = shell['attributes']
+    shell_indices = shell['indices'].reshape(-1,3)
+    triangles = shell_attributes['POSITION'][shell_indices]
+    front = (triangles[:,:,2].mean(1)>0) & (np.abs(triangles[:,:,0]).max(1)<.17)
+    shell_indices = shell_indices[front]
+    shell_triangles = triangles[front]
+    triangles = shell_triangles
+    def front_hit(x,y,surface):
+        a,b,c=surface.transpose(1,0,2)
         denominator=(b[:,1]-c[:,1])*(a[:,0]-c[:,0])+(c[:,0]-b[:,0])*(a[:,1]-c[:,1])
         valid=np.abs(denominator)>1e-10
         denominator=np.where(valid,denominator,1)
@@ -22,7 +27,14 @@ def add_hoodie(model):
         v=((c[:,1]-a[:,1])*(x-c[:,0])+(a[:,0]-c[:,0])*(y-c[:,1]))/denominator
         valid &= (u>=-.0001)&(v>=-.0001)&(u+v<=1.0001)
         z=u*a[:,2]+v*b[:,2]+(1-u-v)*c[:,2]
-        return float(z[valid].max()) if valid.any() else .12
+        hits=np.flatnonzero(valid)
+        if not len(hits): return None
+        index=hits[np.argmax(z[hits])]
+        barycentric=np.clip([u[index],v[index],1-u[index]-v[index]],0,1)
+        return index,barycentric/barycentric.sum()
+    def front_z(x,y):
+        hit=front_hit(x,y,triangles)
+        return float(hit[1] @ triangles[hit[0],:,2]) if hit is not None else .12
 
     names = ['chest', 'upperChest', 'leftUpperArm', 'rightUpperArm', 'leftLowerArm', 'rightLowerArm', 'head']
     joints = [model.bones[name] for name in names]
@@ -31,9 +43,6 @@ def add_hoodie(model):
 
     def mesh(vertices, indices, color, joint=0, name='Hoodie'):
         p = np.array(vertices, dtype=np.float32)
-        if name in {'Sunshine emblem', 'Hyprchan W'}:
-            offset = .0025 if name == 'Hyprchan W' else .0015
-            p[:,2] = [front_z(x,y)+offset for x,y,_ in p]
         ix = np.array(indices, dtype=np.uint32).reshape(-1, 3)
         normal = np.zeros_like(p)
         face = np.cross(p[ix[:, 1]] - p[ix[:, 0]], p[ix[:, 2]] - p[ix[:, 0]])
@@ -48,7 +57,34 @@ def add_hoodie(model):
             weights[:, 0] = 1-alpha; weights[:, 1] = alpha
         else:
             joint_ids[:, 0] = joint
-        model.primitives.append({'node': 0, 'skin': skin, 'targets': [], 'names': [],
+        mesh_skin = skin
+        if name in {'Sunshine emblem', 'Hyprchan W'}:
+            # Transfer the actual fabric surface, smooth normals and skinning.
+            # Recomputing normals from the thin W strips creates fake creases;
+            # binding only to the chest lets the print slide as the cloth bends.
+            offset = .0025 if name == 'Hyprchan W' else .0015
+            mesh_skin = shell['skin']
+            weights.fill(0); joint_ids.fill(0)
+            for i,(x,y,_) in enumerate(p):
+                hit = front_hit(x,y,shell_triangles)
+                if hit is None: raise ValueError('Printed emblem is outside the hoodie surface')
+                triangle, barycentric = hit
+                vertices = shell_indices[triangle]
+                p[i,2] = barycentric @ shell_attributes['POSITION'][vertices,2] + offset
+                normal[i] = barycentric @ shell_attributes['NORMAL'][vertices]
+                normal[i] /= max(np.linalg.norm(normal[i]), 1e-8)
+                influence = {}
+                for vertex, blend in zip(vertices,barycentric):
+                    for bone, weight in zip(shell_attributes['JOINTS_0'][vertex], shell_attributes['WEIGHTS_0'][vertex]):
+                        if weight > 0:
+                            bone = int(bone)
+                            influence[bone] = influence.get(bone,0) + blend*weight
+                strongest = sorted(influence.items(),key=lambda item:item[1],reverse=True)[:4]
+                total = sum(weight for _,weight in strongest)
+                for slot,(bone,weight) in enumerate(strongest):
+                    joint_ids[i,slot] = bone
+                    weights[i,slot] = weight/total
+        model.primitives.append({'node': 0, 'skin': mesh_skin, 'targets': [], 'names': [],
             'indices': ix.ravel(), 'material': {'name': name, 'doubleSided': True,
                 'pbrMetallicRoughness': {'baseColorFactor': [*linear(color).tolist(), 1]}},
             'attributes': {'POSITION': p, 'NORMAL': normal, 'TEXCOORD_0': np.zeros((len(p), 2)),

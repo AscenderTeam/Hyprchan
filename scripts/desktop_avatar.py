@@ -9,7 +9,7 @@ import time
 
 from gi.repository import Gtk, GLib
 from hyprchan.core.animations.avatar3d.motion import AvatarMotion, BUILTINS
-from hyprchan.core.animations.avatar3d.emotes import EmoteLibrary, EmoteRunner
+from hyprchan.core.animations.avatar3d.emotes import EmoteLibrary, EmoteRunner, animation_seconds
 
 
 class DesktopAvatar:
@@ -134,16 +134,19 @@ class DesktopAvatar:
         try: self.play(self.items[self.emote_picker.get_selected()]['id'])
         except Exception as error: self.label.set_label(str(error))
 
-    def play(self, identity, seconds=6):
+    def play(self, identity, seconds=None):
+        if seconds is None:
+            seconds = next((item.get('seconds', 4) for item in self.items if item['id'] == identity), 4)
+        seconds = animation_seconds(seconds)
         self.runner.stop()
         self.motion.stop()
         self.last_pose = {}
         if identity in BUILTINS:
             self.motion.play(identity, duration=seconds)
-            result = {'started': True, 'id': identity, 'builtin': True}
+            result = {'started': True, 'id': identity, 'builtin': True, 'seconds': seconds}
         else:
-            result = self.runner.play(self.library.path(identity), seconds)
-        self.label.set_label('Playing '+next((item['title'] for item in self.items if item['id'] == identity), identity))
+            result = self.runner.play(self.library.path(identity), duration=seconds)
+        self.label.set_label('Playing '+next((item['title'] for item in self.items if item['id'] == identity), identity)+f' · {seconds:g}s')
         return {**result, 'visible': self.mode == '3d'}
 
     def stop(self):
@@ -155,12 +158,12 @@ class DesktopAvatar:
         try:
             args = event['arguments']
             if event['tool'] == 'emote_create':
-                result = self.library.save(args['id'], args['title'], args['description'], args['python_code'])
+                result = self.library.save(args['id'], args['title'], args['description'], args['python_code'], args['seconds'])
                 self.refresh()
                 result = {'saved': True, **result}
                 self.label.set_label('Saved '+args['title'])
                 if args.get('play_now'):
-                    result.update(self.play(args['id'], 30))
+                    result.update(self.play(args['id'], args['seconds']))
                     self.script_request = event['requestId']
             elif event['tool'] == 'emote_play':
                 result = self.play(args['id'], args['seconds'])

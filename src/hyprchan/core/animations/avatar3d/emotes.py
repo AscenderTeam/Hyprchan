@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import math
 import os
 from pathlib import Path
 import re
@@ -16,6 +17,13 @@ from .motion import BUILTINS, validate_frame
 EMOTE_DIRECTORY = Path(os.getenv('XDG_DATA_HOME', str(Path.home()/'.local/share'))) / 'hyprchan-codex/emotes'
 
 
+def animation_seconds(value):
+    seconds = float(value)
+    if not math.isfinite(seconds) or not 3 <= seconds <= 30:
+        raise ValueError('Animation duration must be 3–30 seconds')
+    return seconds
+
+
 class EmoteLibrary:
     def __init__(self, directory=EMOTE_DIRECTORY):
         self.directory = Path(directory)
@@ -27,7 +35,8 @@ class EmoteLibrary:
             raise ValueError('Use an emote id of 1–48 lowercase letters, numbers, or underscores')
         return self.directory / f'{identity}.py'
 
-    def save(self, identity, title, description, code):
+    def save(self, identity, title, description, code, seconds=4):
+        seconds = animation_seconds(seconds)
         path = self.path(identity)
         if identity in BUILTINS: raise ValueError('Choose a new id; built-in emotes are kept intact')
         if not isinstance(code, str) or not 1 <= len(code.encode()) <= 24_000:
@@ -37,7 +46,7 @@ class EmoteLibrary:
         if not isinstance(description, str) or len(description) > 300:
             raise ValueError('Description is limited to 300 characters')
         compile(code, str(path), 'exec')
-        metadata = {'id': identity, 'title': title, 'description': description, 'updatedAt': time.time()}
+        metadata = {'id': identity, 'title': title, 'description': description, 'seconds': seconds, 'updatedAt': time.time()}
         for target, content in [(path, code), (path.with_suffix('.json'), json.dumps(metadata, ensure_ascii=False))]:
             temporary = target.with_suffix(target.suffix + '.tmp')
             # Replace a file atomically; never follow a preexisting script symlink.
@@ -49,7 +58,7 @@ class EmoteLibrary:
         return metadata
 
     def list(self):
-        result = [{'id': key, 'title': item[0], 'builtin': True} for key, item in BUILTINS.items()]
+        result = [{'id': key, 'title': item[0], 'builtin': True, 'seconds': 4} for key, item in BUILTINS.items()]
         for path in sorted(self.directory.glob('*.json')):
             try:
                 if path.stat().st_size > 4096: continue
@@ -57,7 +66,8 @@ class EmoteLibrary:
                 script = self.path(item['id'])
                 if script.is_file() and item['id'] not in BUILTINS:
                     result.append({'id': item['id'], 'title': str(item['title'])[:80], 'builtin': False,
-                                   'description': str(item.get('description', ''))[:300]})
+                                   'description': str(item.get('description', ''))[:300],
+                                   'seconds': animation_seconds(item.get('seconds', 4))})
             except (OSError, ValueError, KeyError, TypeError):
                 continue
         return result
@@ -94,8 +104,8 @@ class EmoteRunner:
         if process:
             threading.Thread(target=self.terminate, args=(process,), daemon=True).start()
 
-    def play(self, path, seconds=12):
-        self.stop()
+    def play(self, path, seconds=12, *, duration=None):
+        selected = animation_seconds(duration) if duration is not None else None
         seconds = float(seconds)
         if not 1 <= seconds <= 30: raise ValueError('Script run limit must be 1–30 seconds')
         path = Path(path).resolve(strict=True)
@@ -103,6 +113,11 @@ class EmoteRunner:
         compile(path.read_text(), str(path), 'exec')
         source = str(Path(__file__).resolve().parents[4])
         env = {**os.environ, 'PYTHONPATH': source + os.pathsep + os.environ.get('PYTHONPATH', '')}
+        env.pop('HYPRCHAN_EMOTE_SECONDS', None)
+        if selected is not None:
+            env['HYPRCHAN_EMOTE_SECONDS'] = str(selected)
+            seconds = selected+2  # Interpreter startup and a final neutral frame.
+        self.stop()
         process = subprocess.Popen([sys.executable, '-u', str(path)], cwd=path.parent, env=env,
                                    stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                    start_new_session=True)
@@ -110,10 +125,11 @@ class EmoteRunner:
             self.process = process
             self.identity = path.stem
             self.event = {'state': 'playing', 'id': path.stem}
-        threading.Thread(target=self.read, args=(process, path.stem, seconds), daemon=True).start()
-        return {'started': True, 'id': path.stem, 'maxSeconds': seconds}
+        threading.Thread(target=self.read, args=(process, path.stem, seconds, selected), daemon=True).start()
+        return {'started': True, 'id': path.stem, 'maxSeconds': seconds, 'seconds': selected}
 
-    def read(self, process, identity, seconds):
+    def read(self, process, identity, seconds, selected=None):
+        started = time.monotonic()
         errors = bytearray()
         timed_out = threading.Event()
         def drain_errors():
@@ -140,6 +156,13 @@ class EmoteRunner:
             if process.returncode and not timed_out.is_set():
                 error = errors.decode(errors='replace').strip()[-1000:] or f'Emote exited ({process.returncode})'
             if not frames and not error: error = 'Emote produced no animation frames'
+            # Direct frame() scripts can finish early; retain their last pose
+            # for the chosen duration. Stop/new playback interrupts this hold.
+            if selected is not None and frames and not error and not timed_out.is_set():
+                while time.monotonic()-started < selected:
+                    with self.lock:
+                        if self.process is not process: break
+                    time.sleep(min(.02, max(0, selected-(time.monotonic()-started))))
         except Exception as exc:
             error = str(exc)
         finally:

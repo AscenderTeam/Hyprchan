@@ -21,6 +21,7 @@ from hyprchan.core.animations.avatar3d.emotes import EmoteLibrary, EmoteRunner
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--output', required=True)
+parser.add_argument('--timing', action='store_true', help='Ask the model to choose its own duration')
 parser.add_argument('--spatial', action='store_true', help='Generate and measure face-relative wave/peace gestures')
 args = parser.parse_args()
 output = Path(args.output); output.parent.mkdir(parents=True, exist_ok=True)
@@ -62,6 +63,9 @@ with tempfile.TemporaryDirectory(prefix='hyprchan-avatar-test-') as temporary:
             'sign directly in front of your face while tilting your head, then lower your hand. '
             'Only animate; do not access files, network or system commands. Use emote_create and one short final sentence.',
             'hi']
+    if args.timing:
+        requests=['hi', 'Invent and play a cute reusable gesture called duration_choice. Choose its duration yourself, at least three seconds, appropriate for a short gesture with anticipation and a smooth return. Use one animate() call. Only animate; do not use files, network or system commands. Finish with one short sentence.', 'hi']
+    animation_started=None
     deadline = time.monotonic()+120
     next_index = None
     running_id = None
@@ -80,16 +84,17 @@ with tempfile.TemporaryDirectory(prefix='hyprchan-avatar-test-') as temporary:
                 a = event['arguments']
                 try:
                     if event['tool'] == 'emote_create':
-                        result = library.save(a['id'],a['title'],a['description'],a['python_code'])
+                        result = library.save(a['id'],a['title'],a['description'],a['python_code'],a['seconds'])
                         report['scripts'].append({'id':a['id'],'code':a['python_code']})
                         (output.parent/(a['id']+'.py')).write_text(a['python_code'])
                         if a['play_now']:
-                            result.update(runner.play(library.path(a['id']),30))
+                            result.update(runner.play(library.path(a['id']),duration=a['seconds']))
                             running_id=a['id']
                         result['saved'] = True
                     else:
-                        result = runner.play(library.path(a['id']),a['seconds'])
+                        result = runner.play(library.path(a['id']),duration=a['seconds'])
                         running_id=a['id']
+                    animation_started=time.monotonic()
                     report['emotes'].append({'tool':event['tool'],'result':result})
                     send({'type':'emote_result','requestId':event['requestId'],'result':result})
                     send({'type':'emote_state','mode':'3d','items':library.list()})
@@ -116,6 +121,7 @@ with tempfile.TemporaryDirectory(prefix='hyprchan-avatar-test-') as temporary:
                     item['maxLateralM']=max(item['maxLateralM'],abs(hand['palmFromFace'][0]))
                     if hand['shape'] not in item['shapes']: item['shapes'].append(hand['shape'])
             if animation and animation['state'] in {'finished','error'}:
+                animation['wallSeconds']=round(time.monotonic()-animation_started,3) if animation_started else None
                 report['animations'].append(animation)
                 report['animation']=animation
                 send({'type':'emote_state','mode':'3d','items':library.list(),'lastEvent':animation})
@@ -126,6 +132,10 @@ with tempfile.TemporaryDirectory(prefix='hyprchan-avatar-test-') as temporary:
         else: raise TimeoutError('Model/emote test timed out')
         assert report['emotes'] and report['animation']['state']=='finished', report
         assert len(report['turns']) == len(requests)
+        if args.timing:
+            seconds=report['emotes'][0]['result']['seconds']
+            assert 3<=seconds<=30 and seconds<=report['animation']['wallSeconds']<seconds+2
+            assert not report['animation']['timedOut']
         if args.spatial:
             for identity,shape in [('face_wave_test','open'),('face_peace_test','peace')]:
                 item=report['spatial'][identity]

@@ -21,7 +21,7 @@ class EmotesTest(unittest.TestCase):
         self.runner.stop()
         self.temp.cleanup()
 
-    def finish(self, timeout=3):
+    def finish(self, timeout=5):
         deadline = time.monotonic()+timeout
         frames = []
         while time.monotonic() < deadline:
@@ -51,6 +51,29 @@ class EmotesTest(unittest.TestCase):
         self.assertEqual(self.library.path('saved').read_text(), 'print(1)')
         for identity in ('../outside', '/tmp/escape', 'happy'):
             with self.assertRaises(ValueError): self.library.save(identity, 'Bad', '', 'pass')
+
+    def test_selected_duration_retimes_the_script_and_survives_reopen(self):
+        self.library.save('retimed', 'Retimed', 'Synthetic duration check',
+            "from hyprchan.core.animations.avatar3d.emote_api import animate\n"
+            "animate(20, lambda t: {'expressions': {'puff': 1-t}})\n", seconds=3.2)
+        item = next(item for item in EmoteLibrary(self.temp.name).list() if item['id']=='retimed')
+        self.assertEqual(item['seconds'],3.2)
+        started=time.monotonic()
+        self.runner.play(self.library.path('retimed'),duration=item['seconds'])
+        frames,event=self.finish()
+        self.assertGreaterEqual(time.monotonic()-started,3.2)
+        self.assertFalse(event['timedOut'])
+        self.assertEqual(event['state'],'finished')
+        self.assertEqual(frames[-1]['expressions']['puff'],0)
+        self.assertGreaterEqual(event['frames'],90)
+
+    def test_invalid_duration_does_not_replace_a_working_script(self):
+        self.library.save('saved', 'Saved', '', 'print(1)',seconds=7)
+        for seconds in (2.99,31,float('nan'),float('inf')):
+            with self.assertRaises(ValueError):
+                self.library.save('saved', 'Bad', '', 'pass',seconds=seconds)
+            with self.assertRaises(ValueError): self.runner.play(self.library.path('saved'),duration=seconds)
+        self.assertEqual(self.library.path('saved').read_text(),'print(1)')
 
     def test_sdk_passes_spatial_hands_through_real_subprocess(self):
         self.library.save('front_pose', 'Front pose', 'Synthetic test',

@@ -33,11 +33,17 @@ package install or upgrade was needed on the tested Asahi machine.
 
 ## Emote tools and scripts
 
-The model has `emote_create(id, title, description, python_code, play_now)` and
+The model has `emote_create(id, title, description, python_code, play_now, seconds)` and
 `emote_play(id, seconds)`. It sees the current library, appearance mode and last
 run result. The creation tool syntax-checks the source and saves it before
 acknowledging success. A started script is not reported as a verified visual
-result. Scripts normally run for a few seconds; the maximum run is 30 seconds.
+result. The model chooses a duration of **3–30 seconds** for creation and playback, and
+saved metadata retains it for picker replay. `animate()` automatically uses that
+selected duration, retiming the whole gesture. Use one call with phase branches
+for a sequence; manual frame loops can read `duration()` from the SDK. A separate
+watchdog adds two seconds for interpreter startup and completion. Stop interrupts
+at any time, including during the three-second minimum. Old metadata defaults to
+four seconds until the model supplies another duration.
 
 **Executable emotes have full account permissions, including files and network.**
 They run as separate Python processes, not in a sandbox. The Stop button,
@@ -279,3 +285,9 @@ python scripts/bench_avatar_agent.py --spatial --output /tmp/hyprchan-avatar-spa
 The last command uses the real authenticated Codex route and executes the
 synthetic animation it generates. It uses no personal memories, images, audio,
 web search or notifications.
+
+## Printed emblem lighting and selectable timing (2026-10-17)
+
+The gold-orange background and rounded teal W now inherit the actual hoodie surface, interpolated normals and skin weights. They receive the same MToon light ramp and cast shadows as the fabric. The print does not have a separate outline hull or cast a floating shadow. Front and hand-over-chest GL captures were reviewed.
+
+The model chose a four-second gesture in an authenticated local Codex test and its script completed 121 frames in 4.025 seconds without timeout. A separate subprocess regression retimed a 20-second script to the selected 3.2 seconds and verified its final frame; invalid sub-three-second, over-limit and nonfinite choices are rejected. All 45 Python and 39 Node checks passed. Evidence: [avatar-duration-20261017.json](../benchmarks/codex-rp/results/avatar-duration-20261017.json).

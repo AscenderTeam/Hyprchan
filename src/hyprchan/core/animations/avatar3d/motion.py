@@ -111,7 +111,7 @@ class AvatarMotion:
             raise ValueError(f'Unknown emote: {name}')
         self.script_frame = None
         self.emote, self.emote_at = name, time.monotonic()
-        self.duration = max(.5, min(30, float(duration)))
+        self.duration = max(3, min(30, float(duration)))
         self.intensity = max(0, min(1, float(intensity)))
 
     def set_frame(self, frame):

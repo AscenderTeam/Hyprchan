@@ -13,9 +13,10 @@ def linear(rgb):
 
 def portrait_material(material):
     name = material['name']
+    printed = name in {'Sunshine emblem', 'Hyprchan W'}
     source = material.get('extensions', {}).get('VRMC_materials_mtoon', {})
     kind = (1 if 'HAIR' in name else 2 if 'EyeIris' in name else
-            3 if 'SKIN' in name else 4 if name.startswith('Hoodie') else
+            3 if 'SKIN' in name else 4 if name.startswith('Hoodie') or printed else
             5 if 'FaceBrow' in name else 6 if 'FaceEyeline' in name else 0)
     result = dict(kind=kind, shift=source.get('shadingShiftFactor', 0),
                   toony=source.get('shadingToonyFactor', .9),
@@ -32,10 +33,10 @@ def portrait_material(material):
     elif kind == 4:
         result.update(shift=-.13, toony=.88, shade=linear([.61, .68, .84]),
                       rim=linear([.14, .24, .30]), outline=linear([.21, .29, .39]), width=.0011)
-    elif name in {'Sunshine emblem', 'Hyprchan W'}:
-        # These are ink on fabric. An inverted hull around a flat stroke would
-        # expose internal triangulation at its rounded corners.
-        result.update(shift=.5, shade=[1,1,1], rim=[0,0,0], width=0)
+        if printed:
+            # Ink receives the fabric's lighting and cast shadows. It has no
+            # separate silhouette: a hull would expose stroke triangulation.
+            result['width'] = 0
     elif name.startswith('Sunshine'):
         result.update(shift=0, shade=linear([.80, .57, .28]),
                       outline=linear([.35, .25, .14]), width=.00055)

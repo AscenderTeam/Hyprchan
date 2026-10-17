@@ -4,6 +4,8 @@ Example: animate(4, lambda t: {'expressions': {'puff': sin(pi*t)**2}}).
 Scripts can import any other Python module; this is a protocol, not a sandbox.
 """
 import json
+import math
+import os
 import time
 
 HAND_SHAPES = {'open', 'relaxed', 'fist', 'peace', 'point'}
@@ -30,9 +32,16 @@ def hand_target(position=(0, -.02, .14), *, space='face', shape='open', roll=0, 
     return {'position': list(position), 'space': space, 'shape': shape, 'roll': roll, 'weight': weight}
 
 
+def duration(default=4):
+    """The model-selected duration, or a standalone script's own 3–30s default."""
+    seconds = float(os.environ.get('HYPRCHAN_EMOTE_SECONDS', default))
+    if not math.isfinite(seconds): raise ValueError('Animation duration must be finite')
+    return max(3, min(30, seconds))
+
+
 def animate(seconds, sample, fps=30):
     """Call sample(progress 0..1); emit its pose at a paced frame rate."""
-    seconds = max(.05, min(30, float(seconds)))
+    seconds = duration(seconds)
     fps = max(1, min(60, float(fps)))
     start = time.monotonic()
     index = 0
