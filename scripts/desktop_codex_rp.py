@@ -18,7 +18,7 @@ import subprocess
 import sys
 import threading
 import time
-from desktop_speech_output import SpeechPhrases, transcript_line
+from desktop_speech_output import SpeechPhrases, transcript_line, voice_enabled, save_voice_enabled
 
 ROOT = Path(__file__).resolve().parents[1]
 RUNTIME = Path(os.getenv("XDG_RUNTIME_DIR", f"/run/user/{os.getuid()}")) / "hyprchan-codex"
@@ -83,7 +83,7 @@ def main() -> int:
             self.reactions_wanted = not args.no_reactions
             self.memory_wanted = not args.no_memory
             self.audio_wanted = not args.no_audio_awareness
-            self.voice_wanted = not args.no_voice
+            self.voice_wanted = not args.no_voice and voice_enabled()
             self.notifications_wanted = not args.no_notifications and os.getenv("HYPRCHAN_NOTIFICATIONS") != "off"
             self.tts_ready = False
             self.tts_id = None
@@ -559,10 +559,11 @@ def main() -> int:
                     elif kind == "generated":
                         self.stats["last_tts"] = {key: event.get(key) for key in ("firstPcmMs", "synthMs", "language")}
                     elif kind == "playing":
+                        self.stats["tts_sink"] = event.get("sink", self.stats.get("tts_sink"))
                         self.stats.setdefault("last_tts", {}).update(firstWriteMs=event["firstWriteMs"])
                         if self.tts_started_at is not None:
                             self.stats["last_tts"]["inputToPlaybackWriteMs"] = round((time.monotonic() - self.tts_started_at) * 1000, 1)
-                        self.voice_status.set_label("Speaking · tap Stop or speak to interrupt")
+                        self.voice_status.set_label("Speaking · " + event.get("sinkLabel", "selected output"))
                     elif kind in {"done", "cancelled"}:
                         self.avatar.motion.voice(0)
                         if kind == "done":
@@ -775,6 +776,10 @@ def main() -> int:
             button.set_label("Voice on" if self.voice_wanted else "Voice off")
             if not self.voice_wanted:
                 self.stop_voice()
+            try:
+                save_voice_enabled(self.voice_wanted)
+            except OSError as error:
+                self.show_error("Could not save voice preference: " + str(error))
             self.voice_status.set_label("Ready · local Russian + English" if self.voice_wanted and self.tts_ready else "Voice off")
 
         def stop_voice(self):

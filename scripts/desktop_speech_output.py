@@ -1,5 +1,56 @@
 """Turn streamed companion text into bounded spoken phrases (no audio I/O)."""
+import json
+import os
+from pathlib import Path
 import re
+import subprocess
+
+
+def voice_settings_path():
+    return Path(os.getenv("XDG_CONFIG_HOME", str(Path.home()/".config")))/"hyprchan/voice.json"
+
+
+def voice_enabled():
+    path = voice_settings_path()
+    if not path.exists():
+        return True
+    try:
+        return json.loads(path.read_text()).get("enabled") is True
+    except (OSError, ValueError, AttributeError):
+        return False
+
+
+def save_voice_enabled(enabled):
+    path = voice_settings_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_suffix(".tmp")
+    with temporary.open("w") as stream:
+        json.dump({"enabled": bool(enabled)}, stream)
+        stream.write("\n")
+    temporary.replace(path)
+
+
+def playback_target(requested=None):
+    """Resolve just before playback, and lock to this exact PipeWire node.
+
+    A missing explicit target is an error, never an invitation to use speakers.
+    The serial prevents a removed device's replacement from inheriting a stream.
+    """
+    if not requested:
+        requested = subprocess.check_output(["pactl", "get-default-sink"], text=True, timeout=3).strip()
+    sinks = json.loads(subprocess.check_output(["pactl", "-f", "json", "list", "sinks"],
+                                              text=True, timeout=3))
+    for sink in sinks:
+        serial = str(sink.get("properties", {}).get("object.serial", ""))
+        if requested in {sink["name"], serial} and serial.isdigit():
+            return sink["name"], serial, sink.get("description", sink["name"])
+    raise RuntimeError("Selected voice output is unavailable. Speech stays silent.")
+
+
+def playback_properties():
+    return {"application.name": "Hyprchan voice", "node.name": "hyprchan-voice",
+            "media.name": "Hyprchan speech", "node.dont-reconnect": True,
+            "node.dont-fallback": True, "node.dont-move": True}
 
 
 def spoken_text(text):

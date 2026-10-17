@@ -14,7 +14,7 @@ import time
 from array import array
 import math
 
-from desktop_speech_output import speech_language
+from desktop_speech_output import speech_language, playback_target, playback_properties
 from desktop_local_voices import load_voices
 
 OUTPUT_LOCK = threading.Lock()
@@ -46,14 +46,13 @@ class SpeechOutput:
         self.synthesis = queue.Queue(maxsize=32)
         self.audio = queue.Queue(maxsize=16)
         self.mouth_frames = queue.Queue(maxsize=4096)
-        self.target = os.getenv("HYPRCHAN_TTS_SINK") or subprocess.check_output(
-            ["pactl", "get-default-sink"], text=True, timeout=3).strip()
+        self.target = os.getenv("HYPRCHAN_TTS_SINK")
         self.volume = max(0, min(1, float(os.getenv("HYPRCHAN_TTS_VOLUME", "0.65"))))
         threads = max(1, min(8, int(os.getenv("HYPRCHAN_TTS_THREADS", "4"))))
         self.voices, labels, backend = load_voices(threads)
         for language, voice in self.voices.items():
             list(voice.synthesize("Привет!" if language == "ru" else "Hi!"))
-        emit("ready", voices=labels, engine=backend, sink=self.target, threads=threads)
+        emit("ready", voices=labels, engine=backend, sink=self.target or "System default", threads=threads)
         self.threads = [threading.Thread(target=target, daemon=True) for target in
                         [self.synthesize, self.play, self.animate_mouth]]
         for thread in self.threads:
@@ -183,10 +182,10 @@ class SpeechOutput:
                         if job.cancelled.is_set():
                             child = playing = None
                             continue
-                        props = {"application.name": "Hyprchan voice", "node.name": "hyprchan-voice",
-                                 "media.name": "Hyprchan speech", "node.dont-reconnect": True}
+                        sink, serial, label = playback_target(self.target)
+                        props = playback_properties()
                         child = subprocess.Popen(["pw-play", "--raw", "--format", "s16", "--rate", str(chunk.sample_rate),
-                            "--channels", "1", "--latency", "20ms", "--target", self.target,
+                            "--channels", "1", "--latency", "20ms", "--target", serial,
                             "--volume", str(self.volume), "-P", json.dumps(props), "-"],
                             stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, bufsize=0)
                         self.player = child
@@ -211,7 +210,8 @@ class SpeechOutput:
                     if job.first_write_ms is None:
                         job.first_write_ms = (time.monotonic() - job.started) * 1000
                         emit("playing", id=job.identity, firstWriteMs=round(job.first_write_ms, 1),
-                             firstPcmMs=round(job.first_pcm_ms, 1), language=job.language)
+                             firstPcmMs=round(job.first_pcm_ms, 1), language=job.language,
+                             sink=sink, sinkLabel=label)
             except Exception as exc:
                 self.fail(job, str(exc))
                 if child:

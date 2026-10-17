@@ -1,5 +1,10 @@
 import unittest
-from desktop_speech_output import SpeechPhrases, spoken_text, speech_language, transcript_line
+import json
+import tempfile
+from unittest.mock import patch
+from desktop_speech_output import (SpeechPhrases, spoken_text, speech_language, transcript_line,
+                                   playback_target, playback_properties, voice_enabled,
+                                   save_voice_enabled, voice_settings_path)
 
 
 class SpeechTextTests(unittest.TestCase):
@@ -40,6 +45,37 @@ class SpeechTextTests(unittest.TestCase):
                          "[2/5] Unclear audio — could not transcribe reliably")
         self.assertEqual(speech_language("Привет, ня!"), "ru")
         self.assertEqual(speech_language("Hi, nyah!"), "en")
+
+
+class VoiceRoutingTests(unittest.TestCase):
+    def test_mute_survives_reopen_and_invalid_settings_stay_muted(self):
+        with tempfile.TemporaryDirectory() as directory, patch.dict("os.environ", {"XDG_CONFIG_HOME": directory}):
+            save_voice_enabled(False)
+            self.assertFalse(voice_enabled())
+            save_voice_enabled(True)
+            self.assertTrue(voice_enabled())
+            voice_settings_path().write_text("broken")
+            self.assertFalse(voice_enabled())
+
+    def test_new_utterance_uses_changed_default_instead_of_startup_speakers(self):
+        sinks = json.dumps([
+            {"name": "speakers", "properties": {"object.serial": "10"}},
+            {"name": "headphones", "properties": {"object.serial": "20"}, "description": "Headphones"}])
+        with patch("desktop_speech_output.subprocess.check_output", side_effect=["speakers\n", sinks, "headphones\n", sinks]):
+            self.assertEqual(playback_target()[0], "speakers")
+            self.assertEqual(playback_target(), ("headphones", "20", "Headphones"))
+
+    def test_missing_headphones_never_resolve_to_speakers_or_query_default(self):
+        sinks = json.dumps([{"name": "speakers", "properties": {"object.serial": "10"}}])
+        with patch("desktop_speech_output.subprocess.check_output", return_value=sinks) as run:
+            with self.assertRaisesRegex(RuntimeError, "stays silent"):
+                playback_target("headphones")
+            self.assertEqual(run.call_count, 1)
+            self.assertNotIn("get-default-sink", run.call_args.args[0])
+        properties = playback_properties()
+        self.assertTrue(properties["node.dont-fallback"])
+        self.assertTrue(properties["node.dont-reconnect"])
+        self.assertTrue(properties["node.dont-move"])
 
 
 if __name__ == "__main__":
