@@ -701,7 +701,13 @@ def main() -> int:
             elif kind == "transcript":
                 if self.mic_wanted or event.get("origin") == "test_audio":
                     self.stats["last_speech_model"] = event.get("model")
+                    self.stats['last_recognition_attempts'] = event.get('attempts', 1)
                     self.queue_message(event["text"], event.get("origin", "microphone"), event)
+            elif kind == 'transcription_rejected':
+                self.stats['rejected_transcripts'] = self.stats.get('rejected_transcripts', 0)+1
+                self.stats['last_recognition_rejection'] = {key: event.get(key) for key in
+                    ('rejectionReason', 'retryReason', 'attempts', 'audioSeconds', 'model')}
+                self.mic_status.set_label(event['message'])
             elif kind == "notice":
                 self.mic_status.set_label(event["message"])
             return False

@@ -21,7 +21,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 from speech_endpoint import VoiceSegmenter  # noqa: E402
 from desktop_listen_in import capture_stream, listen_plan
-from desktop_transcription import transcribe_playback
+from desktop_transcription import transcribe_playback, transcribe_microphone
 
 OUTPUT_LOCK = threading.Lock()
 
@@ -147,6 +147,7 @@ class SpeechWorker:
             if not ambient:
                 emit("transcribing", active=True)
             started = time.monotonic()
+            rejected = None
             try:
                 if ambient:
                     # The companion cannot know a new stream's language before
@@ -160,19 +161,20 @@ class SpeechWorker:
                                  sttMs=round((time.monotonic() - started) * 1000, 1))
                 else:
                     name = self.model_name(language)
-                    segments, info = self.models[name].transcribe(
-                        audio, language=language, beam_size=1, temperature=0,
-                        condition_on_previous_text=False, vad_filter=True,
-                        vad_parameters={"min_silence_duration_ms": 200},
-                        no_speech_threshold=0.6, log_prob_threshold=-1,
-                        hallucination_silence_threshold=1,
-                    )
-                    text = " ".join(part.text.strip() for part in segments).strip()
-                    if generation == self.generation and text:
-                        emit("transcript", text=text, language=info.language,
-                             sttMs=round((time.monotonic() - started) * 1000, 1),
-                             endpointMs=round((time.monotonic() - endpoint) * 1000, 1),
-                             origin=origin, silenceMs=silence_ms, model=name)
+                    recovery = self.model_name(None)
+                    result = transcribe_microphone(self.models[name], audio, language,
+                        retry_model=self.models[recovery],
+                        cancelled=lambda: generation != self.generation or not self.running)
+                    if result is not None and generation == self.generation:
+                        if result['attempts'] > 1: name = recovery
+                        if result['text']:
+                            emit("transcript", **result,
+                                 sttMs=round((time.monotonic() - started) * 1000, 1),
+                                 endpointMs=round((time.monotonic() - endpoint) * 1000, 1),
+                                 origin=origin, silenceMs=silence_ms, model=name)
+                        elif result['recognitionStatus'] == 'unclear':
+                            rejected = {key: result[key] for key in ('rejectionReason','retryReason','attempts','audioSeconds')}
+                            rejected['model'] = name
             except Exception as exc:
                 if ambient:
                     with self.lock:
@@ -183,6 +185,9 @@ class SpeechWorker:
             finally:
                 if not ambient:
                     emit("transcribing", active=False)
+                    if rejected and generation == self.generation:
+                        emit("transcription_rejected", **rejected,
+                             message="Speech was unclear after a retry; please say that again.")
 
     def stop_listening(self):
         with self.lock:
