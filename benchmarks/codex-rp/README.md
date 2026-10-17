@@ -152,6 +152,8 @@ The model can call `listen_in(serial, seconds, language)` for one available play
 
 Audio observations use the same interruptible background path as screen checks; user typing/speech has priority. Channel events and each transcript chunk can consume inference even when she chooses silence. Saving facts adds tool round trips, so those turns can take several seconds. A greeting needs no tools.
 
+Each **Heard** transcript chunk also requests a fresh screenshot when visual capture is enabled. The caption appears immediately; model delivery waits at most 700 ms for the paired image. Only the desktop screenshot is attached, with its capture time, so she can connect recognized words with visible context without assuming the visible window is the audio source. If capture is off or unavailable, the transcript proceeds as text. Disabling capture discards pending screenshots. This adds image input to the existing audio-observation turn, without creating a separate screen-reaction turn. Microphone messages already receive the normal automatic visual context.
+
 Control examples: `--control '{"type":"memory","active":false}'`, `--control '{"type":"audio","active":false}'`, `--control '{"type":"reactions","active":false}'`, `--control '{"type":"voice","active":false}'`, and `--control '{"type":"stop_voice"}'`. The microphone mute button controls microphone capture independently of playback awareness and camera capture.
 
 Run the targeted checks with:

@@ -11,7 +11,11 @@ export function chatInput(command, previousSnapshot = null, now = Date.now()) {
   const input = [{ type: 'text', text:
     `Current fictional mood: fatigue ${mood.f}/100, valence ${mood.v}, energy ${mood.e}, arousal ${mood.a}.\n${request}` }];
   const vision = command.vision;
-  const snapshot = vision?.snapshot;
+  const suppliedSnapshot = vision?.snapshot;
+  // Playback transcripts get desktop context; a webcam is not needed to hear media.
+  const snapshot = command.observation && suppliedSnapshot
+    ? { ...suppliedSnapshot, images: suppliedSnapshot.images?.filter(image => image.kind === 'screen') }
+    : suppliedSnapshot;
   if (!vision?.enabled || !snapshot?.images?.length) {
     input.push({ type: 'text', text: vision?.enabled
       ? 'Automatic visual context: no current images are available. Earlier images, if any, are historical; do not claim a live view.'

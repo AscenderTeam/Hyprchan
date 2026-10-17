@@ -556,6 +556,12 @@ def main() -> int:
                         for request_id in event.get("requestIds", []):
                             if request_id in self.look_requests:
                                 self.finish_look(request_id, snapshot=event["snapshot"])
+                        for observation in self.pending_audio:
+                            if observation.get("_screen_request") in event.get("requestIds", []):
+                                observation["_screen_snapshot"] = {**event["snapshot"], "images": [
+                                    image for image in event["snapshot"]["images"] if image["kind"] == "screen"]}
+                                observation.pop("_screen_deadline", None)
+                                self.stats["heard_screen_captures"] = self.stats.get("heard_screen_captures", 0) + 1
                         if (self.reactions_wanted and event.get("reason") == "periodic" and
                                 not event.get("requestIds")):
                             self.pending_reaction = event["snapshot"]
@@ -578,7 +584,14 @@ def main() -> int:
                     self.stats["last_listen_chunk"] = {key: event.get(key) for key in ("jobId", "index", "total", "sttMs")}
                     self.audio_status.set_label(f"{event['name']} · heard {event['index']}/{event['total']}" if event["text"] else
                                                 f"{event['name']} · no clear speech in {event['index']}/{event['total']}")
-                    self.pending_audio.append({**event, "observedAt": time.time()})
+                    observation = {**event, "observedAt": time.time()}
+                    self.pending_audio.append(observation)
+                    if self.vision_wanted and self.vision_ready:
+                        observation["_screen_request"] = f"heard-{event['jobId']}-{event['index']}"
+                        observation["_screen_deadline"] = time.monotonic() + .7
+                        if not self.send("vision", {"type": "refresh", "reason": "heard",
+                                                    "id": observation["_screen_request"]}):
+                            observation.pop("_screen_deadline", None)
                     self.audio_pending_at = 0
                     view = self.listen_views.get(event["jobId"])
                     if view:
@@ -731,18 +744,26 @@ def main() -> int:
                     self.entry.get_text().strip() or now - self.last_user_activity < 2):
                 return True
             if self.audio_wanted and self.pending_audio and now - self.audio_pending_at >= 1:
+                # Captions render immediately. Only model delivery briefly waits
+                # for the screenshot paired with this particular heard chunk.
+                if now < self.pending_audio[0].get("_screen_deadline", 0):
+                    return True
                 observation = self.pending_audio.pop(0)
                 if time.time() - observation["observedAt"] > 60:
                     return True
+                snapshot = observation.pop("_screen_snapshot", None) if self.vision_wanted else None
+                observation = {key: value for key, value in observation.items() if not key.startswith("_screen_")}
                 self.sequence += 1
                 self.current = {"id": self.sequence, "source": "audio", "started": now,
-                                "captured_at": observation["observedAt"]}
+                                "captured_at": observation["observedAt"],
+                                "observation_type": observation["type"], "chunk_index": observation.get("index"),
+                                "screen_captured_at": snapshot["captured_at"] if snapshot else None}
                 self.busy = True
                 self.status.set_label("Noticing the audio…")
                 if not self.send("model", {"type": "react", "id": self.sequence,
                         "language": ["auto", "en", "ru"][self.language.get_selected()],
                         "mood": self.mood_values[self.mood.get_selected()], "observation": observation,
-                        "vision": {"enabled": self.vision_wanted, "snapshot": None}}):
+                        "vision": {"enabled": self.vision_wanted, "snapshot": snapshot}}):
                     self.busy = False
                     self.current = None
                 return True
@@ -777,6 +798,11 @@ def main() -> int:
             self.stats["last_reaction_timing"].update(
                 capturedAt=self.current["captured_at"],
                 elapsedMs=round((time.monotonic() - self.current["started"]) * 1000, 1))
+            if self.current.get("observation_type") == "listen_chunk":
+                self.stats["heard_chunks_processed"] = self.stats.get("heard_chunks_processed", 0) + 1
+                self.stats["heard_chunks_with_screen"] = self.stats.get("heard_chunks_with_screen", 0) + event.get("imageCount", 0)
+                self.stats["last_heard_timing"] = {**self.stats["last_reaction_timing"],
+                    "index": self.current["chunk_index"], "screenCapturedAt": self.current["screen_captured_at"]}
             error = None
             if event["status"] == "completed" and not self.current.get("cancelled"):
                 self.stats["reaction_checks"] += 1
@@ -826,6 +852,10 @@ def main() -> int:
             if not self.vision_wanted:
                 for request_id in list(self.look_requests):
                     self.finish_look(request_id, error="Camera and screen capture are off")
+                for observation in self.pending_audio:
+                    for key in list(observation):
+                        if key.startswith("_screen_"):
+                            observation.pop(key)
             self.vision_generation += 1
             self.stats["vision_error"] = None
             if self.vision_ready:

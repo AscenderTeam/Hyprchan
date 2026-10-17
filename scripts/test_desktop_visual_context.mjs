@@ -64,3 +64,25 @@ test('autonomous observations use a NO_REPLY gate without inventing a user messa
   assert.match(result.input[0].text, /Use Russian/);
   assert.doesNotMatch(result.input[0].text, /User message:/);
 });
+
+test('heard transcripts include their paired screenshot without a webcam or invented user message', () => {
+  const result = chatInput({ type: 'react', language: 'ru',
+    observation: { type: 'listen_chunk', jobId: 1, index: 2, total: 5, text: 'A public test phrase.' },
+    vision: { enabled: true, snapshot } }, null, 102000);
+  assert.equal(result.imageCount, 1);
+  assert.equal(result.input.find(item => item.type === 'image').url, snapshot.images[1].url);
+  assert.match(result.input[0].text, /A public test phrase/);
+  assert.match(result.input[0].text, /screenshot accompanies/);
+  assert.match(result.input[0].text, /exactly NO_REPLY/);
+  assert.doesNotMatch(result.input[0].text, /User message:/);
+  assert.match(result.input[1].text, /2\.0 seconds ago.*Available sources: screen\./);
+});
+
+test('capture off keeps a heard transcript text-only even with a previously paired screenshot', () => {
+  const result = chatInput({ type: 'react', observation: { type: 'listen_chunk', text: 'A public test phrase.' },
+    vision: { enabled: false, snapshot } }, null, 102000);
+  assert.equal(result.imageCount, 0);
+  assert.equal(result.input.filter(item => item.type === 'image').length, 0);
+  assert.match(result.input[0].text, /A public test phrase/);
+  assert.match(result.input[1].text, /capture are off/);
+});
