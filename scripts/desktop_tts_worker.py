@@ -11,6 +11,8 @@ import subprocess
 import sys
 import threading
 import time
+from array import array
+import math
 
 from desktop_speech_output import speech_language
 from desktop_local_voices import load_voices
@@ -32,6 +34,7 @@ class SpeechJob:
     segments: int = 0
     first_pcm_ms: float | None = None
     first_write_ms: float | None = None
+    mouth_until: float = 0
 
 
 class SpeechOutput:
@@ -42,6 +45,7 @@ class SpeechOutput:
         self.player = None
         self.synthesis = queue.Queue(maxsize=32)
         self.audio = queue.Queue(maxsize=16)
+        self.mouth_frames = queue.Queue(maxsize=4096)
         self.target = os.getenv("HYPRCHAN_TTS_SINK") or subprocess.check_output(
             ["pactl", "get-default-sink"], text=True, timeout=3).strip()
         self.volume = max(0, min(1, float(os.getenv("HYPRCHAN_TTS_VOLUME", "0.65"))))
@@ -50,7 +54,8 @@ class SpeechOutput:
         for language, voice in self.voices.items():
             list(voice.synthesize("Привет!" if language == "ru" else "Hi!"))
         emit("ready", voices=labels, engine=backend, sink=self.target, threads=threads)
-        self.threads = [threading.Thread(target=target, daemon=True) for target in [self.synthesize, self.play]]
+        self.threads = [threading.Thread(target=target, daemon=True) for target in
+                        [self.synthesize, self.play, self.animate_mouth]]
         for thread in self.threads:
             thread.start()
 
@@ -126,6 +131,19 @@ class SpeechOutput:
             child.wait()
             raise RuntimeError("Speech playback did not finish")
 
+    def animate_mouth(self):
+        """Pace PCM envelopes by sample time, independently of pipe buffering."""
+        while self.running:
+            try:
+                job, due, level = self.mouth_frames.get(timeout=.2)
+            except queue.Empty:
+                continue
+            if job.cancelled.wait(max(0, due-time.monotonic())):
+                continue
+            with self.lock:
+                if self.current is job and not job.cancelled.is_set():
+                    emit('mouth', id=job.identity, level=level)
+
     def play(self):
         child = None
         playing = None
@@ -176,12 +194,20 @@ class SpeechOutput:
                 # A cancelled player's closed pipe unblocks any backpressure here.
                 raw = chunk.audio_int16_bytes
                 offset = 0
+                # pw-play can buffer an entire phrase immediately. The envelope
+                # must follow the audio clock, not how fast stdin accepts bytes.
+                job.mouth_until = max(job.mouth_until, time.monotonic()+.02)
                 while offset < len(raw) and not job.cancelled.is_set():
                     end = min(offset + 2048, len(raw))
+                    block = raw[offset:end]
                     written = child.stdin.write(raw[offset:end])
                     if not written:
                         raise RuntimeError("Speech playback pipe closed")
                     offset += written
+                    samples = array('h', block[:written//2*2])
+                    rms = math.sqrt(sum(value*value for value in samples)/max(1, len(samples)))/32768
+                    self.enqueue(self.mouth_frames, (job, job.mouth_until, round(min(1, rms*7), 3)), job)
+                    job.mouth_until += written/(2*chunk.sample_rate)
                     if job.first_write_ms is None:
                         job.first_write_ms = (time.monotonic() - job.started) * 1000
                         emit("playing", id=job.identity, firstWriteMs=round(job.first_write_ms, 1),

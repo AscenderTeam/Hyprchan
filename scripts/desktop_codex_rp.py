@@ -137,12 +137,17 @@ def main() -> int:
                 .muted { color: #a2b8bd; font-size: 12px; }
                 .message { padding: 12px; border-radius: 12px; background: #20343d; }
                 .user { background: #234c50; }
+                window.hyprchan-chat button, window.hyprchan-chat entry {
+                    background: #243b46; color: #e8f7f6; border-color: #45616c;
+                }
+                window.hyprchan-chat button:hover { background: #315361; }
+                window.hyprchan-chat button:checked { background: #28655f; }
                 button { padding: 8px 12px; }
                 entry { padding: 8px; }
                 levelbar block.filled { background: #6ddcc7; }
             """)
             Gtk.StyleContext.add_provider_for_display(Gdk.Display.get_default(), css,
-                                                      Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+                                                      Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION + 1)
             outer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
             for side in ("top", "bottom", "start", "end"):
                 getattr(outer, f"set_margin_{side}")(18)
@@ -202,6 +207,14 @@ def main() -> int:
             self.mic_status = Gtk.Label(label="Preparing local speech recognition…", xalign=0)
             self.mic_status.add_css_class("muted")
             outer.append(self.mic_status)
+            awareness_panel = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+            for side in ('top', 'bottom', 'start', 'end'):
+                getattr(awareness_panel, 'set_margin_'+side)(12)
+            awareness_popup = Gtk.Popover()
+            awareness_popup.set_child(awareness_panel)
+            awareness_button = Gtk.MenuButton(label='Awareness…')
+            awareness_button.set_tooltip_text('Camera, screen reactions, memory, audio and notifications')
+            awareness_button.set_popover(awareness_popup)
             vision = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
             self.vision_button = Gtk.ToggleButton(label="Camera + screen on" if self.vision_wanted else "Camera + screen off")
             self.vision_button.set_active(self.vision_wanted)
@@ -212,7 +225,7 @@ def main() -> int:
             self.vision_status.set_hexpand(True)
             self.vision_status.add_css_class("muted")
             vision.append(self.vision_status)
-            outer.append(vision)
+            awareness_panel.append(vision)
             reactions = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
             self.reaction_button = Gtk.ToggleButton(label="Screen reactions on" if self.reactions_wanted else "Screen reactions off")
             self.reaction_button.set_active(self.reactions_wanted)
@@ -226,7 +239,7 @@ def main() -> int:
             reaction_note = Gtk.Label(label="About once a minute · quiet when there’s nothing new", xalign=0)
             reaction_note.add_css_class("muted")
             reactions.append(reaction_note)
-            outer.append(reactions)
+            awareness_panel.append(reactions)
             memory_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
             self.memory_button = Gtk.ToggleButton(label="Memory on" if self.memory_wanted else "Memory off")
             self.memory_button.set_active(self.memory_wanted)
@@ -235,7 +248,7 @@ def main() -> int:
             self.memory_status = Gtk.Label(label="Learning from chats and observations · saved locally", xalign=0)
             self.memory_status.add_css_class("muted")
             memory_row.append(self.memory_status)
-            outer.append(memory_row)
+            awareness_panel.append(memory_row)
             audio_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
             self.audio_button = Gtk.ToggleButton(label="Audio awareness on" if self.audio_wanted else "Audio awareness off")
             self.audio_button.set_active(self.audio_wanted)
@@ -245,7 +258,7 @@ def main() -> int:
             self.audio_status.set_wrap(True)
             self.audio_status.add_css_class("muted")
             audio_row.append(self.audio_status)
-            outer.append(audio_row)
+            awareness_panel.append(audio_row)
             voice_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
             self.voice_button = Gtk.ToggleButton(label="Voice on" if self.voice_wanted else "Voice off")
             self.voice_button.set_active(self.voice_wanted)
@@ -257,7 +270,9 @@ def main() -> int:
             self.voice_status = Gtk.Label(label="Warming local voices…", xalign=0)
             self.voice_status.add_css_class("muted")
             self.voice_status.set_wrap(True)
+            self.voice_status.set_hexpand(True)
             voice_row.append(self.voice_status)
+            voice_row.append(awareness_button)
             outer.append(voice_row)
             self.timing = Gtk.Label(label="Audio stays local · recognized text goes to the model", xalign=0)
             self.timing.add_css_class("muted")
@@ -281,6 +296,8 @@ def main() -> int:
             self.overlay.set_title("hyprchan-overlay")
             self.overlay.set_default_size(230, 340)
             self.overlay.connect("close-request", lambda *_: (self.overlay.hide(), True)[1])
+            from desktop_avatar import DesktopAvatar
+            self.avatar = DesktopAvatar(self, portrait)
             self.overlay.present()
             self.win.present()
             GLib.timeout_add(125, self.animate)
@@ -319,10 +336,11 @@ def main() -> int:
                         continue
                     address = "address:" + client["address"]
                     if title == "hyprchan-overlay":
-                        size = "230 340"
-                        position = f"{left + max(0, width - 250)} {top + max(0, height - 370)}"
+                        avatar_width, avatar_height = (330, 470) if self.avatar.mode == '3d' else (230, 340)
+                        size = f"{avatar_width} {avatar_height}"
+                        position = f"{left + max(0, width - avatar_width - 20)} {top + max(0, height - avatar_height - 30)}"
                     elif title == "Hyprchan · voice chat":
-                        chat_height = max(670, client["size"][1])
+                        chat_height = min(max(720, client["size"][1]), height-24)
                         size = f"840 {chat_height}"
                         position = f"{left + max(0, (width - 840) // 2)} {top + max(0, (height - chat_height) // 2)}"
                     else:
@@ -442,13 +460,19 @@ def main() -> int:
             if name == "model":
                 if kind == "ready":
                     self.model_ready = True
-                    self.stats.update(model=event["model"], tier=event["tier"], web_search=event.get("webSearch"))
+                    self.stats.update(model=event["model"], tier=event["tier"], web_search=event.get("webSearch"), reasoning=event.get('reasoning'))
+                    self.avatar.sync()
                     self.status.set_label("Ready · say hello or type below")
                     self.send("model", {"type": "memory_mode", "active": self.memory_wanted})
                     self.send("model", {"type": "audio_mode", "active": self.audio_wanted})
                     self.send("model", {"type": "vision_mode", "active": self.vision_wanted})
                     self.send("model", {"type": "notification_mode", "active": self.notifications_wanted})
                     self.start_next()
+                elif kind == 'emote_request':
+                    self.avatar.request(event)
+                elif kind == 'emote_cancelled':
+                    if self.avatar.script_request == event['requestId']:
+                        self.avatar.stop()
                 elif kind == "notification_status":
                     if event.get("sent"):
                         self.stats["notifications_sent"] = self.stats.get("notifications_sent", 0) + 1
@@ -491,12 +515,13 @@ def main() -> int:
                     self.answer.set_label("Hyprchan\n" + self.response)
                     self.overlay.set_overlay_text(self.response)
                     if event["status"] == "completed":
+                        self.avatar.motion.react(self.response)
                         # Normally deltas supplied the text; retain a non-streaming fallback.
                         delta = event["text"] if not self.current["speech_phrases"].raw else ""
                         self.speak_response(delta, final=True)
                     else:
                         self.stop_voice()
-                    timing = {key: event.get(key) for key in ("firstTextMs", "lastTextMs", "completedMs", "imageCount", "toolCalls", "webSearches", "tangentWords", "lookCalls")}
+                    timing = {key: event.get(key) for key in ("firstTextMs", "lastTextMs", "completedMs", "imageCount", "toolCalls", "webSearches", "tangentWords", "lookCalls", "effort", "reasoningTokens")}
                     timing.update(source=self.current["source"], sttMs=self.current.get("sttMs"),
                                   firstGuiMs=self.current.get("first_gui_ms"), lastGuiMs=self.current.get("last_gui_ms"),
                                   visualWaitMs=self.current.get("visual_wait_ms", 0))
@@ -527,7 +552,9 @@ def main() -> int:
                     self.stats["tts_sink"] = event["sink"]
                     self.voice_status.set_label("Local Russian + English · interrupt by speaking or typing" if self.voice_wanted else "Voice off")
                 elif event.get("id") == self.tts_id:
-                    if kind == "generated":
+                    if kind == 'mouth':
+                        self.avatar.motion.voice(event['level'])
+                    elif kind == "generated":
                         self.stats["last_tts"] = {key: event.get(key) for key in ("firstPcmMs", "synthMs", "language")}
                     elif kind == "playing":
                         self.stats.setdefault("last_tts", {}).update(firstWriteMs=event["firstWriteMs"])
@@ -535,6 +562,7 @@ def main() -> int:
                             self.stats["last_tts"]["inputToPlaybackWriteMs"] = round((time.monotonic() - self.tts_started_at) * 1000, 1)
                         self.voice_status.set_label("Speaking · tap Stop or speak to interrupt")
                     elif kind in {"done", "cancelled"}:
+                        self.avatar.motion.voice(0)
                         if kind == "done":
                             self.stats.setdefault("last_tts", {}).update(
                                 segments=event.get("segments"), elapsedMs=event.get("elapsedMs"))
@@ -742,6 +770,7 @@ def main() -> int:
             self.voice_status.set_label("Ready · local Russian + English" if self.voice_wanted and self.tts_ready else "Voice off")
 
         def stop_voice(self):
+            self.avatar.motion.voice(0)
             if self.current:
                 self.current["voice_cancelled"] = True
             if self.tts_id is not None:
@@ -844,6 +873,7 @@ def main() -> int:
                         (self.current["source"] == "screen" and self.reactions_wanted and self.vision_wanted)):
                     self.add_message("Hyprchan", event["text"])
                     self.overlay.set_overlay_text(event["text"])
+                    self.avatar.motion.react(event['text'])
                     self.current["speech_phrases"] = SpeechPhrases()
                     self.speak_response(event["text"], final=True)
                     self.stats["reactions"] += 1
@@ -1024,6 +1054,15 @@ def main() -> int:
                     self.notification_button.set_active(bool(command["active"]))
                 elif kind == "stop_voice":
                     self.stop_voice()
+                elif kind == 'avatar':
+                    self.avatar.set_mode(command['mode'])
+                elif kind == 'emote':
+                    self.avatar.play(command['id'], command.get('seconds', 6))
+                elif kind == 'emote_stop':
+                    self.avatar.stop()
+                elif kind == 'avatar_capture':
+                    if not self.avatar.widgets: raise ValueError('Select 3D first')
+                    self.avatar.widgets[-1].capture(command['path'])
                 elif kind == "snapshot":
                     self.send("vision", {"type": "refresh", "reason": "periodic"})
                 elif kind == "test_audio":
@@ -1046,6 +1085,7 @@ def main() -> int:
                             "memory_wanted": self.memory_wanted, "audio_active": self.audio_wanted,
                             "voice_active": self.voice_wanted, "tts_ready": self.tts_ready,
                             "notifications_active": self.notifications_wanted,
+                            'avatar': self.avatar.status(), 'mic_wanted': self.mic_wanted,
                             "tts_playing": self.tts_id is not None,
                             "audio_pending": len(self.pending_audio),
                             "reaction_interval_sec": self.reaction_interval,
@@ -1060,6 +1100,7 @@ def main() -> int:
 
         def shutdown_workers(self, *_):
             self.closing = True
+            if hasattr(self, 'avatar'): self.avatar.close()
             if hasattr(self, "server"):
                 self.server.close()
             SOCKET.unlink(missing_ok=True)

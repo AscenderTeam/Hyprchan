@@ -52,6 +52,13 @@ The early mood cases are synthetic descriptions, with normalized fatigue values.
 
 ## Native desktop, microphone, and vision preview
 
+The desktop preview also has a persistent **Pixel art / 3D · turquoise hoodie**
+selector, facial/body emotes and model-created Python animations. See the
+[3D avatar guide](../../docs/avatar3d.md) for controls, full-access script behavior,
+the licensed base and visual review gallery. The desktop route uses low reasoning
+for simple greetings and medium for other turns; `HYPRCHAN_CODEX_EFFORT` still
+overrides it. This differs from the fixed-low terminal experiment above.
+
 Start the companion with `./scripts/hyprchan`. It runs independently of the terminal and reopens an existing window without restarting the conversation. You can link that script as `~/.local/bin/hyprchan` for the short `hyprchan` command. Optional settings in `~/.config/hyprchan/preview-launch.json` are a JSON object of `HYPRCHAN_*` environment names and string values; explicit shell settings take precedence. The launcher discovers `~/.local/bin/codex` automatically. Close the chat window to stop her. The direct Python commands below are available for foreground debugging and control.
 
 ```sh

@@ -1,0 +1,115 @@
+{
+  "syntheticOnly": true,
+  "turns": [
+    {
+      "type": "done",
+      "id": 0,
+      "text": "*waves a sleeve* Hi! I’m here, nyah~",
+      "status": "completed",
+      "quiet": false,
+      "effort": "low",
+      "reasoningTokens": 0,
+      "firstTextMs": 2777.136,
+      "lastTextMs": 2913.762,
+      "completedMs": 2971.305,
+      "errors": [],
+      "imageCount": 0,
+      "toolCalls": 0,
+      "webSearches": 0,
+      "tangentWords": 0,
+      "lookCalls": 0,
+      "memoryCount": 0
+    },
+    {
+      "type": "done",
+      "id": 1,
+      "text": "*машу рукавом* Приве-ет, ня~",
+      "status": "completed",
+      "quiet": false,
+      "effort": "low",
+      "reasoningTokens": 0,
+      "firstTextMs": 2591.864,
+      "lastTextMs": 2660.211,
+      "completedMs": 2740.812,
+      "errors": [],
+      "imageCount": 0,
+      "toolCalls": 0,
+      "webSearches": 0,
+      "tangentWords": 0,
+      "lookCalls": 0,
+      "memoryCount": 0
+    },
+    {
+      "type": "done",
+      "id": 2,
+      "text": "*надуваю щёчки, потом улыбаюсь* Готово, хе-хе~",
+      "status": "completed",
+      "quiet": false,
+      "effort": "medium",
+      "reasoningTokens": 0,
+      "firstTextMs": 5751.957,
+      "lastTextMs": 5913.978,
+      "completedMs": 5991.645,
+      "errors": [],
+      "imageCount": 0,
+      "toolCalls": 1,
+      "webSearches": 0,
+      "tangentWords": 0,
+      "lookCalls": 0,
+      "memoryCount": 0
+    },
+    {
+      "type": "done",
+      "id": 3,
+      "text": "*waves a sleeve* Hi again! Hoodie-huff cheeks are still on standby, hehe~",
+      "status": "completed",
+      "quiet": false,
+      "effort": "low",
+      "reasoningTokens": 0,
+      "firstTextMs": 1800.8,
+      "lastTextMs": 2010.258,
+      "completedMs": 2064.622,
+      "errors": [],
+      "imageCount": 0,
+      "toolCalls": 0,
+      "webSearches": 0,
+      "tangentWords": 0,
+      "lookCalls": 0,
+      "memoryCount": 0
+    }
+  ],
+  "emotes": [
+    {
+      "tool": "emote_create",
+      "result": {
+        "id": "hoodie_huff",
+        "title": "Hoodie huff",
+        "description": "Four-second playful hoodie huff: anticipate, puff cheeks with open eyes and closed mouth, tilt head, soften into a smile.",
+        "updatedAt": 1792260897.6928368,
+        "started": true,
+        "maxSeconds": 30.0,
+        "saved": true
+      }
+    }
+  ],
+  "scripts": [
+    {
+      "id": "hoodie_huff",
+      "code": "import math\nfrom hyprchan.core.animations.avatar3d.emote_api import animate\n\ndef pose(t):\n    if t < 0.2:\n        a = t / 0.2\n        return {\n            \"expressions\": {\"brow_up\": 0.25 * a, \"eyes_wide\": 0.35 * a, \"mouth_small\": 0.25 * a},\n            \"bones\": {\"head\": [0, 0, -3 * a], \"neck\": [0, 0, 2 * a]}\n        }\n    if t < 0.68:\n        a = (t - 0.2) / 0.48\n        return {\n            \"expressions\": {\"eyes_wide\": 0.55, \"brow_angry\": 0.18, \"puff\": 0.9, \"mouth_close\": 1, \"smile\": 0, \"blush\": 0.25},\n            \"bones\": {\"head\": [0, 0, -3 - 8 * a], \"neck\": [0, 0, 2 + 2 * a]}\n        }\n    a = (t - 0.68) / 0.32\n    return {\n        \"expressions\": {\"eyes_wide\": 0.55 * (1-a), \"brow_angry\": 0.18 * (1-a), \"puff\": 0.9 * (1-a), \"mouth_close\": 0, \"smile\": 0.72 * a, \"joy\": 0.25 * a, \"blush\": 0.25 * (1-a)},\n        \"bones\": {\"head\": [0, 0, -11 * (1-a)], \"neck\": [0, 0, 4 * (1-a)]}\n    }\n\nanimate(4.0, pose)"
+    }
+  ],
+  "ready": {
+    "type": "ready",
+    "model": "gpt-6-luna",
+    "tier": "priority",
+    "webSearch": "disabled",
+    "reasoning": "adaptive: low greetings, medium conversation"
+  },
+  "animation": {
+    "state": "finished",
+    "id": "hoodie_huff",
+    "frames": 121,
+    "error": null,
+    "timedOut": false
+  }
+}
