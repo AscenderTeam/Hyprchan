@@ -24,6 +24,7 @@ class DesktopAvatar:
         self.script_request = None
         self.next_refresh = 0
         self.last_event = None
+        self.last_pose = {}
         self.settings = Path(os.getenv('XDG_CONFIG_HOME', str(Path.home()/'.config'))) / 'hyprchan/appearance.json'
         self.portrait_stack = Gtk.Stack()
         self.portrait_stack.set_vexpand(True)
@@ -136,6 +137,7 @@ class DesktopAvatar:
     def play(self, identity, seconds=6):
         self.runner.stop()
         self.motion.stop()
+        self.last_pose = {}
         if identity in BUILTINS:
             self.motion.play(identity, duration=seconds)
             result = {'started': True, 'id': identity, 'builtin': True}
@@ -165,16 +167,24 @@ class DesktopAvatar:
                 self.script_request = event['requestId']
             else: raise ValueError('Unknown emote operation')
             self.host.send('model', {'type': 'emote_result', 'requestId': event['requestId'], 'result': result})
+            return bool(result.get('started'))
         except Exception as error:
             self.label.set_label('Emote: '+str(error)[:160])
             self.host.send('model', {'type': 'emote_result', 'requestId': event['requestId'], 'error': str(error)})
+            return False
 
     def tick(self):
         if self.host.closing: return False
         self.motion.mood = self.host.mood_values[self.host.mood.get_selected()]
+        # Keep the most recent fully reached pose, not the fade-out frame.
+        if self.runner.identity and self.widgets:
+            pose = getattr(getattr(self.widgets[0], 'data', None), 'hand_diagnostics', {})
+            reached = {side:value for side,value in pose.items() if value['weight']>.9}
+            if reached: self.last_pose = reached
         frame, event = self.runner.poll()
         if frame: self.motion.set_frame(frame)
         if event:
+            if self.last_pose: event['hands'] = self.last_pose
             self.last_event = event
             if event['state'] in {'finished', 'error'}:
                 self.motion.script_frame = None
@@ -188,6 +198,7 @@ class DesktopAvatar:
     def status(self):
         return {'mode': self.mode, 'error': self.error, 'emotes': len(self.items),
                 'script': self.runner.identity, 'lastEvent': self.last_event,
+                'hands': getattr(getattr(self.widgets[0], 'data', None), 'hand_diagnostics', {}) if self.widgets else {},
                 'renderers': [{'frames': w.frames, 'drawMs': round(w.draw_ms, 2), 'error': w.failed} for w in self.widgets]}
 
     def close(self):

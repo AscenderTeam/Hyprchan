@@ -21,9 +21,13 @@ from hyprchan.core.animations.avatar3d.emotes import EmoteLibrary, EmoteRunner
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--output', required=True)
+parser.add_argument('--spatial', action='store_true', help='Generate and measure face-relative wave/peace gestures')
 args = parser.parse_args()
 output = Path(args.output); output.parent.mkdir(parents=True, exist_ok=True)
-report = {'syntheticOnly': True, 'turns': [], 'emotes': [], 'scripts': []}
+report = {'syntheticOnly': True, 'turns': [], 'emotes': [], 'scripts': [], 'animations': [], 'spatial': {}}
+if args.spatial:
+    from hyprchan.core.animations.avatar3d.model import AvatarModel
+    rig=AvatarModel()
 with tempfile.TemporaryDirectory(prefix='hyprchan-avatar-test-') as temporary:
     library = EmoteLibrary(Path(temporary)/'emotes'); runner = EmoteRunner()
     env = {**os.environ, 'HYPRCHAN_MEMORY':'off', 'HYPRCHAN_NOTIFICATIONS':'off', 'HYPRCHAN_WEB_SEARCH':'disabled',
@@ -49,11 +53,23 @@ with tempfile.TemporaryDirectory(prefix='hyprchan-avatar-test-') as temporary:
         'Keep your final in-character response to one short sentence.',
         'hi',
     ]
+    if args.spatial:
+        requests = ['hi',
+            'Create and play a new four-second emote called face_wave_test. Wave your open right hand directly '
+            'in front of your face, not beside it. Raise it smoothly, wave, then lower it. '
+            'Only animate; do not access files, network or system commands. Use emote_create and one short final sentence.',
+            'Create and play a different four-second emote called face_peace_test. Hold a real two-finger peace '
+            'sign directly in front of your face while tilting your head, then lower your hand. '
+            'Only animate; do not access files, network or system commands. Use emote_create and one short final sentence.',
+            'hi']
     deadline = time.monotonic()+120
+    next_index = None
+    running_id = None
     try:
         while time.monotonic() < deadline:
-            event = events.get(timeout=30)
-            kind = event['type']
+            try: event = events.get(timeout=.03)
+            except queue.Empty: event = {}
+            kind = event.get('type')
             if kind == 'ready':
                 report['ready'] = event
                 for setting in ('memory','notification','audio','vision'):
@@ -67,9 +83,13 @@ with tempfile.TemporaryDirectory(prefix='hyprchan-avatar-test-') as temporary:
                         result = library.save(a['id'],a['title'],a['description'],a['python_code'])
                         report['scripts'].append({'id':a['id'],'code':a['python_code']})
                         (output.parent/(a['id']+'.py')).write_text(a['python_code'])
-                        if a['play_now']: result.update(runner.play(library.path(a['id']),30))
+                        if a['play_now']:
+                            result.update(runner.play(library.path(a['id']),30))
+                            running_id=a['id']
                         result['saved'] = True
-                    else: result = runner.play(library.path(a['id']),a['seconds'])
+                    else:
+                        result = runner.play(library.path(a['id']),a['seconds'])
+                        running_id=a['id']
                     report['emotes'].append({'tool':event['tool'],'result':result})
                     send({'type':'emote_result','requestId':event['requestId'],'result':result})
                     send({'type':'emote_state','mode':'3d','items':library.list()})
@@ -79,19 +99,38 @@ with tempfile.TemporaryDirectory(prefix='hyprchan-avatar-test-') as temporary:
             elif kind == 'done':
                 report['turns'].append(event)
                 print(json.dumps({k:event.get(k) for k in ('id','status','effort','firstTextMs','lastTextMs','toolCalls','reasoningTokens')}),flush=True)
-                index = event['id']+1
-                if index == len(requests): break
-                send({'type':'chat','id':index,'text':requests[index]})
+                next_index = event['id']+1
             elif kind == 'error': raise RuntimeError(event['message'])
+            frame, animation = runner.poll()
+            if args.spatial and frame and frame.get('hands'):
+                rig.posed({'leftUpperArm':[0,0,-72],'rightUpperArm':[0,0,72],**frame['bones']},hands=frame['hands'])
+                item = report['spatial'].setdefault(running_id,{'frames':0,'heldFrames':0,'maxErrorMm':0,
+                    'clampedFrames':0,'minForwardM':None,'maxLateralM':0,'shapes':[]})
+                item['frames']+=1
+                for hand in rig.hand_diagnostics.values():
+                    if hand['weight']<.95: continue
+                    item['heldFrames']+=1
+                    item['maxErrorMm']=max(item['maxErrorMm'],hand['errorMm'])
+                    item['clampedFrames']+=int(hand['reachClamped'])
+                    item['minForwardM']=min(item['minForwardM'] or 100,hand['palmFromFace'][2])
+                    item['maxLateralM']=max(item['maxLateralM'],abs(hand['palmFromFace'][0]))
+                    if hand['shape'] not in item['shapes']: item['shapes'].append(hand['shape'])
+            if animation and animation['state'] in {'finished','error'}:
+                report['animations'].append(animation)
+                report['animation']=animation
+                send({'type':'emote_state','mode':'3d','items':library.list(),'lastEvent':animation})
+            if next_index is not None and runner.process is None:
+                if next_index == len(requests): break
+                send({'type':'chat','id':next_index,'text':requests[next_index]})
+                next_index=None
         else: raise TimeoutError('Model/emote test timed out')
-        until = time.monotonic()+10
-        while time.monotonic() < until:
-            _, event = runner.poll()
-            if event and event['state'] in {'finished','error'}:
-                report['animation'] = event; break
-            time.sleep(.05)
         assert report['emotes'] and report['animation']['state']=='finished', report
         assert len(report['turns']) == len(requests)
+        if args.spatial:
+            for identity,shape in [('face_wave_test','open'),('face_peace_test','peace')]:
+                item=report['spatial'][identity]
+                assert item['heldFrames']>=10 and item['maxErrorMm']<1 and not item['clampedFrames'], item
+                assert item['minForwardM']>=.07 and item['maxLateralM']<.09 and shape in item['shapes'], item
     finally:
         runner.stop()
         send({'type':'quit'})

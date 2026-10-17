@@ -469,7 +469,8 @@ def main() -> int:
                     self.send("model", {"type": "notification_mode", "active": self.notifications_wanted})
                     self.start_next()
                 elif kind == 'emote_request':
-                    self.avatar.request(event)
+                    if self.avatar.request(event) and self.current:
+                        self.current['emote_played'] = True
                 elif kind == 'emote_cancelled':
                     if self.avatar.script_request == event['requestId']:
                         self.avatar.stop()
@@ -515,7 +516,7 @@ def main() -> int:
                     self.answer.set_label("Hyprchan\n" + self.response)
                     self.overlay.set_overlay_text(self.response)
                     if event["status"] == "completed":
-                        self.avatar.motion.react(self.response)
+                        self.avatar.motion.react(self.response, tool_played=self.current.get('emote_played',False))
                         # Normally deltas supplied the text; retain a non-streaming fallback.
                         delta = event["text"] if not self.current["speech_phrases"].raw else ""
                         self.speak_response(delta, final=True)
@@ -873,7 +874,7 @@ def main() -> int:
                         (self.current["source"] == "screen" and self.reactions_wanted and self.vision_wanted)):
                     self.add_message("Hyprchan", event["text"])
                     self.overlay.set_overlay_text(event["text"])
-                    self.avatar.motion.react(event['text'])
+                    self.avatar.motion.react(event['text'], tool_played=self.current.get('emote_played',False))
                     self.current["speech_phrases"] = SpeechPhrases()
                     self.speak_response(event["text"], final=True)
                     self.stats["reactions"] += 1

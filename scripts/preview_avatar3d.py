@@ -19,8 +19,10 @@ parser.add_argument('--capture')
 parser.add_argument('--emote', default='happy')
 parser.add_argument('--yaw', type=float, default=0)
 parser.add_argument('--gallery', help='Render a real-GL expression/angle review gallery into this directory')
+parser.add_argument('--script', help='Play an executable Python emote with full account permissions')
 args = parser.parse_args()
 app = Gtk.Application(application_id='org.hyprchan.AvatarPreview')
+outcome = {'complete': not (args.capture or args.gallery)}
 
 def activate(app):
     win = Gtk.ApplicationWindow(application=app, title='Hyprchan · 3D studio')
@@ -32,6 +34,15 @@ def activate(app):
     avatar.yaw = args.yaw
     win.set_child(avatar)
     win.present()
+    def render_preview():
+        # Wayland can stop frame callbacks for an occluded studio. Keep this
+        # bounded review rendering, using the GLArea's real buffers/context.
+        if avatar.program and not avatar.failed:
+            avatar.make_current()
+            avatar.attach_buffers()
+            avatar.render()
+        return True
+    if args.capture or args.gallery: GLib.timeout_add(33,render_preview)
     def size_window():
         try:
             clients = json.loads(subprocess.check_output(['hyprctl','clients','-j']))
@@ -44,9 +55,25 @@ def activate(app):
         return False
     GLib.timeout_add(100, size_window)
     avatar.motion.play(args.emote, duration=30)
+    if args.script:
+        from hyprchan.core.animations.avatar3d.emotes import EmoteRunner
+        runner=EmoteRunner()
+        avatar.motion.stop()
+        def start_script():
+            runner.play(Path(args.script).resolve(),30)
+            return False
+        def read_script():
+            frame,event=runner.poll()
+            if frame: avatar.motion.set_frame(frame)
+            if event and event.get('error'):
+                print('SCRIPT ERROR:',event['error'],flush=True); app.quit(); return False
+            return True
+        GLib.timeout_add(500,start_script)
+        GLib.timeout_add(30,read_script)
+        app.connect('shutdown',lambda *_:runner.stop())
     if args.gallery:
         directory = Path(args.gallery); directory.mkdir(parents=True, exist_ok=True)
-        poses = [('happy',0),('pout',0),('shy',-20),('surprised',0),('laugh',18),('wave',22),('sad',-15),('wink',0)]
+        poses = [('happy',0),('pout',0),('shy',-20),('surprised',0),('laugh',18),('wave',22),('sad',-15),('wink',0),('wave_front',0),('peace',-20)]
         state = {'index': -1, 'at': 0, 'capture': False}
         def next_pose():
             if avatar.failed:
@@ -57,6 +84,7 @@ def activate(app):
                 if state['index'] >= len(poses):
                     (directory/'index.html').write_text('<!doctype html><meta charset="utf-8"><title>Hyprchan · expression study</title><style>body{background:#142731;color:#e2fff6;font:16px system-ui}main{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}figure{margin:0;background:linear-gradient(140deg,#29394e,#175052);border-radius:18px;overflow:hidden}img{width:100%;display:block}figcaption{padding:12px}</style><h1>Hyprchan · expression study</h1><main>'+''.join(f'<figure><img src="{name}.png"><figcaption>{name} · {yaw}°</figcaption></figure>' for name,yaw in poses)+'</main><p>Customized pixiv VRM base · native GTK / OpenGL render</p>')
                     print({'gallery':str(directory), 'frames':avatar.frames, 'lastDrawMs':avatar.draw_ms}, flush=True)
+                    outcome['complete']=True
                     app.quit(); return False
                 name, yaw = poses[state['index']]
                 avatar.yaw=yaw; avatar.motion.play(name, duration=30)
@@ -73,6 +101,7 @@ def activate(app):
             if not Path(args.capture).exists() and not avatar.failed:
                 return True
             print({'frames': avatar.frames, 'drawMs': avatar.draw_ms, 'error': avatar.failed}, flush=True)
+            outcome['complete']=not avatar.failed and avatar.capture_path is None
             app.quit()
             return False
         GLib.timeout_add(2300, finish)
@@ -80,3 +109,4 @@ def activate(app):
 
 app.connect('activate', activate)
 app.run([])
+if not outcome['complete']: raise SystemExit('Avatar review did not complete')

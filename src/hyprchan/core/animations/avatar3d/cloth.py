@@ -60,8 +60,10 @@ def hoodie_shell(model):
     # Shallow diagonal tension folds running away from the underarm, plus a
     # little gathering around the elbow and cuff. These change real normals.
     front = np.clip((z-.035)/.05, 0, 1)*(1-sleeve)
-    bust = np.exp(-((np.abs(p[:,0])-.052)/.052)**2-((y-1.176)/.065)**2)
-    p[:,2] += front*.045*bust
+    bust = np.exp(-((np.abs(p[:,0])-.054)/.056)**2-((y-1.176)/.071)**2)
+    p[:,2] += front*.105*bust
+    # Fullness belongs to the chest, not wider shoulders or a boxy waist.
+    p[:,0] += np.sign(x)*front*.012*bust
     # The hoodie drapes beneath the bust instead of remaining a flat slab.
     p[:,2] -= front*.008*np.exp(-((y-1.075)/.025)**2)
     for center, amount in [(1.055,.0045), (1.12,.004), (1.205,.003)]:

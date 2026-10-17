@@ -1,0 +1,24 @@
+{
+  "checks": [
+    {
+      "id": "wave_in_front",
+      "execution": "finished",
+      "spatialAssertionsPassed": true,
+      "captureSha256": "0411a44c0e3db2bbe2d70d42217220519f351a22c635967dbf9569889b44707d"
+    },
+    {
+      "id": "sleeve_peace_sign",
+      "execution": "finished",
+      "spatialAssertionsPassed": true,
+      "captureSha256": "92ec7e89686f4837f20cc717e91e11cd1ebfd867db51e6031f0f7e611058720f"
+    }
+  ],
+  "assertions": [
+    "Palm-target error below 1 mm",
+    "No arm reach clamping",
+    "Palm at least 7 cm forward of face"
+  ],
+  "visualReview": "Open palm and peace sign visibly occlude the face in actual running overlay captures.",
+  "twoHandLiveCheck": "Skipped when user microphone conversation remained active; checked in standalone native preview.",
+  "notes": "Windows on an inactive workspace pause rendering. Live visual checks used the visible workspace and restored it afterward. No private chat or desktop images included."
+}

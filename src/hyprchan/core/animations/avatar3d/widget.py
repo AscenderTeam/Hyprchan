@@ -191,7 +191,7 @@ class Avatar3D(Gtk.GLArea):
             gl.glUniformMatrix4fv(self.uniforms['lightProjection'], 1, True, lighting)
             gl.glUniform1i(self.uniforms['shadowTexture'], 2)
             angles, morphs, blush, puff = self.motion.sample()
-            world = self.data.posed(angles, self.motion.hair)
+            world = self.data.posed(angles, self.motion.hair, self.motion.hand_targets)
             skins = [np.ascontiguousarray([world[j] @ inv for j, inv in zip(joints, inverse)], dtype=np.float32)
                      for joints, inverse in self.data.skins]
             gl.glUniform1i(self.uniforms['colorTexture'], 0)

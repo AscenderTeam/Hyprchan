@@ -77,6 +77,8 @@ class AvatarModel:
         for index, parent in enumerate(self.parents):
             if parent == -1: visit(index)
         self.bind_world = self.world(self.local)
+        self.inverse_bind_world = np.linalg.inv(np.array(self.bind_world))
+        self.hand_diagnostics = {}
         self.constraints = [(i, n['extensions']['VRMC_node_constraint']['constraint'])
                             for i, n in enumerate(self.nodes) if 'VRMC_node_constraint' in n.get('extensions', {})]
         self.hair_roots = [spring['joints'][0]['node'] for spring in
@@ -149,7 +151,7 @@ class AvatarModel:
             result[index] = local[index] if parent < 0 else result[parent] @ local[index]
         return result
 
-    def posed(self, angles, hair=(0, 0)):
+    def posed(self, angles, hair=(0, 0), hands=None):
         local = [matrix.copy() for matrix in self.local]
         for name, degrees in angles.items():
             index = self.bones.get(name)
@@ -164,6 +166,9 @@ class AvatarModel:
             parent = self.parents[index]
             world[index] = local[index] if parent < 0 else world[parent] @ local[index]
             for child in self.nodes[index].get('children', []): update(child)
+        # Resolve spatial goals before sleeve/arm-twist constraints use the pose.
+        from .spatial import solve_hands
+        self.hand_diagnostics = solve_hands(self, local, world, hands or {}, update)
         # The bundled VRM uses aim constraints for sleeves and roll constraints
         # for twist bones. Ignoring these leaves clothing in a T-pose.
         for index, constraint in self.constraints:

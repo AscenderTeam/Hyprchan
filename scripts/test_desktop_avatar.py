@@ -52,6 +52,16 @@ class EmotesTest(unittest.TestCase):
         for identity in ('../outside', '/tmp/escape', 'happy'):
             with self.assertRaises(ValueError): self.library.save(identity, 'Bad', '', 'pass')
 
+    def test_sdk_passes_spatial_hands_through_real_subprocess(self):
+        self.library.save('front_pose', 'Front pose', 'Synthetic test',
+            "from hyprchan.core.animations.avatar3d.emote_api import animate, hand_target\n"
+            "animate(.15, lambda t: {'hands': {'right': hand_target([0,-.02,.14],shape='peace')}})\n")
+        self.runner.play(self.library.path('front_pose'))
+        frames,event=self.finish()
+        self.assertEqual(event['state'],'finished')
+        self.assertEqual(frames[-1]['hands']['right']['position'],[0,-.02,.14])
+        self.assertEqual(frames[-1]['hands']['right']['shape'],'peace')
+
     def test_deadline_terminates_unresponsive_script(self):
         self.library.save('waiting', 'Waiting', '', 'import time\ntime.sleep(20)\n')
         self.runner.play(self.library.path('waiting'), seconds=1)
