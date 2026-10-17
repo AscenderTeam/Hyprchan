@@ -460,7 +460,8 @@ def main() -> int:
             if name == "model":
                 if kind == "ready":
                     self.model_ready = True
-                    self.stats.update(model=event["model"], tier=event["tier"], web_search=event.get("webSearch"), reasoning=event.get('reasoning'))
+                    self.stats.update(model=event["model"], tier=event["tier"], web_search=event.get("webSearch"),
+                                      reasoning=event.get('reasoning'), emote_examples=event.get('emoteExamples', 0))
                     self.avatar.sync()
                     self.status.set_label("Ready · say hello or type below")
                     self.send("model", {"type": "memory_mode", "active": self.memory_wanted})

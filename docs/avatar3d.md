@@ -133,6 +133,49 @@ The model can invent gestures, save them and reuse them later. Short greetings
 do not need tool calls. A distinctive new gesture in a longer reply is a good
 occasion to make a script; creation is not mandatory on every turn.
 
+### Executable examples in the model context
+
+The [cookbook manifest](../src/hyprchan/assets/avatar3d/emote-examples/manifest.json)
+indexes 18 complete Python scripts. The bridge reads their actual source into
+the thread's initial instructions, together with examples of `emote_create` and
+`emote_play` arguments. The model receives the code directly, without a lookup
+tool call or repeated copies in each message. The ready event and GUI control
+status report the number loaded as `emoteExamples` and `emote_examples`.
+
+The examples cover:
+
+- Front waves with either hand, a front/cheek peace sign, and a two-hand peek.
+- Targets that follow a turning head, stay over the chest, or remain fixed in
+  model coordinates; forward reaching and pointing sideways.
+- All five hand shapes, individual finger bones, and head/torso/shoulder motion.
+- Every supported expression channel, cheek puffing, winks, and silent mouth
+  acting. Normal speech keeps its existing PCM-driven mouth animation.
+- A multistage gesture with anticipation and separate hand movements, and the
+  lower-level `frame()` protocol with explicit pacing.
+
+Each script can be copied independently and adapted. Face/body/world coordinates
+and arm ownership are explained explicitly: a hand target controls its arm and
+fingers, while the raw-bone example uses the separate path without a target.
+Catalogue names are references, not saved emote IDs; `emote_create` makes a script
+available in the persistent picker. Pixel art remains selectable.
+
+Regression checks execute all 18 source files, sample their animation curves,
+validate every frame, and evaluate reaches on the actual bundled skeleton.
+They check all expression/shape/space categories, both hands, rigid arm lengths,
+finite transforms, reach accuracy and smooth release. The
+[two-hand peek](avatar3d-examples/peek-two-hands.png) and
+[chest-relative gesture](avatar3d-examples/hand-on-chest.png) were also reviewed
+in native GL captures.
+
+The [full-context Codex run](../benchmarks/codex-rp/results/avatar-examples-20261017/result.json)
+loaded all 18 examples and generated its own front wave and peace sign. Both
+scripts completed 121 frames, with target error below 1 mm and no reach clamping.
+Held palms stayed at least 12.8 cm in front of the face. Greeting text completed
+in 1.283–1.363 s; script creation plus final text took 3.597 s and 4.342 s.
+This small sample does not establish a strict latency guarantee or prove that
+the extra examples caused a speed improvement. The run reported zero
+reasoning-output tokens despite medium being configured for gesture creation.
+
 ## Artist-guided visual checks
 
 The implementation was iterated using actual GL framebuffer captures, front

@@ -12,7 +12,7 @@ import { listenInTool } from './desktop_audio_context.mjs';
 import { lookTool, LookRequests } from './desktop_look.mjs';
 import { CompanionNotifications, notificationTool } from './desktop_notifications.mjs';
 import { tangentTool, acceptTangent } from './desktop_creativity.mjs';
-import { EmoteRequests, emoteTools, emoteInstructions } from './desktop_emotes.mjs';
+import { EmoteRequests, emoteTools, emoteInstructions, emoteExamples } from './desktop_emotes.mjs';
 import { reasoningFor } from './desktop_reasoning.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -127,7 +127,7 @@ try {
   const warmup = await harness.turn(thread,
     'Startup context: you have just settled onto the desktop. Acknowledge quietly in a few words; the user has not spoken yet.', options);
   if (warmup.status !== 'completed') throw new Error(warmup.errors.join('; ') || warmup.status);
-  emit({ type: 'ready', model: thread.model, tier: thread.tier, webSearch,
+  emit({ type: 'ready', model: thread.model, tier: thread.tier, webSearch, emoteExamples: emoteExamples.length,
     reasoning: process.env.HYPRCHAN_CODEX_EFFORT || 'adaptive: low greetings, medium conversation' });
   queue = new TurnQueue(async (command, signal) => {
     const messagePhases = new Map();

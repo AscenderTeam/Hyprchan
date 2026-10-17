@@ -1,7 +1,17 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { EmoteRequests } from './desktop_emotes.mjs';
+import { EmoteRequests, emoteExamples, emoteInstructions } from './desktop_emotes.mjs';
 import { reasoningFor } from './desktop_reasoning.mjs';
+
+test('runnable cookbook is in the initial instructions, not repeated in each turn', () => {
+  assert.ok(emoteExamples.length >= 18);
+  assert.equal(new Set(emoteExamples.map(example => example.id)).size, emoteExamples.length);
+  const perTurn = new EmoteRequests(() => {}).context();
+  for (const example of emoteExamples) {
+    assert.equal(emoteInstructions.split(example.code).length - 1, 1, example.id);
+    assert.ok(!perTurn.includes(example.code), example.id);
+  }
+});
 
 test('emote tool waits for GUI persistence acknowledgement', async () => {
   const sent = [];
