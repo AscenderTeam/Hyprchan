@@ -55,5 +55,9 @@ def speech_language(text):
 
 
 def transcript_line(event):
-    text = event.get("text", "").strip() or "No clear speech recognized"
-    return f"[{event['index']}/{event['total']}] {text}"
+    text = event.get("text", "").strip()
+    language = f" {event['language'].upper()} ·" if text and event.get("language") else ""
+    if not text:
+        text = ("Unclear audio — could not transcribe reliably" if event.get("recognitionStatus") == "unclear"
+                else "No clear speech recognized")
+    return f"[{event['index']}/{event['total']}]{language} {text}"

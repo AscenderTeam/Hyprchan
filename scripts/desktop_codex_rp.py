@@ -581,7 +581,10 @@ def main() -> int:
                         "label": self.add_message("Heard · " + event["name"], "Listening…")}
                 elif kind == "listen_chunk" and self.audio_wanted:
                     self.stats["listen_chunks"] = self.stats.get("listen_chunks", 0) + 1
-                    self.stats["last_listen_chunk"] = {key: event.get(key) for key in ("jobId", "index", "total", "sttMs")}
+                    self.stats["last_listen_chunk"] = {key: event.get(key) for key in (
+                        "jobId", "index", "total", "sttMs", "model", "language", "languageMode",
+                        "languageProbability", "recognitionStatus", "rejectionReason", "retryReason",
+                        "attempts", "audioSeconds", "speechSeconds")}
                     self.audio_status.set_label(f"{event['name']} · heard {event['index']}/{event['total']}" if event["text"] else
                                                 f"{event['name']} · no clear speech in {event['index']}/{event['total']}")
                     observation = {**event, "observedAt": time.time()}

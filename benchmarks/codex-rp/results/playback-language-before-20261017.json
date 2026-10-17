@@ -1,0 +1,152 @@
+{
+  "publicAndSyntheticOnly": true,
+  "description": "Legacy tiny with a wrong fixed language versus base with automatic language detection; four CPU threads, int8, warm models. Not the private Telegram recording.",
+  "rows": [
+    {
+      "case": "english",
+      "model": "tiny",
+      "forcedLanguage": "ru",
+      "detected": "ru",
+      "confidence": 1,
+      "text": "Хай, you are back, yay!",
+      "sttMs": 268.8,
+      "segments": [
+        {
+          "logprob": -0.732,
+          "compression": 0.788,
+          "noSpeech": 0.061
+        }
+      ]
+    },
+    {
+      "case": "russian",
+      "model": "tiny",
+      "forcedLanguage": "en",
+      "detected": "en",
+      "confidence": 1,
+      "text": "Hi! I'm going to talk to you.",
+      "sttMs": 225.3,
+      "segments": [
+        {
+          "logprob": -1.133,
+          "compression": 0.853,
+          "noSpeech": 0.037
+        },
+        {
+          "logprob": -1.133,
+          "compression": 0.853,
+          "noSpeech": 0.037
+        }
+      ]
+    },
+    {
+      "case": "public_jfk",
+      "model": "tiny",
+      "forcedLanguage": "ru",
+      "detected": "ru",
+      "confidence": 1,
+      "text": "И, что мой фэлл Америкин. Айск!",
+      "sttMs": 280.5,
+      "segments": [
+        {
+          "logprob": -1.465,
+          "compression": 0.885,
+          "noSpeech": 0.077
+        },
+        {
+          "logprob": -1.465,
+          "compression": 0.885,
+          "noSpeech": 0.077
+        }
+      ]
+    },
+    {
+      "case": "silence",
+      "model": "tiny",
+      "forcedLanguage": "ru",
+      "detected": "ru",
+      "confidence": 1,
+      "text": "",
+      "sttMs": 20.3,
+      "segments": []
+    },
+    {
+      "case": "tone",
+      "model": "tiny",
+      "forcedLanguage": "ru",
+      "detected": "ru",
+      "confidence": 1,
+      "text": "",
+      "sttMs": 21.2,
+      "segments": []
+    },
+    {
+      "case": "english",
+      "model": "base",
+      "forcedLanguage": null,
+      "detected": "en",
+      "confidence": 0.886,
+      "text": "Hi, you are back, yay.",
+      "sttMs": 550.9,
+      "segments": [
+        {
+          "logprob": -0.485,
+          "compression": 0.786,
+          "noSpeech": 0.079
+        }
+      ]
+    },
+    {
+      "case": "russian",
+      "model": "base",
+      "forcedLanguage": null,
+      "detected": "ru",
+      "confidence": 0.821,
+      "text": "Привет! Ураты вернусь в меня!",
+      "sttMs": 562.2,
+      "segments": [
+        {
+          "logprob": -0.877,
+          "compression": 0.929,
+          "noSpeech": 0.037
+        }
+      ]
+    },
+    {
+      "case": "public_jfk",
+      "model": "base",
+      "forcedLanguage": null,
+      "detected": "en",
+      "confidence": 0.918,
+      "text": "And so my fellow Americans asked",
+      "sttMs": 544.1,
+      "segments": [
+        {
+          "logprob": -0.61,
+          "compression": 0.8,
+          "noSpeech": 0.094
+        }
+      ]
+    },
+    {
+      "case": "silence",
+      "model": "base",
+      "forcedLanguage": null,
+      "detected": "en",
+      "confidence": 0.552,
+      "text": "",
+      "sttMs": 245.0,
+      "segments": []
+    },
+    {
+      "case": "tone",
+      "model": "base",
+      "forcedLanguage": null,
+      "detected": "en",
+      "confidence": 0.552,
+      "text": "",
+      "sttMs": 236.1,
+      "segments": []
+    }
+  ]
+}

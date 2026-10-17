@@ -21,6 +21,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 from speech_endpoint import VoiceSegmenter  # noqa: E402
 from desktop_listen_in import capture_stream, listen_plan
+from desktop_transcription import transcribe_playback
 
 OUTPUT_LOCK = threading.Lock()
 
@@ -147,25 +148,31 @@ class SpeechWorker:
                 emit("transcribing", active=True)
             started = time.monotonic()
             try:
-                name = self.model_name(language)
-                segments, info = self.models[name].transcribe(
-                    audio, language=language, beam_size=1, temperature=0,
-                    condition_on_previous_text=False, vad_filter=True,
-                    vad_parameters={"min_silence_duration_ms": 200},
-                    no_speech_threshold=0.6, log_prob_threshold=-1,
-                    hallucination_silence_threshold=1,
-                )
-                text = " ".join(part.text.strip() for part in segments).strip()
                 if ambient:
+                    # The companion cannot know a new stream's language before
+                    # hearing it. Never force its guess (or the mic selector).
+                    name = self.model_name(None)
+                    result = transcribe_playback(self.models[name], audio,
+                        cancelled=lambda: generation != self.listen_generation or not self.running)
                     with self.lock:
-                        if generation == self.listen_generation:
-                            emit("listen_chunk", **origin, text=text, language=info.language,
+                        if result is not None and generation == self.listen_generation:
+                            emit("listen_chunk", **origin, **result, model=name,
                                  sttMs=round((time.monotonic() - started) * 1000, 1))
-                elif generation == self.generation and text:
-                    emit("transcript", text=text, language=info.language,
-                         sttMs=round((time.monotonic() - started) * 1000, 1),
-                         endpointMs=round((time.monotonic() - endpoint) * 1000, 1),
-                         origin=origin, silenceMs=silence_ms, model=name)
+                else:
+                    name = self.model_name(language)
+                    segments, info = self.models[name].transcribe(
+                        audio, language=language, beam_size=1, temperature=0,
+                        condition_on_previous_text=False, vad_filter=True,
+                        vad_parameters={"min_silence_duration_ms": 200},
+                        no_speech_threshold=0.6, log_prob_threshold=-1,
+                        hallucination_silence_threshold=1,
+                    )
+                    text = " ".join(part.text.strip() for part in segments).strip()
+                    if generation == self.generation and text:
+                        emit("transcript", text=text, language=info.language,
+                             sttMs=round((time.monotonic() - started) * 1000, 1),
+                             endpointMs=round((time.monotonic() - endpoint) * 1000, 1),
+                             origin=origin, silenceMs=silence_ms, model=name)
             except Exception as exc:
                 if ambient:
                     with self.lock:
@@ -215,7 +222,7 @@ class SpeechWorker:
                         lambda: generation != self.listen_generation or not self.running,
                         on_process):
                     self.jobs.put_nowait((1, next(self.job_sequence),
-                        (np.frombuffer(raw, dtype="<f4"), generation, command.get("language") or None,
+                        (np.frombuffer(raw, dtype="<f4"), generation, None,
                          time.monotonic(), {**metadata, "index": index}, 0)))
                 with self.lock:
                     if generation == self.listen_generation:

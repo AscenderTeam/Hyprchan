@@ -1,12 +1,11 @@
 export const listenInTool = {
   type: 'function', name: 'listen_in',
-  description: 'Listen to one currently available playback stream using local speech recognition. Maximum 20 seconds. For more than 10 seconds, five transcript chunks arrive as asynchronous observation events, so you can react in real time. This returns immediately; it does not mean audio has already been heard. Only one listening session can run at a time.',
+  description: 'Listen to one currently available playback stream using local speech recognition. Language is detected from the audio independently of our conversation or the microphone language. Maximum 20 seconds. For more than 10 seconds, five transcript chunks arrive as asynchronous observation events, so you can react in real time. This returns immediately; it does not mean audio has already been heard. Only one listening session can run at a time.',
   inputSchema: { type: 'object', additionalProperties: false,
     properties: {
       serial: { type: 'string', pattern: '^[0-9]+$', description: 'Exact PipeWire playback stream serial from the available streams or audio event.' },
       seconds: { type: 'number', minimum: 1, maximum: 20, description: 'Capture duration; requests over 10 seconds deliver five chunks.' },
-      language: { type: 'string', enum: ['auto', 'en', 'ru'], description: 'Language of the media, or auto if unknown.' },
-    }, required: ['serial', 'seconds', 'language'] },
+    }, required: ['serial', 'seconds'] },
 };
 
 export function audioPrompt(observation) {

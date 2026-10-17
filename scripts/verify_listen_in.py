@@ -74,8 +74,10 @@ def main():
                 break
             time.sleep(.05)
         assert serial, "Playback stream not found"
+        # Deliberately wrong legacy hint: playback must detect English from the
+        # audio, even if an older caller guessed Russian before hearing it.
         command = {"type": "listen_in", "jobId": "fixture", "serial": serial, "name": "Codex audio probe",
-                   "seconds": 12, "language": "en"}
+                   "seconds": 12, "language": "ru"}
         started = time.monotonic()
         speech.stdin.write(json.dumps(command) + "\n"); speech.stdin.flush()
         while time.monotonic() - started < 20:
@@ -89,6 +91,8 @@ def main():
         chunks = [row for row in rows if row["type"] == "listen_chunk"]
         assert [row["index"] for row in chunks] == [1, 2, 3, 4, 5], rows
         assert sum(bool(row["text"]) for row in chunks) >= 3, "Public speech was not recognized"
+        assert all(row["languageMode"] == "auto" for row in chunks)
+        assert all(row["language"] == "en" for row in chunks if row["text"]), "Wrong legacy hint overrode English audio"
         assert chunks[0]["receivedMs"] < 5000 and chunks[-1]["receivedMs"] < 15000
         assert observed, "PipeWire did not report the new playback channel"
         # Cancel a second, longer capture after its first real transcript.

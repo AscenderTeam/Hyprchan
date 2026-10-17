@@ -54,13 +54,13 @@ const harness = new CodexHarness({ toolHandler: async params => {
   if (params.tool === 'listen_in') {
     if (!audioActive) throw new Error('Audio awareness is off');
     if (listeningJob) throw new Error('Already listening; wait for the remaining transcript chunks');
-    const { serial, seconds, language } = params.arguments || {};
+    const { serial, seconds } = params.arguments || {};
     const source = playback.find(item => item.serial === serial);
-    if (!source || typeof seconds !== 'number' || !Number.isFinite(seconds) || seconds < 1 || seconds > 20 ||
-        !['auto', 'en', 'ru'].includes(language)) throw new Error('Use an available playback serial, 1–20 seconds, and auto/en/ru');
+    if (!source || typeof seconds !== 'number' || !Number.isFinite(seconds) || seconds < 1 || seconds > 20)
+      throw new Error('Use an available playback serial and 1–20 seconds');
     const jobId = ++listenSequence;
     listeningJob = jobId;
-    emit({ type: 'listen_request', jobId, serial, seconds, language: language === 'auto' ? null : language, name: source.name });
+    emit({ type: 'listen_request', jobId, serial, seconds, name: source.name });
     return { started: true, jobId, name: source.name, seconds, chunks: seconds > 10 ? 5 : 1,
       delivery: 'Transcripts will arrive as asynchronous listen_chunk observations. Audio has not been heard yet.' };
   }

@@ -1,0 +1,172 @@
+{
+  "healthAndTimingOnly": true,
+  "publicAudioFixture": "faster-whisper JFK",
+  "passed": true,
+  "rows": [
+    {
+      "captureEnabled": true,
+      "seconds": 12,
+      "chunksShown": 5,
+      "completedWithImages": 5,
+      "chunks": [
+        {
+          "firstTextMs": 1684.215,
+          "lastTextMs": 1684.333,
+          "completedMs": 1802.122,
+          "imageCount": 1,
+          "status": "completed",
+          "quiet": true,
+          "capturedAt": 1792258397.050876,
+          "elapsedMs": 1806.9,
+          "index": 1,
+          "screenCapturedAt": 1792258397.143816
+        },
+        {
+          "firstTextMs": 1662.322,
+          "lastTextMs": 1662.334,
+          "completedMs": 1762.442,
+          "imageCount": 1,
+          "status": "completed",
+          "quiet": true,
+          "capturedAt": 1792258399.3971174,
+          "elapsedMs": 1766.1,
+          "index": 2,
+          "screenCapturedAt": 1792258399.4582522
+        },
+        {
+          "firstTextMs": 1173.649,
+          "lastTextMs": 1173.662,
+          "completedMs": 1268.6,
+          "imageCount": 1,
+          "status": "completed",
+          "quiet": true,
+          "capturedAt": 1792258401.8548732,
+          "elapsedMs": 1270.2,
+          "index": 3,
+          "screenCapturedAt": 1792258401.923902
+        },
+        {
+          "firstTextMs": 1375.371,
+          "lastTextMs": 1375.95,
+          "completedMs": 1469.436,
+          "imageCount": 1,
+          "status": "completed",
+          "quiet": true,
+          "capturedAt": 1792258404.1301203,
+          "elapsedMs": 1472.9,
+          "index": 4,
+          "screenCapturedAt": 1792258404.241189
+        },
+        {
+          "firstTextMs": 1237.757,
+          "lastTextMs": 1431.334,
+          "completedMs": 1489.915,
+          "imageCount": 1,
+          "status": "completed",
+          "quiet": false,
+          "capturedAt": 1792258406.5041692,
+          "elapsedMs": 1492.9,
+          "index": 5,
+          "screenCapturedAt": 1792258406.5897615
+        }
+      ],
+      "microphoneActive": true,
+      "microphoneLanguage": "ru",
+      "recognition": [
+        {
+          "jobId": 2,
+          "index": 1,
+          "total": 5,
+          "sttMs": 677.9,
+          "model": "base",
+          "language": "en",
+          "languageMode": "auto",
+          "languageProbability": 0.496,
+          "recognitionStatus": "ok",
+          "rejectionReason": null,
+          "retryReason": null,
+          "attempts": 1,
+          "audioSeconds": 2.4,
+          "speechSeconds": 1.408
+        },
+        {
+          "jobId": 2,
+          "index": 2,
+          "total": 5,
+          "sttMs": 591.9,
+          "model": "base",
+          "language": "en",
+          "languageMode": "auto",
+          "languageProbability": 0.927,
+          "recognitionStatus": "ok",
+          "rejectionReason": null,
+          "retryReason": null,
+          "attempts": 1,
+          "audioSeconds": 2.4,
+          "speechSeconds": 1.424
+        },
+        {
+          "jobId": 2,
+          "index": 3,
+          "total": 5,
+          "sttMs": 617.7,
+          "model": "base",
+          "language": "en",
+          "languageMode": "auto",
+          "languageProbability": 0.935,
+          "recognitionStatus": "ok",
+          "rejectionReason": null,
+          "retryReason": null,
+          "attempts": 1,
+          "audioSeconds": 2.4,
+          "speechSeconds": 2.4
+        },
+        {
+          "jobId": 2,
+          "index": 4,
+          "total": 5,
+          "sttMs": 589.1,
+          "model": "base",
+          "language": "en",
+          "languageMode": "auto",
+          "languageProbability": 0.802,
+          "recognitionStatus": "ok",
+          "rejectionReason": null,
+          "retryReason": null,
+          "attempts": 1,
+          "audioSeconds": 2.4,
+          "speechSeconds": 2.064
+        },
+        {
+          "jobId": 2,
+          "index": 5,
+          "total": 5,
+          "sttMs": 621.8,
+          "model": "base",
+          "language": "en",
+          "languageMode": "auto",
+          "languageProbability": 0.924,
+          "recognitionStatus": "ok",
+          "rejectionReason": null,
+          "retryReason": null,
+          "attempts": 1,
+          "audioSeconds": 2.304,
+          "speechSeconds": 2.304
+        }
+      ]
+    }
+  ],
+  "restored": {
+    "mic_active": true,
+    "voice_active": true,
+    "tts_ready": true,
+    "vision_active": true,
+    "visual_sources": [
+      "screen",
+      "webcam"
+    ],
+    "audio_active": true,
+    "reactions_active": true,
+    "last_error": null
+  }
+}

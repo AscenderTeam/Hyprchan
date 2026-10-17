@@ -28,6 +28,9 @@ class SpeechTextTests(unittest.TestCase):
     def test_transcripts_show_exact_recognized_text_or_empty_result(self):
         self.assertEqual(transcript_line({"index": 2, "total": 5, "text": "  hello there  "}), "[2/5] hello there")
         self.assertEqual(transcript_line({"index": 1, "total": 1, "text": ""}), "[1/1] No clear speech recognized")
+        self.assertEqual(transcript_line({"index": 1, "total": 5, "text": "Hello!", "language": "en"}), "[1/5] EN · Hello!")
+        self.assertEqual(transcript_line({"index": 2, "total": 5, "text": "", "recognitionStatus": "unclear"}),
+                         "[2/5] Unclear audio — could not transcribe reliably")
         self.assertEqual(speech_language("Привет, ня!"), "ru")
         self.assertEqual(speech_language("Hi, nyah!"), "en")
 
