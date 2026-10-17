@@ -52,6 +52,8 @@ The early mood cases are synthetic descriptions, with normalized fatigue values.
 
 ## Native desktop, microphone, and vision preview
 
+Start the companion with `./scripts/hyprchan`. It runs independently of the terminal and reopens an existing window without restarting the conversation. You can link that script as `~/.local/bin/hyprchan` for the short `hyprchan` command. Optional settings in `~/.config/hyprchan/preview-launch.json` are a JSON object of `HYPRCHAN_*` environment names and string values; explicit shell settings take precedence. The launcher discovers `~/.local/bin/codex` automatically. Close the chat window to stop her. The direct Python commands below are available for foreground debugging and control.
+
 ```sh
 # Run in the checked-out project, using system Python for GTK.
 python scripts/desktop_codex_rp.py
