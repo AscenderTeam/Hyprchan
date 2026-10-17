@@ -1,0 +1,21 @@
+{
+  "timestamp": "2026-10-17T15:12:40.832Z",
+  "codexVersion": "codex-cli 0.163.0",
+  "nodeVersion": "v26.5.1",
+  "platform": "linux",
+  "arch": "arm64",
+  "startupMs": 111.397,
+  "promptPath": "/home/w/programming/all/Hyprchan/benchmarks/codex-rp/persona.txt",
+  "promptSha256": "741e5624973a626083d7e7ca4b00399bd5b3a4a0b95076d4ff4944a1c8809746",
+  "promptBytes": 1118,
+  "tier": "fast",
+  "effort": "low",
+  "metric": "monotonic milliseconds from turn/start write to first delta, last delta, and turn/completed",
+  "scope": "local Codex app-server + remote inference; excludes Hyprchan kernel, UI, STT, and TTS",
+  "actualBackendTier": "not exposed by app-server; configured tier is recorded separately",
+  "serial": true,
+  "args": {
+    "trials": "3",
+    "out": "benchmarks/codex-rp/results/screen-low-fast"
+  }
+}

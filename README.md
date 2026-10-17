@@ -62,6 +62,10 @@ Once setup is complete, wake her up and start chatting:
 hyprchan tui
 ```
 
+### Codex desktop preview
+
+For the experimental GTK companion with streamed Codex replies, continuous local speech recognition, and automatic camera/screen context, see [setup and controls](benchmarks/codex-rp/README.md) and the [measured latency report](benchmarks/codex-rp/REPORT.md). This preview is separate from the autonomous kernel and does not yet guarantee responses within two seconds.
+
 ---
 
 ## ✨ Features

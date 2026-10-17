@@ -1,0 +1,82 @@
+{
+  "method": "Serial warm greeting trials, excluding first-turn warmups and invalid tiers; v1/v2 prompts; empirical nearest-rank p95",
+  "groups": [
+    {
+      "model": "gpt-6-luna",
+      "effort": "low",
+      "tier": "fast",
+      "n": 43,
+      "medianMs": 1155.703,
+      "p95Ms": 1890.77,
+      "maxMs": 2166.778,
+      "textUnder2": 41,
+      "doneUnder2": 40
+    },
+    {
+      "model": "gpt-5.6-luna",
+      "effort": "none",
+      "tier": "fast",
+      "n": 43,
+      "medianMs": 1066.449,
+      "p95Ms": 2140.912,
+      "maxMs": 2370.882,
+      "textUnder2": 40,
+      "doneUnder2": 39
+    },
+    {
+      "model": "gpt-5.6-luna",
+      "effort": "none",
+      "tier": "default",
+      "n": 15,
+      "medianMs": 1070.023,
+      "p95Ms": 1783.053,
+      "maxMs": 1783.053,
+      "textUnder2": 15,
+      "doneUnder2": 15
+    },
+    {
+      "model": "gpt-6-luna",
+      "effort": "low",
+      "tier": "default",
+      "n": 5,
+      "medianMs": 851.187,
+      "p95Ms": 1063.233,
+      "maxMs": 1063.233,
+      "textUnder2": 5,
+      "doneUnder2": 5
+    },
+    {
+      "model": "gpt-5.6-luna",
+      "effort": "low",
+      "tier": "fast",
+      "n": 5,
+      "medianMs": 949.406,
+      "p95Ms": 1034.019,
+      "maxMs": 1034.019,
+      "textUnder2": 5,
+      "doneUnder2": 5
+    },
+    {
+      "model": "gpt-6-sol",
+      "effort": "low",
+      "tier": "fast",
+      "n": 5,
+      "medianMs": 1647.581,
+      "p95Ms": 1887.139,
+      "maxMs": 1887.139,
+      "textUnder2": 5,
+      "doneUnder2": 4
+    },
+    {
+      "model": "gpt-6-luna",
+      "effort": "none",
+      "tier": "fast",
+      "n": 5,
+      "medianMs": 1130.364,
+      "p95Ms": 4404.61,
+      "maxMs": 4404.61,
+      "textUnder2": 4,
+      "doneUnder2": 4
+    }
+  ]
+}

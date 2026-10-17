@@ -1,0 +1,52 @@
+{
+  "model": "gpt-6-luna",
+  "tier": "priority",
+  "language": "ru",
+  "micActive": true,
+  "rows": [
+    {
+      "input": "зацени лицо",
+      "wallToTurnDoneMs": 1612,
+      "timing": {
+        "firstTextMs": 1155.402,
+        "lastTextMs": 1380.075,
+        "completedMs": 1465.02,
+        "imageCount": 2,
+        "source": "keyboard",
+        "sttMs": null,
+        "firstGuiMs": 1160.4497719999927,
+        "lastGuiMs": 1387.5698649990227,
+        "visualWaitMs": 93.87448400048015,
+        "inputToFullTextMs": 1481.5675169993483
+      },
+      "sources": [
+        "screen",
+        "webcam"
+      ],
+      "captureMs": 90.0,
+      "error": null
+    },
+    {
+      "input": "hi",
+      "wallToTurnDoneMs": 2424,
+      "timing": {
+        "firstTextMs": 2288.257,
+        "lastTextMs": 2368.982,
+        "completedMs": 2412.55,
+        "imageCount": 0,
+        "source": "keyboard",
+        "sttMs": null,
+        "firstGuiMs": 2290.788114998577,
+        "lastGuiMs": 2375.6434909992095,
+        "visualWaitMs": 0,
+        "inputToFullTextMs": 2375.811158999568
+      },
+      "sources": [
+        "screen",
+        "webcam"
+      ],
+      "captureMs": 90.0,
+      "error": null
+    }
+  ]
+}

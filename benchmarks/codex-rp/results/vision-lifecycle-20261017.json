@@ -1,0 +1,17 @@
+{
+  "off": {
+    "captureOffAcknowledged": true,
+    "cachedImagesCleared": true,
+    "offMs": 51,
+    "cameraReleased": true
+  },
+  "resumedSources": [
+    "screen",
+    "webcam"
+  ],
+  "resumeMs": 4431,
+  "captureMs": 125.1,
+  "micActive": true,
+  "language": "ru",
+  "error": null
+}

@@ -1,0 +1,5 @@
+[
+  {"id": "native-fatigue", "input": "Current kernel state: fatigue f=95 out of f_max=100; valence v=0.6 on -1..1; energy e=0.1 on 0..1; arousal a=0.1 on 0..1. User message: How are you?"},
+  {"id": "native-negative-valence", "input": "Current kernel state: fatigue f=20 out of f_max=100; valence v=-0.7 on -1..1; energy e=0.4 on 0..1; arousal a=0.4 on 0..1. User message: How are you?"},
+  {"id": "native-recovery", "input": "Current kernel state: fatigue f=5 out of f_max=100; valence v=0.8 on -1..1; energy e=0.9 on 0..1; arousal a=0.7 on 0..1. User message: How are you?"}
+]

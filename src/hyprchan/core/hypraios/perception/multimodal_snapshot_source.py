@@ -158,11 +158,18 @@ class MultimodalSnapshotPerceptionSource:
 
     def _capture_screenshot(self) -> dict[str, Any] | None:
         self.config.output_dir.mkdir(parents=True, exist_ok=True)
-        process = subprocess.run(
-            ["grim", "-"],
-            capture_output=True,
-            check=False,
-        )
+        try:
+            process = subprocess.run(
+                # This PNG is immediately decoded and re-encoded as JPEG.
+                # Deflate adds latency without shrinking the final image.
+                ["grim", "-l", "0", "-"],
+                capture_output=True,
+                check=False,
+                timeout=3,
+            )
+        except (OSError, subprocess.SubprocessError) as exc:
+            self._last_error = str(exc)
+            return None
         if process.returncode != 0 or not process.stdout:
             return None
 

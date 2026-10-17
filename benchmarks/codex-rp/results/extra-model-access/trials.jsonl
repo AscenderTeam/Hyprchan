@@ -1,0 +1,7 @@
+{"model":"gpt-5.4-mini","tier":"fast","effort":"none","status":"error","errors":["Requested tier fast was not retained (resolved null); refusing to label it fast."]}
+{"model":"gpt-5.4-nano","tier":"fast","effort":"none","status":"error","errors":["Requested tier fast was not retained (resolved null); refusing to label it fast."]}
+{"model":"gpt-5-nano","tier":"fast","effort":"none","status":"error","errors":["Requested tier fast was not retained (resolved null); refusing to label it fast."]}
+{"model":"gpt-4.1-mini","tier":"fast","effort":"none","status":"error","errors":["Requested tier fast was not retained (resolved null); refusing to label it fast."]}
+{"model":"gpt-4.1-nano","tier":"fast","effort":"none","status":"error","errors":["Requested tier fast was not retained (resolved null); refusing to label it fast."]}
+{"model":"gpt-4o-mini","tier":"fast","effort":"none","status":"error","errors":["Requested tier fast was not retained (resolved null); refusing to label it fast."]}
+{"model":"gpt-5.3-codex-spark","tier":"fast","effort":"none","status":"error","errors":["Requested tier fast was not retained (resolved null); refusing to label it fast."]}

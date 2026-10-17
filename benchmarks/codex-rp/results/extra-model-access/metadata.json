@@ -1,0 +1,25 @@
+{
+  "timestamp": "2026-10-17T15:20:39.791Z",
+  "codexVersion": "codex-cli 0.163.0",
+  "nodeVersion": "v26.5.1",
+  "platform": "linux",
+  "arch": "arm64",
+  "startupMs": 101.013,
+  "promptPath": "/home/w/programming/all/Hyprchan/benchmarks/codex-rp/persona.txt",
+  "promptSha256": "7575dfd8d075eca3637e58cf9c93cdba6ff0a87cabb1f6a3b0e44218e8aa1cc6",
+  "promptBytes": 1355,
+  "tier": "fast",
+  "effort": "none",
+  "metric": "monotonic milliseconds from turn/start write to first delta, last delta, and turn/completed",
+  "scope": "local Codex app-server + remote inference; excludes Hyprchan kernel, UI, STT, and TTS",
+  "actualBackendTier": "not exposed by app-server; configured tier is recorded separately",
+  "serial": true,
+  "args": {
+    "models": "gpt-5.4-mini,gpt-5.4-nano,gpt-5-nano,gpt-4.1-mini,gpt-4.1-nano,gpt-4o-mini,gpt-5.3-codex-spark",
+    "effort": "none",
+    "trials": "1",
+    "greetings-only": true,
+    "timeout": "8000",
+    "out": "benchmarks/codex-rp/results/extra-model-access"
+  }
+}

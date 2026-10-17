@@ -1,0 +1,619 @@
+#!/usr/bin/env python3
+"""Native Hyprchan preview: sprites, streaming Codex, local STT, and vision.
+
+Run with the system Python (GTK). Speech runs in its own Python environment.
+Closing the chat window releases capture devices and shuts down all workers.
+"""
+from __future__ import annotations
+
+import argparse
+import fcntl
+import json
+import os
+from pathlib import Path
+import queue
+import signal
+import socket
+import subprocess
+import sys
+import threading
+import time
+
+ROOT = Path(__file__).resolve().parents[1]
+RUNTIME = Path(os.getenv("XDG_RUNTIME_DIR", f"/run/user/{os.getuid()}")) / "hyprchan-codex"
+SOCKET = RUNTIME / "desktop.sock"
+SPEECH_PYTHON = Path(os.getenv("HYPRCHAN_SPEECH_PYTHON",
+                              str(Path.home() / ".local/share/hyprchan-codex/venv/bin/python")))
+
+
+def control(command: dict) -> dict:
+    with socket.socket(socket.AF_UNIX) as client:
+        client.settimeout(5)
+        client.connect(str(SOCKET))
+        client.sendall((json.dumps(command) + "\n").encode())
+        return json.loads(client.makefile().readline())
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--muted", action="store_true", help="Start with microphone off")
+    parser.add_argument("--no-vision", action="store_true", help="Start with camera and screen capture off")
+    parser.add_argument("--control", help='Send JSON, e.g. {"type":"status"} or {"type":"quit"}')
+    args = parser.parse_args()
+    if args.control:
+        print(json.dumps(control(json.loads(args.control)), ensure_ascii=False, indent=2))
+        return 0
+    RUNTIME.mkdir(mode=0o700, parents=True, exist_ok=True)
+    os.chmod(RUNTIME, 0o700)
+    lock = (RUNTIME / "desktop.lock").open("w")
+    try:
+        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError:
+        control({"type": "present"})
+        return 0
+
+    import gi
+    gi.require_version("Gtk", "4.0")
+    gi.require_version("Gdk", "4.0")
+    from gi.repository import Gdk, GLib, GLibUnix, Gtk
+    sys.path.insert(0, str(ROOT / "src"))
+    from hyprchan.core.animations.renderer.window import HyprchanWindow, PixelArtImage
+    from hyprchan.shared.utils.animations import load_animation_frames
+
+    class Desktop(Gtk.Application):
+        def __init__(self):
+            super().__init__(application_id="org.hyprland.hyprchan.codex")
+            self.children = {}
+            self.outgoing = {}
+            self.closing = False
+            self.model_ready = False
+            self.speech_ready = False
+            self.vision_ready = False
+            self.vision_wanted = not args.no_vision
+            self.vision_active = False
+            self.vision_generation = 0
+            self.latest_visual = None
+            self.mic_wanted = not args.muted
+            self.mic_active = False
+            self.busy = False
+            self.pending = []
+            self.sequence = 0
+            self.current = None
+            self.response = ""
+            self.stats = {"completed": 0, "mic_frames": 0, "mic_peak_dbfs": -120.0,
+                          "last_timing": None, "last_error": None}
+            self.mood_values = [
+                {"f": 15, "v": 0.5, "e": 0.7, "a": 0.5},
+                {"f": 5, "v": 0.8, "e": 0.9, "a": 0.7},
+                {"f": 95, "v": 0.1, "e": 0.1, "a": 0.1},
+                {"f": 20, "v": -0.7, "e": 0.4, "a": 0.4},
+            ]
+            self.frames = {}
+            for name, sheet in [("calm", "sit_idle"), ("sleepy", "sit_sleeping"),
+                                ("grumpy", "sit_depressed")]:
+                self.frames[name] = load_animation_frames(str(ROOT / f"public/assets/sprites/{sheet}.png"))
+            self.frame_index = 0
+            self.connect("shutdown", self.shutdown_workers)
+
+        def do_activate(self):
+            if hasattr(self, "win"):
+                self.win.present()
+                return
+            self.win = Gtk.ApplicationWindow(application=self, title="Hyprchan · voice chat")
+            self.win.set_default_size(840, 610)
+            self.win.add_css_class("hyprchan-chat")
+            self.win.connect("close-request", lambda *_: (self.quit(), False)[1])
+            css = Gtk.CssProvider()
+            css.load_from_data(b"""
+                window.hyprchan-chat { background: #111d24; color: #e8f7f6; }
+                .title { font-size: 25px; font-weight: 800; color: #78e0db; }
+                .muted { color: #a2b8bd; font-size: 12px; }
+                .message { padding: 12px; border-radius: 12px; background: #20343d; }
+                .user { background: #234c50; }
+                button { padding: 8px 12px; }
+                entry { padding: 8px; }
+                levelbar block.filled { background: #6ddcc7; }
+            """)
+            Gtk.StyleContext.add_provider_for_display(Gdk.Display.get_default(), css,
+                                                      Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+            outer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
+            for side in ("top", "bottom", "start", "end"):
+                getattr(outer, f"set_margin_{side}")(18)
+            self.win.set_child(outer)
+            title = Gtk.Label(label="Hyprchan", xalign=0)
+            title.add_css_class("title")
+            outer.append(title)
+            self.status = Gtk.Label(label="Waking up…", xalign=0)
+            self.status.set_wrap(True)
+            outer.append(self.status)
+
+            body = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=18)
+            body.set_vexpand(True)
+            outer.append(body)
+            portrait = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+            self.sprite = PixelArtImage()
+            self.sprite.set_size_request(175, 300)
+            self.sprite.set_vexpand(True)
+            portrait.append(self.sprite)
+            self.mood = Gtk.DropDown.new_from_strings(["Calm", "Bright", "Sleepy", "Grumpy"])
+            portrait.append(self.mood)
+            body.append(portrait)
+            self.scroll = Gtk.ScrolledWindow()
+            self.scroll.set_hexpand(True)
+            self.scroll.set_vexpand(True)
+            self.scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+            self.chat = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+            self.scroll.set_child(self.chat)
+            body.append(self.scroll)
+            self.add_message("Hyprchan", "*Settles onto your desktop.* Give me a moment to wake up.")
+
+            microphones = json.loads(subprocess.check_output(["pactl", "-f", "json", "list", "sources"]))
+            self.sources = [source for source in microphones if not source["name"].endswith(".monitor")]
+            default = os.getenv("HYPRCHAN_MIC_SOURCE") or subprocess.check_output(["pactl", "get-default-source"], text=True).strip()
+            devices = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+            self.source_select = Gtk.DropDown.new_from_strings([s["description"] for s in self.sources])
+            self.source_select.set_hexpand(True)
+            self.source_select.set_selected(next((i for i, s in enumerate(self.sources) if s["name"] == default), 0))
+            devices.append(self.source_select)
+            self.language = Gtk.DropDown.new_from_strings(["Auto language", "English", "Русский"])
+            self.language.set_selected({"en": 1, "ru": 2}.get(os.getenv("HYPRCHAN_STT_LANGUAGE", "en"), 0))
+            devices.append(self.language)
+            self.mic_button = Gtk.ToggleButton(label="Microphone on" if self.mic_wanted else "Microphone off")
+            self.mic_button.set_active(self.mic_wanted)
+            self.mic_button.connect("toggled", self.toggle_mic)
+            devices.append(self.mic_button)
+            self.source_select.connect("notify::selected", self.mic_selection_changed)
+            self.language.connect("notify::selected", self.mic_selection_changed)
+            outer.append(devices)
+            self.level = Gtk.LevelBar.new_for_interval(0, 1)
+            outer.append(self.level)
+            self.mic_status = Gtk.Label(label="Preparing local speech recognition…", xalign=0)
+            self.mic_status.add_css_class("muted")
+            outer.append(self.mic_status)
+            vision = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+            self.vision_button = Gtk.ToggleButton(label="Camera + screen on" if self.vision_wanted else "Camera + screen off")
+            self.vision_button.set_active(self.vision_wanted)
+            self.vision_button.connect("toggled", self.toggle_vision)
+            vision.append(self.vision_button)
+            self.vision_status = Gtk.Label(label="Preparing automatic visual context…", xalign=0)
+            self.vision_status.set_wrap(True)
+            self.vision_status.set_hexpand(True)
+            self.vision_status.add_css_class("muted")
+            vision.append(self.vision_status)
+            outer.append(vision)
+            self.timing = Gtk.Label(label="Audio stays local · recognized text goes to the model", xalign=0)
+            self.timing.add_css_class("muted")
+            outer.append(self.timing)
+            compose = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+            self.entry = Gtk.Entry(placeholder_text="Or type something…")
+            self.entry.set_hexpand(True)
+            self.entry.connect("activate", self.submit_entry)
+            compose.append(self.entry)
+            send = Gtk.Button(label="Send")
+            send.connect("clicked", self.submit_entry)
+            compose.append(send)
+            outer.append(compose)
+
+            self.overlay = HyprchanWindow()
+            self.overlay.set_application(self)
+            self.overlay.set_title("hyprchan-overlay")
+            self.overlay.set_default_size(230, 340)
+            self.overlay.connect("close-request", lambda *_: (self.overlay.hide(), True)[1])
+            self.overlay.present()
+            self.win.present()
+            GLib.timeout_add(125, self.animate)
+            GLib.timeout_add(1000, self.update_vision_status)
+            GLib.timeout_add(700, self.position_windows)
+            self.start_control_socket()
+            self.spawn("model", ["node", str(ROOT / "scripts/desktop_codex_bridge.mjs")])
+            if SPEECH_PYTHON.exists():
+                self.spawn("speech", [str(SPEECH_PYTHON), str(ROOT / "scripts/desktop_speech_worker.py")])
+                self.spawn("vision", [str(SPEECH_PYTHON), str(ROOT / "scripts/desktop_vision_worker.py")])
+            else:
+                self.show_error(f"Speech Python is missing: {SPEECH_PYTHON}")
+
+        def position_windows(self):
+            try:
+                monitors = json.loads(subprocess.check_output(["hyprctl", "monitors", "-j"]))
+                monitor = next((m for m in monitors if m.get("focused")), monitors[0])
+                width = round(monitor["width"] / monitor["scale"])
+                height = round(monitor["height"] / monitor["scale"])
+                if monitor.get("transform", 0) % 2:
+                    width, height = height, width
+                left, top = monitor["x"], monitor["y"]
+                clients = json.loads(subprocess.check_output(["hyprctl", "clients", "-j"]))
+                for client in clients:
+                    title = client.get("title", "")
+                    if client.get("pid") != os.getpid():
+                        continue
+                    address = "address:" + client["address"]
+                    if title == "hyprchan-overlay":
+                        size = "230 340"
+                        position = f"{left + max(0, width - 250)} {top + max(0, height - 370)}"
+                    elif title == "Hyprchan · voice chat":
+                        size = "840 670"
+                        position = f"{left + max(0, (width - 840) // 2)} {top + max(0, (height - 670) // 2)}"
+                    else:
+                        continue
+                    for dispatcher, value in [("setfloating", address),
+                                              ("resizewindowpixel", f"exact {size},{address}"),
+                                              ("movewindowpixel", f"exact {position},{address}")]:
+                        subprocess.run(["hyprctl", "dispatch", dispatcher, value],
+                                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            except (OSError, ValueError, subprocess.SubprocessError):
+                pass
+            return False
+
+        def animate(self):
+            name = ["calm", "calm", "sleepy", "grumpy"][self.mood.get_selected()]
+            frames = self.frames[name]
+            frame = frames[self.frame_index % len(frames)]
+            self.frame_index += 1
+            self.sprite.set_from_pixbuf(frame)
+            self.overlay.set_image(frame)
+            return not self.closing
+
+        def add_message(self, who, text):
+            label = Gtk.Label(label=f"{who}\n{text}", xalign=0)
+            label.set_wrap(True)
+            label.set_wrap_mode(2)
+            label.set_max_width_chars(58)
+            label.set_selectable(True)
+            label.add_css_class("message")
+            if who.startswith("You"):
+                label.add_css_class("user")
+            self.chat.append(label)
+            GLib.idle_add(self.scroll_bottom)
+            return label
+
+        def scroll_bottom(self):
+            adjustment = self.scroll.get_vadjustment()
+            adjustment.set_value(adjustment.get_upper() - adjustment.get_page_size())
+            return False
+
+        def spawn(self, name, command):
+            child = subprocess.Popen(command, cwd=ROOT, stdin=subprocess.PIPE,
+                                     stdout=subprocess.PIPE, text=True, bufsize=1)
+            self.children[name] = child
+            outgoing = self.outgoing[name] = queue.Queue(maxsize=8)
+            def write_commands():
+                try:
+                    while True:
+                        command = outgoing.get()
+                        child.stdin.write(json.dumps(command, ensure_ascii=False) + "\n")
+                        child.stdin.flush()
+                        if command.get("type") == "quit":
+                            child.stdin.close()
+                            return
+                except (BrokenPipeError, OSError) as exc:
+                    if not self.closing:
+                        GLib.idle_add(self.receive, name, {"type": "error", "fatal": True, "message": str(exc)})
+            # Large image payloads must not block GTK's event loop on a pipe write.
+            threading.Thread(target=write_commands, daemon=True).start()
+            def read_events():
+                for line in child.stdout:
+                    try:
+                        event = json.loads(line)
+                    except ValueError:
+                        continue
+                    GLib.idle_add(self.receive, name, event)
+                code = child.wait()
+                if not self.closing:
+                    GLib.idle_add(self.receive, name, {"type": "error", "fatal": True,
+                                                      "message": f"{name} worker exited ({code})"})
+            threading.Thread(target=read_events, daemon=True).start()
+
+        def send(self, name, command):
+            child = self.children.get(name)
+            if child is None or child.poll() is not None:
+                self.show_error(f"{name} worker is unavailable; reopen Hyprchan.")
+                return False
+            try:
+                self.outgoing[name].put_nowait(command)
+                return True
+            except queue.Full:
+                self.show_error(f"{name} worker is busy; please wait.")
+                return False
+
+        def receive(self, name, event):
+            if self.closing:
+                return False
+            kind = event["type"]
+            if kind == "error":
+                self.show_error(event.get("message", "Unknown error"))
+                if name == "model":
+                    self.busy = False
+                    if event.get("fatal"):
+                        self.model_ready = False
+                elif name == "vision":
+                    self.vision_ready = False
+                    self.vision_active = False
+                    self.latest_visual = None
+                    self.stats["vision_error"] = event.get("message", "")
+                    self.update_vision_status()
+                else:
+                    self.mic_status.set_label("Speech error: " + event.get("message", ""))
+                return False
+            if name == "model":
+                if kind == "ready":
+                    self.model_ready = True
+                    self.stats.update(model=event["model"], tier=event["tier"])
+                    self.status.set_label("Ready · say hello or type below")
+                    self.start_next()
+                elif kind == "delta" and self.current and event["id"] == self.current["id"]:
+                    self.response += event["text"]
+                    self.current["first_gui_ms"] = self.current.get("first_gui_ms", (time.monotonic() - self.current["started"]) * 1000)
+                    self.current["last_gui_ms"] = (time.monotonic() - self.current["started"]) * 1000
+                    self.answer.set_label("Hyprchan\n" + self.response)
+                    self.overlay.set_overlay_text(self.response)
+                    GLib.idle_add(self.scroll_bottom)
+                elif kind == "done" and self.current and event["id"] == self.current["id"]:
+                    self.response = event["text"]
+                    self.answer.set_label("Hyprchan\n" + self.response)
+                    self.overlay.set_overlay_text(self.response)
+                    timing = {key: event.get(key) for key in ("firstTextMs", "lastTextMs", "completedMs", "imageCount")}
+                    timing.update(source=self.current["source"], sttMs=self.current.get("sttMs"),
+                                  firstGuiMs=self.current.get("first_gui_ms"), lastGuiMs=self.current.get("last_gui_ms"),
+                                  visualWaitMs=self.current.get("visual_wait_ms", 0))
+                    if timing["lastGuiMs"] is not None:
+                        timing["inputToFullTextMs"] = (self.current["started"] - self.current["received"]) * 1000 + timing["lastGuiMs"]
+                    if self.current.get("endpointMs") is not None and timing["lastGuiMs"] is not None:
+                        queue_ms = (self.current["started"] - self.current["received"]) * 1000
+                        timing["transcriptQueueMs"] = queue_ms
+                        timing["estimatedSpeechEndToTextMs"] = self.current["endpointMs"] + self.current.get("silenceMs", 0) + queue_ms + timing["lastGuiMs"]
+                    self.stats["last_timing"] = timing
+                    self.stats["completed"] += 1
+                    full = event.get("lastTextMs")
+                    label = f"Reply {full / 1000:.2f}s" if full is not None else "No reply text received"
+                    if self.current.get("sttMs") is not None:
+                        label = f"Speech {self.current['sttMs'] / 1000:.2f}s · " + label
+                    self.timing.set_label(label)
+                    self.busy = False
+                    self.status.set_label("Ready · listening" if self.mic_active else "Ready")
+                    if event["status"] != "completed":
+                        self.show_error("; ".join(event.get("errors", [])) or event["status"])
+                    self.start_next()
+            elif name == "vision":
+                if kind == "ready":
+                    self.vision_ready = True
+                    self.apply_vision()
+                elif event.get("generation") == self.vision_generation:
+                    if kind == "vision":
+                        self.vision_active = event["active"]
+                    elif kind == "snapshot" and self.vision_wanted:
+                        self.latest_visual = event["snapshot"]
+                        self.stats["camera"] = event.get("camera")
+                        self.stats["capture_ms"] = event.get("captureMs")
+                        self.stats["vision_error"] = event.get("cameraError")
+                        for item in self.pending:
+                            if item["id"] in event.get("requestIds", []):
+                                item["vision_waiting"] = False
+                        self.start_next()
+                    elif kind == "notice":
+                        self.stats["vision_error"] = event["message"]
+                    self.update_vision_status()
+            elif kind == "ready":
+                self.speech_ready = True
+                self.stats["speech_model"] = event["model"]
+                self.apply_mic()
+            elif kind == "mic":
+                self.mic_active = event["active"]
+                if event.get("model"):
+                    self.stats["speech_model"] = event["model"]
+                self.mic_status.set_label("Listening · speak naturally, then pause" if self.mic_active else "Microphone off")
+                if not self.mic_active:
+                    self.level.set_value(0)
+                    self.sprite.set_speech_glow_active(False)
+                    self.overlay.set_speech_glow_active(False)
+            elif kind == "level":
+                self.level.set_value(max(0, min(1, (event["dbfs"] + 65) / 55)))
+                self.stats["mic_frames"] = event["frames"]
+                self.stats["mic_peak_dbfs"] = max(self.stats["mic_peak_dbfs"], event["dbfs"])
+                self.stats["mic_dbfs"] = event["dbfs"]
+                self.stats["voice_probability"] = event.get("voiceProbability")
+            elif kind == "speaking":
+                self.sprite.set_speech_glow_active(event["active"])
+                self.overlay.set_speech_glow_active(event["active"])
+                if event["active"] and self.vision_wanted and self.vision_ready:
+                    self.send("vision", {"type": "refresh"})
+            elif kind == "transcribing":
+                self.mic_status.set_label("Recognizing speech…" if event["active"] else ("Listening · speak naturally, then pause" if self.mic_active else "Microphone off"))
+            elif kind == "transcript":
+                if self.mic_wanted or event.get("origin") == "test_audio":
+                    self.stats["last_speech_model"] = event.get("model")
+                    self.queue_message(event["text"], event.get("origin", "microphone"), event)
+            elif kind == "notice":
+                self.mic_status.set_label(event["message"])
+            return False
+
+        def show_error(self, message):
+            self.stats["last_error"] = str(message)
+            self.status.set_label(str(message))
+
+        def toggle_mic(self, button):
+            self.mic_wanted = button.get_active()
+            button.set_label("Microphone on" if self.mic_wanted else "Microphone off")
+            self.apply_mic()
+
+        def toggle_vision(self, button):
+            self.vision_wanted = button.get_active()
+            button.set_label("Camera + screen on" if self.vision_wanted else "Camera + screen off")
+            self.latest_visual = None
+            self.apply_vision()
+
+        def apply_vision(self):
+            self.vision_generation += 1
+            self.stats["vision_error"] = None
+            if self.vision_ready:
+                self.send("vision", {"type": "enable", "active": self.vision_wanted,
+                                     "generation": self.vision_generation})
+            self.update_vision_status()
+
+        def update_vision_status(self):
+            if not self.vision_wanted:
+                text = "Capture off · earlier images remain in this chat"
+            elif self.latest_visual:
+                kinds = [image["kind"] for image in self.latest_visual["images"]]
+                sources = "Camera + screen" if len(kinds) == 2 else ("Camera" if "webcam" in kinds else "Screen only")
+                age = max(0, int(time.time() - self.latest_visual["captured_at"]))
+                text = f"{sources} · {age}s ago · images sent with chat"
+                if self.stats.get("vision_error"):
+                    text += " · camera unavailable; retrying"
+            else:
+                text = self.stats.get("vision_error") or "Preparing automatic visual context…"
+            self.vision_status.set_label(text)
+            return not self.closing
+
+        def mic_selection_changed(self, *_):
+            self.apply_mic()
+
+        def apply_mic(self):
+            if not self.speech_ready:
+                return
+            if self.mic_wanted and self.sources:
+                self.send("speech", {"type": "listen", "source": self.sources[self.source_select.get_selected()]["name"],
+                                     "language": [None, "en", "ru"][self.language.get_selected()]})
+                self.mic_status.set_label("Opening microphone…")
+            else:
+                self.send("speech", {"type": "mute"})
+
+        def submit_entry(self, *_):
+            text = self.entry.get_text().strip()
+            if text:
+                self.queue_message(text, "keyboard")
+                self.entry.set_text("")
+
+        def queue_message(self, text, source, metadata=None):
+            if len(self.pending) >= 3:
+                self.show_error("Please wait for the queued messages to finish.")
+                return
+            self.sequence += 1
+            item = {"id": self.sequence, "text": text[:8000], "source": source,
+                    "received": time.monotonic(), **(metadata or {})}
+            self.pending.append(item)
+            self.add_message("You · voice" if source != "keyboard" else "You", text)
+            self.start_next()
+
+        def start_next(self):
+            if not self.model_ready or self.busy or not self.pending:
+                return
+            item = self.pending[0]
+            if item.get("vision_waiting"):
+                return
+            if (self.vision_wanted and self.vision_ready and not item.get("vision_requested") and
+                    (not self.latest_visual or time.time() - self.latest_visual["captured_at"] > 2)):
+                item["vision_requested"] = time.monotonic()
+                item["vision_waiting"] = self.send("vision", {"type": "refresh", "id": item["id"]})
+                if item["vision_waiting"]:
+                    GLib.timeout_add(700, self.finish_visual_wait, item["id"])
+                    return
+            self.current = self.pending.pop(0)
+            if self.current.get("vision_requested"):
+                self.current["visual_wait_ms"] = (time.monotonic() - self.current["vision_requested"]) * 1000
+            self.current["started"] = time.monotonic()
+            self.response = ""
+            self.answer = self.add_message("Hyprchan", "…")
+            self.busy = True
+            self.status.set_label("Replying…")
+            if not self.send("model", {"type": "chat", "id": self.current["id"], "text": self.current["text"],
+                                       "mood": self.mood_values[self.mood.get_selected()],
+                                       "vision": {"enabled": self.vision_wanted,
+                                                  "snapshot": self.latest_visual if self.vision_wanted else None}}):
+                self.busy = False
+
+        def finish_visual_wait(self, item_id):
+            for item in self.pending:
+                if item["id"] == item_id:
+                    item["vision_waiting"] = False
+            self.start_next()
+            return False
+
+        def start_control_socket(self):
+            SOCKET.unlink(missing_ok=True)
+            self.server = socket.socket(socket.AF_UNIX)
+            self.server.bind(str(SOCKET))
+            os.chmod(SOCKET, 0o600)
+            self.server.listen(3)
+            self.server.settimeout(1)
+            def serve():
+                while not self.closing:
+                    try:
+                        client, _ = self.server.accept()
+                    except socket.timeout:
+                        continue
+                    except OSError:
+                        return
+                    with client:
+                        try:
+                            client.settimeout(3)
+                            command = json.loads(client.makefile().readline(16384))
+                            result = queue.Queue(maxsize=1)
+                            GLib.idle_add(self.handle_control, command, result)
+                            client.sendall((json.dumps(result.get(timeout=3)) + "\n").encode())
+                        except (OSError, ValueError, queue.Empty):
+                            pass
+            threading.Thread(target=serve, daemon=True).start()
+
+        def handle_control(self, command, result):
+            try:
+                kind = command.get("type")
+                if kind == "chat":
+                    self.entry.set_text(command["text"])
+                    self.submit_entry()
+                elif kind == "mic":
+                    self.mic_button.set_active(bool(command["active"]))
+                elif kind == "vision":
+                    self.vision_button.set_active(bool(command["active"]))
+                elif kind == "test_audio":
+                    self.send("speech", {"type": "transcribe_file", "path": command["path"],
+                                         "language": command.get("language")})
+                elif kind == "language":
+                    self.language.set_selected({"auto": 0, "en": 1, "ru": 2}[command["language"]])
+                elif kind == "present":
+                    self.win.present()
+                    self.overlay.present()
+                elif kind == "quit":
+                    GLib.timeout_add(100, lambda: (self.quit(), False)[1])
+                elif kind != "status":
+                    raise ValueError("Unknown control command")
+                result.put({"pid": os.getpid(), "ready": self.model_ready, "speech_ready": self.speech_ready,
+                            "microphone": self.sources[self.source_select.get_selected()]["description"] if self.sources else None,
+                            "language": ["auto", "en", "ru"][self.language.get_selected()],
+                            "vision_active": self.vision_active, "vision_wanted": self.vision_wanted,
+                            "visual_sources": [image["kind"] for image in self.latest_visual["images"]] if self.latest_visual else [],
+                            "visual_age_sec": round(time.time() - self.latest_visual["captured_at"], 1) if self.latest_visual else None,
+                            "mic_active": self.mic_active, "busy": self.busy, "queued": len(self.pending), **self.stats})
+            except Exception as exc:
+                result.put({"error": str(exc)})
+            return False
+
+        def shutdown_workers(self, *_):
+            self.closing = True
+            if hasattr(self, "server"):
+                self.server.close()
+            SOCKET.unlink(missing_ok=True)
+            for name, child in self.children.items():
+                if child.poll() is None:
+                    try:
+                        self.outgoing[name].put_nowait({"type": "quit"})
+                    except queue.Full:
+                        pass
+            for child in self.children.values():
+                try:
+                    child.wait(timeout=3)
+                except subprocess.TimeoutExpired:
+                    child.terminate()
+                    try:
+                        child.wait(timeout=4)
+                    except subprocess.TimeoutExpired:
+                        child.kill()
+                        child.wait()
+
+    app = Desktop()
+    for sig in (signal.SIGTERM, signal.SIGINT):
+        GLibUnix.signal_add(GLib.PRIORITY_DEFAULT, sig, lambda: (app.quit(), False)[1])
+    return app.run([sys.argv[0]])
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
