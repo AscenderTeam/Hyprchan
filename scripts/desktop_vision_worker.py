@@ -73,10 +73,12 @@ class VisionWorker:
         self.refresh = asyncio.Event()
         self.requests = []
         self.capture_started = 0.0
+        self.refresh_requested = False
+        self.capture_reason = "periodic"
         self.source = MultimodalSnapshotPerceptionSource(
             self.snapshot,
             config=MultimodalSnapshotConfig(
-                interval_sec=float(os.getenv("MULTIMODAL_SNAPSHOT_INTERVAL_SEC", "120")),
+                interval_sec=float(os.getenv("MULTIMODAL_SNAPSHOT_INTERVAL_SEC", "60")),
                 output_dir=directory,
                 webcam_warmup_sec=0,
             ),
@@ -116,12 +118,15 @@ class VisionWorker:
         emit({"type": "snapshot", "generation": self.generation,
               "snapshot": snapshot, "requestIds": self.requests,
               "camera": self.camera_name, "cameraError": self.camera_error,
+              "reason": self.capture_reason,
               "captureMs": round((time.monotonic() - self.capture_started) * 1000, 1)})
         self.requests = []
 
     async def capture_loop(self):
         while self.enabled:
             self.refresh.clear()
+            self.capture_reason = "requested" if self.refresh_requested else "periodic"
+            self.refresh_requested = False
             try:
                 await self.ensure_camera()
                 self.capture_started = time.monotonic()
@@ -131,7 +136,7 @@ class VisionWorker:
                           "message": self.camera_error or "No camera or screen image is available"})
             except Exception as exc:
                 emit({"type": "notice", "generation": self.generation, "message": str(exc)})
-            # Complete the first camera snapshot after warmup, not 120 seconds later.
+            # Complete the first camera snapshot after warmup, not one interval later.
             warmup = self.camera_ready_at - time.monotonic()
             delay = warmup if warmup > 0 else (5 if not self.camera else self.source.config.interval_sec)
             delay = max(0.05, delay)
@@ -151,6 +156,7 @@ class VisionWorker:
             await self.camera.stop()
             self.camera = None
         self.requests = []
+        self.refresh_requested = False
         self.generation = generation
         self.enabled = enabled
         if enabled:
@@ -176,7 +182,7 @@ async def main():
     runtime = Path(os.getenv("XDG_RUNTIME_DIR", tempfile.gettempdir()))
     with tempfile.TemporaryDirectory(prefix="hyprchan-vision-", dir=runtime) as directory:
         worker = VisionWorker(Path(directory))
-        emit({"type": "ready"})
+        emit({"type": "ready", "intervalSec": worker.source.config.interval_sec})
         try:
             while True:
                 command = await commands.get()
@@ -188,6 +194,7 @@ async def main():
                 elif kind == "refresh" and worker.enabled:
                     if command.get("id") is not None:
                         worker.requests.append(command["id"])
+                    worker.refresh_requested = command.get("reason") != "periodic"
                     worker.refresh.set()
         finally:
             await worker.set_enabled(False, worker.generation)

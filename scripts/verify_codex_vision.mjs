@@ -8,7 +8,8 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
-const child = spawn('node', [join(root, 'scripts/desktop_codex_bridge.mjs')], { stdio: ['pipe', 'pipe', 'inherit'] });
+const child = spawn('node', [join(root, 'scripts/desktop_codex_bridge.mjs')], {
+  env: { ...process.env, HYPRCHAN_MEMORY_PATH: ':memory:' }, stdio: ['pipe', 'pipe', 'inherit'] });
 const lines = createInterface({ input: child.stdout });
 const rows = [];
 const cases = [

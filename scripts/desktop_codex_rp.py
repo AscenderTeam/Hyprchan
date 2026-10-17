@@ -38,6 +38,9 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--muted", action="store_true", help="Start with microphone off")
     parser.add_argument("--no-vision", action="store_true", help="Start with camera and screen capture off")
+    parser.add_argument("--no-reactions", action="store_true", help="Keep automatic screen reactions off")
+    parser.add_argument("--no-memory", action="store_true", help="Keep persistent user memory off")
+    parser.add_argument("--no-audio-awareness", action="store_true", help="Keep playback awareness and listen_in off")
     parser.add_argument("--control", help='Send JSON, e.g. {"type":"status"} or {"type":"quit"}')
     args = parser.parse_args()
     if args.control:
@@ -73,6 +76,17 @@ def main() -> int:
             self.vision_active = False
             self.vision_generation = 0
             self.latest_visual = None
+            self.reactions_wanted = not args.no_reactions
+            self.memory_wanted = not args.no_memory
+            self.audio_wanted = not args.no_audio_awareness
+            self.pending_audio = []
+            self.audio_pending_at = 0.0
+            self.reaction_interval = max(10, float(os.getenv("HYPRCHAN_REACTION_INTERVAL_SEC", "60")))
+            self.pending_reaction = None
+            self.last_reaction_at = -self.reaction_interval
+            self.last_user_activity = 0.0
+            self.user_speaking = False
+            self.transcribing = False
             self.mic_wanted = not args.muted
             self.mic_active = False
             self.busy = False
@@ -81,7 +95,9 @@ def main() -> int:
             self.current = None
             self.response = ""
             self.stats = {"completed": 0, "mic_frames": 0, "mic_peak_dbfs": -120.0,
-                          "last_timing": None, "last_error": None}
+                          "last_timing": None, "last_error": None,
+                          "reaction_checks": 0, "reactions": 0, "quiet_checks": 0,
+                          "reactions_interrupted": 0, "last_reaction_timing": None}
             self.mood_values = [
                 {"f": 15, "v": 0.5, "e": 0.7, "a": 0.5},
                 {"f": 5, "v": 0.8, "e": 0.9, "a": 0.7},
@@ -145,7 +161,9 @@ def main() -> int:
             self.chat = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
             self.scroll.set_child(self.chat)
             body.append(self.scroll)
-            self.add_message("Hyprchan", "*Settles onto your desktop.* Give me a moment to wake up.")
+            self.add_message("Hyprchan", "*Выглядываю из капюшона.* Секундочку, я просыпаюсь, ня~"
+                             if os.getenv("HYPRCHAN_STT_LANGUAGE") == "ru" else
+                             "*Peeks out of my hoodie.* Mmh… waking up, nyah~")
 
             microphones = json.loads(subprocess.check_output(["pactl", "-f", "json", "list", "sources"]))
             self.sources = [source for source in microphones if not source["name"].endswith(".monitor")]
@@ -181,6 +199,34 @@ def main() -> int:
             self.vision_status.add_css_class("muted")
             vision.append(self.vision_status)
             outer.append(vision)
+            reactions = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+            self.reaction_button = Gtk.ToggleButton(label="Screen reactions on" if self.reactions_wanted else "Screen reactions off")
+            self.reaction_button.set_active(self.reactions_wanted)
+            self.reaction_button.connect("toggled", self.toggle_reactions)
+            reactions.append(self.reaction_button)
+            reaction_note = Gtk.Label(label="About once a minute · quiet when there’s nothing new", xalign=0)
+            reaction_note.add_css_class("muted")
+            reactions.append(reaction_note)
+            outer.append(reactions)
+            memory_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+            self.memory_button = Gtk.ToggleButton(label="Memory on" if self.memory_wanted else "Memory off")
+            self.memory_button.set_active(self.memory_wanted)
+            self.memory_button.connect("toggled", self.toggle_memory)
+            memory_row.append(self.memory_button)
+            self.memory_status = Gtk.Label(label="Learning from chats and observations · saved locally", xalign=0)
+            self.memory_status.add_css_class("muted")
+            memory_row.append(self.memory_status)
+            outer.append(memory_row)
+            audio_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+            self.audio_button = Gtk.ToggleButton(label="Audio awareness on" if self.audio_wanted else "Audio awareness off")
+            self.audio_button.set_active(self.audio_wanted)
+            self.audio_button.connect("toggled", self.toggle_audio)
+            audio_row.append(self.audio_button)
+            self.audio_status = Gtk.Label(label="New audio channels · optional listening", xalign=0)
+            self.audio_status.set_wrap(True)
+            self.audio_status.add_css_class("muted")
+            audio_row.append(self.audio_status)
+            outer.append(audio_row)
             self.timing = Gtk.Label(label="Audio stays local · recognized text goes to the model", xalign=0)
             self.timing.add_css_class("muted")
             outer.append(self.timing)
@@ -188,6 +234,7 @@ def main() -> int:
             self.entry = Gtk.Entry(placeholder_text="Or type something…")
             self.entry.set_hexpand(True)
             self.entry.connect("activate", self.submit_entry)
+            self.entry.connect("changed", lambda entry: self.user_activity() if entry.get_text().strip() else None)
             compose.append(self.entry)
             send = Gtk.Button(label="Send")
             send.connect("clicked", self.submit_entry)
@@ -203,9 +250,11 @@ def main() -> int:
             self.win.present()
             GLib.timeout_add(125, self.animate)
             GLib.timeout_add(1000, self.update_vision_status)
+            GLib.timeout_add(250, self.maybe_react)
             GLib.timeout_add(700, self.position_windows)
             self.start_control_socket()
             self.spawn("model", ["node", str(ROOT / "scripts/desktop_codex_bridge.mjs")])
+            self.spawn("pipewire", [sys.executable, str(ROOT / "scripts/desktop_pipewire_worker.py")])
             if SPEECH_PYTHON.exists():
                 self.spawn("speech", [str(SPEECH_PYTHON), str(ROOT / "scripts/desktop_speech_worker.py")])
                 self.spawn("vision", [str(SPEECH_PYTHON), str(ROOT / "scripts/desktop_vision_worker.py")])
@@ -221,6 +270,11 @@ def main() -> int:
                 if monitor.get("transform", 0) % 2:
                     width, height = height, width
                 left, top = monitor["x"], monitor["y"]
+                reserved = monitor.get("reserved", [0, 0, 0, 0])
+                left += reserved[0]
+                top += reserved[1]
+                width -= reserved[0] + reserved[2]
+                height -= reserved[1] + reserved[3]
                 clients = json.loads(subprocess.check_output(["hyprctl", "clients", "-j"]))
                 for client in clients:
                     title = client.get("title", "")
@@ -231,8 +285,9 @@ def main() -> int:
                         size = "230 340"
                         position = f"{left + max(0, width - 250)} {top + max(0, height - 370)}"
                     elif title == "Hyprchan · voice chat":
-                        size = "840 670"
-                        position = f"{left + max(0, (width - 840) // 2)} {top + max(0, (height - 670) // 2)}"
+                        chat_height = max(670, client["size"][1])
+                        size = f"840 {chat_height}"
+                        position = f"{left + max(0, (width - 840) // 2)} {top + max(0, (height - chat_height) // 2)}"
                     else:
                         continue
                     for dispatcher, value in [("setfloating", address),
@@ -323,14 +378,19 @@ def main() -> int:
                 self.show_error(event.get("message", "Unknown error"))
                 if name == "model":
                     self.busy = False
+                    self.current = None
                     if event.get("fatal"):
                         self.model_ready = False
                 elif name == "vision":
+                    self.cancel_reaction()
                     self.vision_ready = False
                     self.vision_active = False
                     self.latest_visual = None
                     self.stats["vision_error"] = event.get("message", "")
                     self.update_vision_status()
+                elif name == "pipewire":
+                    self.stats["audio_error"] = event.get("message")
+                    self.audio_status.set_label("Audio awareness unavailable: " + event.get("message", ""))
                 else:
                     self.mic_status.set_label("Speech error: " + event.get("message", ""))
                 return False
@@ -339,7 +399,21 @@ def main() -> int:
                     self.model_ready = True
                     self.stats.update(model=event["model"], tier=event["tier"])
                     self.status.set_label("Ready · say hello or type below")
+                    self.send("model", {"type": "memory_mode", "active": self.memory_wanted})
+                    self.send("model", {"type": "audio_mode", "active": self.audio_wanted})
                     self.start_next()
+                elif kind == "memory":
+                    self.stats["memory_active"] = event["active"]
+                    self.stats["memory_count"] = event["count"]
+                    self.stats["memory_error"] = event.get("error")
+                    self.memory_status.set_label(event.get("error") or
+                        (f"{event['count']} saved facts · chats + observations" if event["active"] else "Memory off · saved facts kept locally"))
+                elif kind == "listen_request":
+                    if self.audio_wanted and self.speech_ready:
+                        if not self.send("speech", {**event, "type": "listen_in"}):
+                            self.receive("speech", {**event, "type": "listen_error", "message": "Speech worker is unavailable"})
+                    else:
+                        self.receive("speech", {**event, "type": "listen_error", "message": "Audio listening is not ready"})
                 elif kind == "delta" and self.current and event["id"] == self.current["id"]:
                     self.response += event["text"]
                     self.current["first_gui_ms"] = self.current.get("first_gui_ms", (time.monotonic() - self.current["started"]) * 1000)
@@ -348,10 +422,13 @@ def main() -> int:
                     self.overlay.set_overlay_text(self.response)
                     GLib.idle_add(self.scroll_bottom)
                 elif kind == "done" and self.current and event["id"] == self.current["id"]:
+                    if self.current["source"] in {"screen", "audio"}:
+                        self.finish_reaction(event)
+                        return False
                     self.response = event["text"]
                     self.answer.set_label("Hyprchan\n" + self.response)
                     self.overlay.set_overlay_text(self.response)
-                    timing = {key: event.get(key) for key in ("firstTextMs", "lastTextMs", "completedMs", "imageCount")}
+                    timing = {key: event.get(key) for key in ("firstTextMs", "lastTextMs", "completedMs", "imageCount", "toolCalls")}
                     timing.update(source=self.current["source"], sttMs=self.current.get("sttMs"),
                                   firstGuiMs=self.current.get("first_gui_ms"), lastGuiMs=self.current.get("last_gui_ms"),
                                   visualWaitMs=self.current.get("visual_wait_ms", 0))
@@ -369,13 +446,34 @@ def main() -> int:
                         label = f"Speech {self.current['sttMs'] / 1000:.2f}s · " + label
                     self.timing.set_label(label)
                     self.busy = False
+                    self.current = None
                     self.status.set_label("Ready · listening" if self.mic_active else "Ready")
                     if event["status"] != "completed":
                         self.show_error("; ".join(event.get("errors", [])) or event["status"])
                     self.start_next()
+            elif name == "pipewire":
+                if kind == "ready":
+                    self.stats["audio_ready"] = True
+                elif kind == "audio_state":
+                    self.stats["playback_streams"] = len(event["playback"])
+                    self.send("model", event)
+                elif kind == "audio_event":
+                    self.stats["audio_events"] = self.stats.get("audio_events", 0) + 1
+                    if self.audio_wanted:
+                        observation = {**event, "type": "audio_event"}
+                        self.pending_audio = [item for item in self.pending_audio
+                                              if item.get("type") == "listen_chunk" or item.get("serial") != event["serial"]]
+                        self.pending_audio.append(observation)
+                        # Bound channel churn without dropping the five promised
+                        # transcript chunks while a user turn is in progress.
+                        latest_events = [item for item in self.pending_audio if item.get("type") != "listen_chunk"][-8:]
+                        self.pending_audio = [item for item in self.pending_audio
+                                              if item.get("type") == "listen_chunk" or item in latest_events]
+                        self.audio_pending_at = time.monotonic()
             elif name == "vision":
                 if kind == "ready":
                     self.vision_ready = True
+                    self.stats["snapshot_interval_sec"] = event.get("intervalSec")
                     self.apply_vision()
                 elif event.get("generation") == self.vision_generation:
                     if kind == "vision":
@@ -385,6 +483,9 @@ def main() -> int:
                         self.stats["camera"] = event.get("camera")
                         self.stats["capture_ms"] = event.get("captureMs")
                         self.stats["vision_error"] = event.get("cameraError")
+                        if (self.reactions_wanted and event.get("reason") == "periodic" and
+                                not event.get("requestIds")):
+                            self.pending_reaction = event["snapshot"]
                         for item in self.pending:
                             if item["id"] in event.get("requestIds", []):
                                 item["vision_waiting"] = False
@@ -392,6 +493,28 @@ def main() -> int:
                     elif kind == "notice":
                         self.stats["vision_error"] = event["message"]
                     self.update_vision_status()
+            elif kind.startswith("listen_"):
+                if kind == "listen_started":
+                    self.stats["listen_active"] = True
+                    self.stats["listen_job"] = event["jobId"]
+                    self.audio_status.set_label(f"Listening to {event['name']} · up to {event['seconds']}s")
+                elif kind == "listen_chunk" and self.audio_wanted:
+                    self.stats["listen_chunks"] = self.stats.get("listen_chunks", 0) + 1
+                    self.stats["last_listen_chunk"] = {key: event.get(key) for key in ("jobId", "index", "total", "sttMs")}
+                    self.audio_status.set_label(f"{event['name']} · heard {event['index']}/{event['total']}" if event["text"] else
+                                                f"{event['name']} · no clear speech in {event['index']}/{event['total']}")
+                    self.pending_audio.append({**event, "observedAt": time.time()})
+                    self.audio_pending_at = 0
+                elif kind in {"listen_done", "listen_error"}:
+                    self.stats["listen_active"] = False
+                    self.send("model", {"type": "listen_finished", "jobId": event["jobId"]})
+                    if kind == "listen_error":
+                        self.stats["listen_error"] = event["message"]
+                        self.audio_status.set_label(event["message"])
+                        if self.audio_wanted:
+                            self.pending_audio.append({**event, "observedAt": time.time()})
+                    else:
+                        self.audio_status.set_label("Listening finished · watching for new audio" if self.audio_wanted else "Audio awareness off")
             elif kind == "ready":
                 self.speech_ready = True
                 self.stats["speech_model"] = event["model"]
@@ -402,6 +525,7 @@ def main() -> int:
                     self.stats["speech_model"] = event["model"]
                 self.mic_status.set_label("Listening · speak naturally, then pause" if self.mic_active else "Microphone off")
                 if not self.mic_active:
+                    self.user_speaking = False
                     self.level.set_value(0)
                     self.sprite.set_speech_glow_active(False)
                     self.overlay.set_speech_glow_active(False)
@@ -412,11 +536,17 @@ def main() -> int:
                 self.stats["mic_dbfs"] = event["dbfs"]
                 self.stats["voice_probability"] = event.get("voiceProbability")
             elif kind == "speaking":
+                self.user_speaking = event["active"]
+                if event["active"]:
+                    self.user_activity()
                 self.sprite.set_speech_glow_active(event["active"])
                 self.overlay.set_speech_glow_active(event["active"])
                 if event["active"] and self.vision_wanted and self.vision_ready:
                     self.send("vision", {"type": "refresh"})
             elif kind == "transcribing":
+                self.transcribing = event["active"]
+                if event["active"]:
+                    self.user_activity()
                 self.mic_status.set_label("Recognizing speech…" if event["active"] else ("Listening · speak naturally, then pause" if self.mic_active else "Microphone off"))
             elif kind == "transcript":
                 if self.mic_wanted or event.get("origin") == "test_audio":
@@ -436,10 +566,122 @@ def main() -> int:
             self.apply_mic()
 
         def toggle_vision(self, button):
+            self.cancel_reaction()
             self.vision_wanted = button.get_active()
             button.set_label("Camera + screen on" if self.vision_wanted else "Camera + screen off")
             self.latest_visual = None
             self.apply_vision()
+
+        def toggle_reactions(self, button):
+            self.reactions_wanted = button.get_active()
+            button.set_label("Screen reactions on" if self.reactions_wanted else "Screen reactions off")
+            self.cancel_reaction()
+            if self.reactions_wanted and self.vision_wanted and self.vision_ready:
+                self.send("vision", {"type": "refresh", "reason": "periodic"})
+
+        def toggle_memory(self, button):
+            self.memory_wanted = button.get_active()
+            button.set_label("Memory on" if self.memory_wanted else "Memory off")
+            if self.model_ready:
+                self.send("model", {"type": "memory_mode", "active": self.memory_wanted})
+
+        def toggle_audio(self, button):
+            self.audio_wanted = button.get_active()
+            button.set_label("Audio awareness on" if self.audio_wanted else "Audio awareness off")
+            self.send("model", {"type": "audio_mode", "active": self.audio_wanted})
+            if not self.audio_wanted:
+                self.pending_audio = []
+                self.send("speech", {"type": "stop_listening"})
+                if self.current and self.current["source"] == "audio":
+                    self.cancel_reaction()
+            self.audio_status.set_label("New audio channels · optional listening" if self.audio_wanted else "Audio awareness off")
+
+        def cancel_reaction(self):
+            self.pending_reaction = None
+            if (self.busy and self.current and self.current["source"] in {"screen", "audio"} and
+                    not self.current.get("cancelled")):
+                self.current["cancelled"] = True
+                self.send("model", {"type": "cancel_reactions"})
+
+        def user_activity(self):
+            self.last_user_activity = time.monotonic()
+            self.cancel_reaction()
+
+        def maybe_react(self):
+            if self.closing:
+                return False
+            now = time.monotonic()
+            if (not self.model_ready or self.busy or self.pending or self.user_speaking or self.transcribing or
+                    self.entry.get_text().strip() or now - self.last_user_activity < 2):
+                return True
+            if self.audio_wanted and self.pending_audio and now - self.audio_pending_at >= 1:
+                observation = self.pending_audio.pop(0)
+                if time.time() - observation["observedAt"] > 60:
+                    return True
+                self.sequence += 1
+                self.current = {"id": self.sequence, "source": "audio", "started": now,
+                                "captured_at": observation["observedAt"]}
+                self.busy = True
+                self.status.set_label("Noticing the audio…")
+                if not self.send("model", {"type": "react", "id": self.sequence,
+                        "language": ["auto", "en", "ru"][self.language.get_selected()],
+                        "mood": self.mood_values[self.mood.get_selected()], "observation": observation,
+                        "vision": {"enabled": self.vision_wanted, "snapshot": None}}):
+                    self.busy = False
+                    self.current = None
+                return True
+            if (not self.reactions_wanted or not self.vision_wanted or
+                    now - self.last_reaction_at < self.reaction_interval or not self.pending_reaction):
+                return True
+            snapshot, self.pending_reaction = self.pending_reaction, None
+            # A user conversation may have kept an observation waiting. Do not
+            # volunteer a stale view; the next automatic capture will replace it.
+            if time.time() - snapshot["captured_at"] > 10:
+                return True
+            if not any(image["kind"] == "screen" for image in snapshot["images"]):
+                return True
+            images = [image for image in snapshot["images"] if self.memory_wanted or image["kind"] == "screen"]
+            self.sequence += 1
+            self.current = {"id": self.sequence, "source": "screen", "started": now,
+                            "captured_at": snapshot["captured_at"]}
+            self.last_reaction_at = now
+            self.busy = True
+            self.status.set_label("Looking at the screen…")
+            if not self.send("model", {"type": "react", "id": self.sequence,
+                    "language": ["auto", "en", "ru"][self.language.get_selected()],
+                    "mood": self.mood_values[self.mood.get_selected()],
+                    "vision": {"enabled": True, "snapshot": {**snapshot, "images": images}}}):
+                self.busy = False
+                self.current = None
+            return True
+
+        def finish_reaction(self, event):
+            self.stats["last_reaction_timing"] = {
+                key: event.get(key) for key in ("firstTextMs", "lastTextMs", "completedMs", "imageCount", "status", "quiet")}
+            self.stats["last_reaction_timing"].update(
+                capturedAt=self.current["captured_at"],
+                elapsedMs=round((time.monotonic() - self.current["started"]) * 1000, 1))
+            error = None
+            if event["status"] == "completed" and not self.current.get("cancelled"):
+                self.stats["reaction_checks"] += 1
+                if event.get("quiet"):
+                    self.stats["quiet_checks"] += 1
+                elif event.get("text", "").strip() and (
+                        (self.current["source"] == "audio" and self.audio_wanted) or
+                        (self.current["source"] == "screen" and self.reactions_wanted and self.vision_wanted)):
+                    self.add_message("Hyprchan", event["text"])
+                    self.overlay.set_overlay_text(event["text"])
+                    self.stats["reactions"] += 1
+            elif event["status"] == "interrupted" or self.current.get("cancelled"):
+                self.stats["reactions_interrupted"] += 1
+            else:
+                error = "; ".join(event.get("errors", [])) or event["status"]
+            self.current = None
+            self.busy = False
+            self.status.set_label("Ready · listening" if self.mic_active else "Ready")
+            if error:
+                self.show_error(error)
+            self.start_next()
 
         def apply_vision(self):
             self.vision_generation += 1
@@ -456,7 +698,8 @@ def main() -> int:
                 kinds = [image["kind"] for image in self.latest_visual["images"]]
                 sources = "Camera + screen" if len(kinds) == 2 else ("Camera" if "webcam" in kinds else "Screen only")
                 age = max(0, int(time.time() - self.latest_visual["captured_at"]))
-                text = f"{sources} · {age}s ago · images sent with chat"
+                delivery = "automatic screen reactions" if self.reactions_wanted else "images sent with chat"
+                text = f"{sources} · {age}s ago · {delivery}"
                 if self.stats.get("vision_error"):
                     text += " · camera unavailable; retrying"
             else:
@@ -484,6 +727,7 @@ def main() -> int:
                 self.entry.set_text("")
 
         def queue_message(self, text, source, metadata=None):
+            self.user_activity()
             if len(self.pending) >= 3:
                 self.show_error("Please wait for the queued messages to finish.")
                 return
@@ -564,6 +808,14 @@ def main() -> int:
                     self.mic_button.set_active(bool(command["active"]))
                 elif kind == "vision":
                     self.vision_button.set_active(bool(command["active"]))
+                elif kind == "reactions":
+                    self.reaction_button.set_active(bool(command["active"]))
+                elif kind == "memory":
+                    self.memory_button.set_active(bool(command["active"]))
+                elif kind == "audio":
+                    self.audio_button.set_active(bool(command["active"]))
+                elif kind == "snapshot":
+                    self.send("vision", {"type": "refresh", "reason": "periodic"})
                 elif kind == "test_audio":
                     self.send("speech", {"type": "transcribe_file", "path": command["path"],
                                          "language": command.get("language")})
@@ -580,6 +832,12 @@ def main() -> int:
                             "microphone": self.sources[self.source_select.get_selected()]["description"] if self.sources else None,
                             "language": ["auto", "en", "ru"][self.language.get_selected()],
                             "vision_active": self.vision_active, "vision_wanted": self.vision_wanted,
+                            "reactions_active": self.reactions_wanted,
+                            "memory_wanted": self.memory_wanted, "audio_active": self.audio_wanted,
+                            "audio_pending": len(self.pending_audio),
+                            "reaction_interval_sec": self.reaction_interval,
+                            "reaction_pending": self.pending_reaction is not None,
+                            "busy_kind": self.current["source"] if self.busy and self.current else None,
                             "visual_sources": [image["kind"] for image in self.latest_visual["images"]] if self.latest_visual else [],
                             "visual_age_sec": round(time.time() - self.latest_visual["captured_at"], 1) if self.latest_visual else None,
                             "mic_active": self.mic_active, "busy": self.busy, "queued": len(self.pending), **self.stats})

@@ -1,0 +1,50 @@
+{
+  "syntheticFactsOnly": true,
+  "rows": [
+    {
+      "input": "Ты помнишь мой любимый напиток?",
+      "type": "done",
+      "id": 1,
+      "text": "*прячу нос в капюшон* Сейчас не помню, ня~",
+      "status": "completed",
+      "quiet": false,
+      "firstTextMs": 1251.708,
+      "lastTextMs": 1384.311,
+      "completedMs": 1465.672,
+      "errors": [],
+      "imageCount": 0,
+      "toolCalls": 0,
+      "memoryCount": 0
+    },
+    {
+      "input": "привет",
+      "type": "done",
+      "id": 2,
+      "text": "*машу рукавом* Приве-ет! Ня~",
+      "status": "completed",
+      "quiet": false,
+      "firstTextMs": 1103.221,
+      "lastTextMs": 1188.227,
+      "completedMs": 1268.449,
+      "errors": [],
+      "imageCount": 0,
+      "toolCalls": 0,
+      "memoryCount": 0
+    },
+    {
+      "input": "hi",
+      "type": "done",
+      "id": 3,
+      "text": "*waves a sleeve* Hii, I’m right here~",
+      "status": "completed",
+      "quiet": false,
+      "firstTextMs": 1179.652,
+      "lastTextMs": 1276.197,
+      "completedMs": 1322.771,
+      "errors": [],
+      "imageCount": 0,
+      "toolCalls": 0,
+      "memoryCount": 0
+    }
+  ]
+}

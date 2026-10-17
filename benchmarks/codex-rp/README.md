@@ -46,7 +46,7 @@ node scripts/bench_codex_rp.mjs --models=gpt-5.6-luna --effort=none --prompt=ben
 node scripts/summarize_codex_rp.mjs
 ```
 
-`persona-v1.txt` is the first screening prompt. `persona.txt` adds explicit switching back to the latest message's language and prohibits inventing unseen screen contents. Comparison and validation metadata include the exact prompt; the initial screen records its SHA-256, matching `persona-v1.txt`.
+`persona-v1.txt` is the first screening prompt. `persona-v2.txt` preserves the language/vision revision used for the original comparisons. The current `persona.txt` adds a more expressive kawaii voice, agentic memory maintenance, and optional audio listening. Comparison and validation metadata include the exact prompt or its SHA-256. The earlier latency tables describe the recorded earlier prompts, not the expanded current tool-enabled companion.
 
 The early mood cases are synthetic descriptions, with normalized fatigue values. `native-mood-cases.json` separately checks the actual kernel scale: fatigue against `f_max` (normally 100), valence from -1 to 1, and energy/arousal from 0 to 1. Supply those units or normalize explicitly when integrating a state snapshot.
 
@@ -62,16 +62,26 @@ python scripts/desktop_codex_rp.py --muted
 # Optional: open without camera or screen capture.
 python scripts/desktop_codex_rp.py --no-vision
 
+# Optional: keep visual context for chat, with automatic reactions off.
+python scripts/desktop_codex_rp.py --no-reactions
+
+# Optional: disable saved facts or playback awareness independently.
+python scripts/desktop_codex_rp.py --no-memory --no-audio-awareness
+
 # Inspect timing/health without reading conversation text, or close the preview.
 python scripts/desktop_codex_rp.py --control '{"type":"status"}'
 python scripts/desktop_codex_rp.py --control '{"type":"quit"}'
 ```
 
-The preview reuses Hyprchan's native GTK sprite renderer, animation assets, OpenCV perception module, and multimodal snapshot source. It adds a chat window, immediate reply streaming, microphone selection and level meter, a visible mute control, automatic visual context, and current mood selection. It is a separate local preview, not the full autonomous kernel: there is no desktop-tool execution, background memory maintenance, durable chat history, or speech synthesis. Mood choices supply the native FVEA units on every turn. Closing the chat window stops capture and the Codex process; reopening an existing instance presents its windows.
+The preview reuses Hyprchan's native GTK sprite renderer, animation assets, OpenCV perception module, and multimodal snapshot source. It adds streamed chat, microphone selection and mute, automatic visual context, optional reactions, saved user facts, playback listening, and current mood selection. Its character prompt calls for playful gestures, opinions, and natural Russian/English expression. It is a separate local preview: desktop-tool execution, durable chat history, speech synthesis, and the full kernel's memory/state evolution are not started. Mood choices supply the native FVEA units on every turn. Closing the chat window stops capture and the Codex process; reopening an existing instance presents its windows.
 
-Camera and screen capture start automatically. The visible **Camera + screen** toggle releases the camera and stops screenshots; `--no-vision` starts with capture off. Images accompany chat requests to Codex. Audio remains local, but recognized text and the captured images leave the machine for inference. Turning capture off prevents new attachments; earlier images remain in the current temporary conversation until it is closed.
+Camera and screen capture start automatically. The visible **Camera + screen** toggle releases the camera and stops screenshots; `--no-vision` starts with capture off. Images accompany chat requests and automatic reaction checks. With memory enabled, periodic observations include the webcam so she can learn tentative facts from either source; with memory off, background checks include only the screen. Audio remains local, but recognized text, captured images, relevant saved facts, and audio metadata leave the machine for inference. Turning capture off prevents new attachments; earlier images remain in the current temporary conversation until it is closed.
 
-The existing snapshot provider supplies JPEGs with source labels and capture timestamps. The preview refreshes while speech starts and before a message if its snapshot is older than two seconds, waiting at most 700 ms for that refresh. It also takes periodic snapshots (120 seconds by default, configurable with `MULTIMODAL_SNAPSHOT_INTERVAL_SEC`, minimum 10). It reports image age and missing camera input. The first webcam snapshot follows the three-second warmup instead of waiting for the next periodic interval. Unchanged snapshots are not attached again. No background model calls run on capture events.
+The existing snapshot provider supplies JPEGs with source labels and capture timestamps. The preview refreshes while speech starts and before a message if its snapshot is older than two seconds, waiting at most 700 ms for that refresh. It also takes periodic snapshots (60 seconds by default, configurable with `MULTIMODAL_SNAPSHOT_INTERVAL_SEC`, minimum 10). It reports image age and missing camera input. The first webcam snapshot follows the three-second warmup instead of waiting for the next periodic interval. Each source from a given capture is attached only once; a new capture is eligible even when its pixels look similar.
+
+**Screen reactions** are on by default. Around once a minute while idle, the same conversation receives a fresh screen image and a conditional prompt: volunteer one short kawaii observation if there is something new worth saying; otherwise return exactly `NO_REPLY`. The model makes this decision, including for similar screens. It is prompted to avoid repeating observations, generic offers, and reacting to its own chat/sprite changes. `NO_REPLY` is hidden, with no empty bubble or invented user message. Reactions are buffered until the final decision finishes, including after tool calls; ordinary replies still stream immediately.
+
+Typing or beginning to speak interrupts an active observation so user dialogue takes priority. Pending observations keep only the latest snapshot, and snapshots older than ten seconds are discarded. Capture refreshes requested for user input do not create extra reaction calls. The **Screen reactions** toggle or `--no-reactions` stops background inference while preserving visual context for chat. `HYPRCHAN_REACTION_INTERVAL_SEC` sets the minimum gap between checks (default 60, minimum 10); periodic capture cadence also limits their frequency. Each check uses model inference even when it returns `NO_REPLY`, so leaving reactions enabled adds usage.
 
 The camera is selected from physical V4L2 devices, excluding virtual cameras by default. Use `HYPRCHAN_CAMERA_INDEX` (or `WEBCAM_DEVICE_INDEX`) to choose a specific device. If another application holds it, capture retries every five seconds while screen context remains available. Snapshot files use a private temporary runtime directory and are removed immediately after encoding; images and conversation text are not written to the benchmark results. Capture uses uncompressed intermediate PNG output from `grim`, then the existing JPEG encoding. This removed 838 ms of intermediate compression in one paired local check. See the [grim manual](https://man.archlinux.org/man/grim.1.en).
 
@@ -84,9 +94,38 @@ uv venv --python 3.13 ~/.local/share/hyprchan-codex/venv
 uv pip install --python ~/.local/share/hyprchan-codex/venv/bin/python 'faster-whisper==1.2.1' 'opencv-python-headless==4.10.0.84'
 ```
 
-This preview needs existing GTK4/PyGObject, FFmpeg, PulseAudio/PipeWire, grim, Node, and the signed-in Codex CLI. It does not install or upgrade system packages. Override the speech/vision interpreter with `HYPRCHAN_SPEECH_PYTHON`, language with `HYPRCHAN_STT_LANGUAGE=en|ru|auto`, or recognition model with `HYPRCHAN_STT_MODEL`. Codex model/effort/tier overrides are the same as the terminal demo. No login token is printed or passed as an API key.
+This preview needs existing GTK4/PyGObject, FFmpeg, PulseAudio/PipeWire (`pw-dump`, `pw-record`), grim, Node with `node:sqlite` (tested on 26.5.1), and the signed-in Codex CLI (tested on 0.163.0). It does not install or upgrade system packages. Override the speech/vision interpreter with `HYPRCHAN_SPEECH_PYTHON`, language with `HYPRCHAN_STT_LANGUAGE=en|ru|auto`, or recognition model with `HYPRCHAN_STT_MODEL`. Codex model/effort/tier overrides are the same as the terminal demo. No login token is printed or passed as an API key.
 
-`node --test scripts/test_desktop_visual_context.mjs` checks image forwarding, source labels, repeat suppression, and capture-off behavior. `node scripts/verify_codex_vision.mjs /tmp/hyprchan-vision-new.json` checks actual inference through the GUI bridge with synthetic colored frames, including changing images, Russian responses, greetings, and capture off. The saved run is `results/vision-model-20261017.json`. The tested installed route accepted `detail: low` but failed to interpret color probes; the preview uses `auto`, which passed the same real inference checks. This is a route-specific observation, not a general claim about model vision support.
+### Personal memory and audio awareness
+
+**Memory on** enables three real model tools: `memory_remember`, `memory_recall`, and `memory_forget`. She is instructed to save useful preferences, interests, routines, and ongoing goals as they emerge. Exact supporting quotes from the current user message establish confirmed facts. Supplied recent screen/camera images can establish tentative observations, which cannot overwrite confirmed facts. The prompt excludes transient chatter, credentials, sensitive appearance-based guesses, and profiling other people. This is model-guided fact selection, not a guarantee that every inference is correct. Ask her to correct or forget a fact when needed.
+
+Facts survive restarts in `$XDG_DATA_HOME/hyprchan-codex/memory.sqlite3` (normally `~/.local/share/hyprchan-codex/memory.sqlite3`), with file mode 0600. `HYPRCHAN_MEMORY_PATH` overrides the path. A bounded set of relevant/recent facts is supplied directly, without embedding requests. The visible toggle disables memory tools and future memory context; it keeps the local file. Ask her to forget while memory is enabled to delete records. Earlier messages in the current temporary conversation may still contain those facts, so the prompt also tells her to stop using forgotten information. This small SQLite store is separate from the full kernel's Postgres/Redis memory.
+
+**Audio awareness on** watches new PipeWire nodes and playback starts and sends their names, application, stream serial, and state to the same character conversation. Existing nodes are treated as the startup baseline. Notifications are coalesced briefly, and her own capture streams are excluded. She may react or return `NO_REPLY`; metadata alone does not mean she heard the audio.
+
+The model can call `listen_in(serial, seconds, language)` for one available playback stream, from 1 to **20 seconds**. Requests of **more than 10 seconds deliver five transcript chunks**; shorter requests deliver one. The tool returns immediately, then chunks enter the conversation as local speech recognition completes. Incomplete fragments normally produce `NO_REPLY`, so five chunks need not create five chat bubbles. Capture targets the exact PipeWire playback serial, never a fallback microphone or the whole desktop mix. Only one listening job runs at a time, raw audio stays in RAM, and microphone transcription takes queue priority. Recognition can miss or mishear words, especially across short chunk boundaries; it does not identify melodies or other non-speech sounds. Turning audio awareness off cancels capture and pending audio reactions.
+
+Audio observations use the same interruptible background path as screen checks; user typing/speech has priority. Channel events and each transcript chunk can consume inference even when she chooses silence. Saving facts adds tool round trips, so those turns can take several seconds. A greeting needs no tools.
+
+Control examples: `--control '{"type":"memory","active":false}'`, `--control '{"type":"audio","active":false}'`, and `--control '{"type":"reactions","active":false}'`. The microphone mute button controls microphone capture independently of playback awareness and camera capture.
+
+Run the targeted checks with:
+
+```sh
+node --test scripts/test_desktop_memory.mjs scripts/test_desktop_turn_queue.mjs scripts/test_desktop_visual_context.mjs
+python scripts/test_desktop_audio.py
+python scripts/verify_desktop_memory.py /tmp/hyprchan-memory-new.json
+# Supply the public faster-whisper JFK fixture downloaded outside the checkout.
+python scripts/verify_listen_in.py /tmp/jfk.flac /tmp/hyprchan-listening-new.json
+python scripts/verify_desktop_audio.py /tmp/jfk.flac /tmp/hyprchan-audio-model-new.json
+```
+
+The audio verifiers use a temporary silent sink and clean it up; they never record the microphone. The memory verifier uses fictional facts in a temporary database. Implementation references: [Codex dynamic tools](https://learn.chatgpt.com/docs/app-server), [Node SQLite](https://nodejs.org/download/release/v26.5.0/docs/api/sqlite.html), [PipeWire monitor](https://docs.pipewire.org/page_man_pw-dump_1.html), [PipeWire stream capture](https://docs.pipewire.org/page_man_pw-cat_1.html), and [PipeWire stream properties](https://docs.pipewire.org/page_man_pipewire-props_7.html).
+
+`node --test scripts/test_desktop_visual_context.mjs scripts/test_desktop_turn_queue.mjs` checks image forwarding, source labels, repeat suppression, capture-off behavior, reaction prompts, and cancellation, including cancellation before the model returns its turn ID. `node scripts/verify_codex_vision.mjs /tmp/hyprchan-vision-new.json` checks actual inference through the GUI bridge with synthetic colored frames, including changing images, Russian responses, greetings, and capture off. The saved run is `results/vision-model-20261017.json`. The tested installed route accepted `detail: low` but failed to interpret color probes; the preview uses `auto`, which passed the same real inference checks. This is a route-specific observation, not a general claim about model vision support.
+
+`node scripts/verify_codex_reactions.mjs before.png after.png /tmp/hyprchan-reactions-new.json` exercises the real bridge with two supplied synthetic screenshots: a new observation, an identical repeat, a changed screen, and interruption by a greeting. Use synthetic images only, since the output includes the generated reactions. The saved `results/screen-reactions-20261017.json` used red/green build-status screens labelled BUILD FAILED / BUILD PASSED and 42 tests failed / passed. It passed all five cases, including hidden `NO_REPLY` for the identical screen and immediate interruption of the background turn. This small sample does not guarantee the model's future decision quality.
 
 `scripts/bench_speech_local.py` measures actual local transcription with supplied recordings. `results/speech-local-20261017.json` records 36 trials: tiny with fixed language took 155–265 ms across English/Russian greetings and a three-second English phrase; automatic base took 493–658 ms. These are small warmed sample tests, excluding phrase-end detection and capture buffering. `results/speech-endpoint-20261017.json` checks speech at normal, 0.15x and 0.025x amplitude plus silence and white noise. They do not establish accuracy for arbitrary accents or room noise.
 

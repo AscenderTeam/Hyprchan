@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import itertools
 import os
 from pathlib import Path
 import queue
@@ -19,6 +20,7 @@ from faster_whisper import WhisperModel
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 from speech_endpoint import VoiceSegmenter  # noqa: E402
+from desktop_listen_in import capture_stream, listen_plan
 
 OUTPUT_LOCK = threading.Lock()
 
@@ -34,7 +36,11 @@ class SpeechWorker:
         self.running = True
         self.generation = 0
         self.lock = threading.RLock()
-        self.jobs = queue.Queue(maxsize=2)
+        self.jobs = queue.PriorityQueue(maxsize=16)
+        self.job_sequence = itertools.count()
+        self.listen_generation = 0
+        self.listen_process = None
+        self.listening = None
         self.requested_model = model_name
         self.models = {}
         emit("loading", model=model_name)
@@ -108,7 +114,8 @@ class SpeechWorker:
                     emit("speaking", active=last_speaking)
                 if utterance is not None:
                     try:
-                        self.jobs.put_nowait((utterance, generation, language, now, "microphone", segmenter.endpoint_ms))
+                        self.jobs.put_nowait((0, next(self.job_sequence),
+                            (utterance, generation, language, now, "microphone", segmenter.endpoint_ms)))
                     except queue.Full:
                         emit("notice", message="Speech queue full; please pause between messages.")
         except Exception as exc:
@@ -123,12 +130,21 @@ class SpeechWorker:
     def transcribe_loop(self) -> None:
         while self.running:
             try:
-                audio, generation, language, endpoint, origin, silence_ms = self.jobs.get(timeout=0.5)
+                _, _, job = self.jobs.get(timeout=0.5)
+                audio, generation, language, endpoint, origin, silence_ms = job
             except queue.Empty:
                 continue
-            if generation != self.generation:
+            ambient = isinstance(origin, dict)
+            if generation != (self.listen_generation if ambient else self.generation):
                 continue
-            emit("transcribing", active=True)
+            if ambient and audio is None:
+                with self.lock:
+                    if generation == self.listen_generation:
+                        self.listening = None
+                        emit("listen_done", **origin)
+                continue
+            if not ambient:
+                emit("transcribing", active=True)
             started = time.monotonic()
             try:
                 name = self.model_name(language)
@@ -140,15 +156,81 @@ class SpeechWorker:
                     hallucination_silence_threshold=1,
                 )
                 text = " ".join(part.text.strip() for part in segments).strip()
-                if generation == self.generation and text:
+                if ambient:
+                    with self.lock:
+                        if generation == self.listen_generation:
+                            emit("listen_chunk", **origin, text=text, language=info.language,
+                                 sttMs=round((time.monotonic() - started) * 1000, 1))
+                elif generation == self.generation and text:
                     emit("transcript", text=text, language=info.language,
                          sttMs=round((time.monotonic() - started) * 1000, 1),
                          endpointMs=round((time.monotonic() - endpoint) * 1000, 1),
                          origin=origin, silenceMs=silence_ms, model=name)
             except Exception as exc:
-                emit("error", message=str(exc))
+                if ambient:
+                    with self.lock:
+                        if generation != self.listen_generation:
+                            continue
+                        self.stop_listening()
+                emit("listen_error" if ambient else "error", message=str(exc), **(origin if ambient else {}))
             finally:
-                emit("transcribing", active=False)
+                if not ambient:
+                    emit("transcribing", active=False)
+
+    def stop_listening(self):
+        with self.lock:
+            self.listen_generation += 1
+            child, self.listen_process = self.listen_process, None
+            if child and child.poll() is None:
+                child.terminate()
+            job, self.listening = self.listening, None
+            if job:
+                emit("listen_done", jobId=job["jobId"], name=job["name"], cancelled=True)
+
+    def listen_in(self, command):
+        count, _ = listen_plan(command["seconds"])
+        with self.lock:
+            if self.listening:
+                emit("listen_error", jobId=command["jobId"], message="Already listening to a playback stream")
+                return
+            self.listen_generation += 1
+            generation = self.listen_generation
+            self.listening = command
+        metadata = {"jobId": command["jobId"], "name": command["name"], "total": count,
+                    "serial": command["serial"], "seconds": command["seconds"]}
+        def capture():
+            index = 0
+            def on_process(child):
+                with self.lock:
+                    if generation == self.listen_generation:
+                        self.listen_process = child
+                    elif child and child.poll() is None:
+                        child.terminate()
+            try:
+                with self.lock:
+                    if generation != self.listen_generation:
+                        return
+                    emit("listen_started", **metadata)
+                for index, total, raw in capture_stream(command["serial"], command["seconds"],
+                        lambda: generation != self.listen_generation or not self.running,
+                        on_process):
+                    self.jobs.put_nowait((1, next(self.job_sequence),
+                        (np.frombuffer(raw, dtype="<f4"), generation, command.get("language") or None,
+                         time.monotonic(), {**metadata, "index": index}, 0)))
+                with self.lock:
+                    if generation == self.listen_generation:
+                        if not index:
+                            self.stop_listening()
+                            emit("listen_error", **metadata, message="No audio arrived from that playback stream")
+                            return
+                        self.jobs.put_nowait((2, next(self.job_sequence),
+                            (None, generation, None, time.monotonic(), {**metadata, "chunks": index}, 0)))
+            except Exception as exc:
+                with self.lock:
+                    if generation == self.listen_generation:
+                        self.stop_listening()
+                        emit("listen_error", **metadata, message=str(exc))
+        threading.Thread(target=capture, daemon=True).start()
 
     def run(self) -> None:
         try:
@@ -161,16 +243,21 @@ class SpeechWorker:
                     self.start_capture(command["source"], command.get("language") or None)
                 elif kind == "mute":
                     self.stop_capture()
+                elif kind == "listen_in":
+                    self.listen_in(command)
+                elif kind == "stop_listening":
+                    self.stop_listening()
                 elif kind == "transcribe_file":
                     # Diagnostic input uses exactly the same transcriber and GUI reply path.
                     raw = subprocess.check_output([
                         "ffmpeg", "-nostdin", "-v", "error", "-i", command["path"],
                         "-t", "15", "-ac", "1", "-ar", "16000", "-f", "f32le", "pipe:1",
                     ])
-                    self.jobs.put((np.frombuffer(raw, dtype="<f4"), self.generation,
-                                   command.get("language") or None, time.monotonic(), "test_audio", 0))
+                    self.jobs.put((0, next(self.job_sequence), (np.frombuffer(raw, dtype="<f4"), self.generation,
+                                   command.get("language") or None, time.monotonic(), "test_audio", 0)))
         finally:
             self.running = False
+            self.stop_listening()
             self.stop_capture()
 
 

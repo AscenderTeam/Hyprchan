@@ -19,14 +19,14 @@ test('visual requests include actual image bytes with source labels and age', ()
 });
 
 test('previously delivered images are not repeatedly added to the conversation', () => {
-  const result = chatInput(command, 100, 110000);
+  const result = chatInput(command, { screen: 100, webcam: 100 }, 110000);
   assert.equal(result.imageCount, 0);
   assert.match(result.input[1].text, /already in this conversation/);
   assert.match(result.input[1].text, /10\.0 seconds ago/);
 });
 
 test('capture off never forwards a cached image and marks old images historical', () => {
-  const result = chatInput({ ...command, vision: { enabled: false, snapshot } }, 100);
+  const result = chatInput({ ...command, vision: { enabled: false, snapshot } }, { screen: 100, webcam: 100 });
   assert.equal(result.imageCount, 0);
   assert.equal(result.input.filter(i => i.type === 'image').length, 0);
   assert.match(result.input[1].text, /capture are off/);
@@ -47,4 +47,20 @@ test('screenshots alone never claim to include a webcam', () => {
 test('image transport rejects external image URLs', () => {
   assert.throws(() => chatInput({ ...command, vision: { enabled: true,
     snapshot: { ...snapshot, images: [{ kind: 'webcam', url: 'https://example.com/image.jpg' }] } } }), /Invalid/);
+});
+
+test('a screen reaction never prevents a later chat from receiving its webcam', () => {
+  const screen = chatInput({ type: 'react', language: 'ru', vision: { enabled: true,
+    snapshot: { ...snapshot, images: [snapshot.images[1]] } } });
+  const chat = chatInput(command, screen.deliveredImages);
+  assert.equal(screen.imageCount, 1);
+  assert.equal(chat.imageCount, 1);
+  assert.equal(chat.input.find(i => i.type === 'image').url, snapshot.images[0].url);
+});
+
+test('autonomous observations use a NO_REPLY gate without inventing a user message', () => {
+  const result = chatInput({ ...command, type: 'react', language: 'ru' });
+  assert.match(result.input[0].text, /exactly NO_REPLY/);
+  assert.match(result.input[0].text, /Use Russian/);
+  assert.doesNotMatch(result.input[0].text, /User message:/);
 });

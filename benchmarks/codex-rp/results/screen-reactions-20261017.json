@@ -1,0 +1,76 @@
+{
+  "syntheticScreensOnly": true,
+  "passed": true,
+  "rows": [
+    {
+      "case": "new_screen",
+      "type": "done",
+      "id": 1,
+      "text": "Ох, сорок два упавших теста — сборка явно сегодня не в настроении.",
+      "status": "completed",
+      "quiet": false,
+      "firstTextMs": 1407.298,
+      "lastTextMs": 1577.524,
+      "completedMs": 1606.466,
+      "errors": [],
+      "imageCount": 1,
+      "wallMs": 1609.1748500000003
+    },
+    {
+      "case": "unchanged_screen",
+      "type": "done",
+      "id": 2,
+      "text": "",
+      "status": "completed",
+      "quiet": true,
+      "firstTextMs": 1103.754,
+      "lastTextMs": 1103.789,
+      "completedMs": 1233.686,
+      "errors": [],
+      "imageCount": 1,
+      "wallMs": 1234.9105400000008
+    },
+    {
+      "case": "changed_screen",
+      "type": "done",
+      "id": 3,
+      "text": "О, зелёный экран! Все 42 теста прошли — вот это разворот.",
+      "status": "completed",
+      "quiet": false,
+      "firstTextMs": 965.119,
+      "lastTextMs": 1106.855,
+      "completedMs": 1191.489,
+      "errors": [],
+      "imageCount": 1,
+      "wallMs": 1192.7121200000001
+    },
+    {
+      "case": "preempted_observation",
+      "type": "done",
+      "id": 4,
+      "text": "",
+      "status": "interrupted",
+      "quiet": false,
+      "firstTextMs": null,
+      "lastTextMs": null,
+      "completedMs": 152.292,
+      "errors": [],
+      "imageCount": 1,
+      "wallMs": 152.98205400000006
+    },
+    {
+      "case": "user_after_preemption",
+      "type": "done",
+      "id": 5,
+      "text": "Привет! *Улыбаюсь и устраиваюсь поудобнее.*",
+      "status": "completed",
+      "quiet": false,
+      "firstTextMs": 1572.086,
+      "lastTextMs": 1737.453,
+      "completedMs": 1779.317,
+      "errors": [],
+      "imageCount": 0,
+      "wallMs": 1782.0808319999996
+    }
+  ]
+}

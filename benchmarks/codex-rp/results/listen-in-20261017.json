@@ -1,0 +1,93 @@
+{
+  "publicFixtureOnly": true,
+  "silentTestSink": true,
+  "passed": false,
+  "durationSec": 12,
+  "rows": [
+    {
+      "type": "listen_started",
+      "jobId": "fixture",
+      "name": "Codex audio probe",
+      "total": 5,
+      "serial": "665",
+      "seconds": 12,
+      "receivedMs": 0.3
+    },
+    {
+      "type": "listen_chunk",
+      "jobId": "fixture",
+      "name": "Codex audio probe",
+      "total": 5,
+      "serial": "665",
+      "seconds": 12,
+      "index": 1,
+      "text": "And so my fellow Americans!",
+      "language": "en",
+      "sttMs": 266.2,
+      "receivedMs": 2742.8
+    },
+    {
+      "type": "listen_chunk",
+      "jobId": "fixture",
+      "name": "Codex audio probe",
+      "total": 5,
+      "serial": "665",
+      "seconds": 12,
+      "index": 2,
+      "text": "ASK NOT!",
+      "language": "en",
+      "sttMs": 315.0,
+      "receivedMs": 5223.8
+    },
+    {
+      "type": "listen_chunk",
+      "jobId": "fixture",
+      "name": "Codex audio probe",
+      "total": 5,
+      "serial": "665",
+      "seconds": 12,
+      "index": 3,
+      "text": "What your country can do for you?",
+      "language": "en",
+      "sttMs": 273.4,
+      "receivedMs": 7614.2
+    },
+    {
+      "type": "listen_chunk",
+      "jobId": "fixture",
+      "name": "Codex audio probe",
+      "total": 5,
+      "serial": "665",
+      "seconds": 12,
+      "index": 4,
+      "text": "you ask what you can do.",
+      "language": "en",
+      "sttMs": 270.6,
+      "receivedMs": 9915.4
+    },
+    {
+      "type": "listen_chunk",
+      "jobId": "fixture",
+      "name": "Codex audio probe",
+      "total": 5,
+      "serial": "665",
+      "seconds": 12,
+      "index": 5,
+      "text": "for your country. And so...",
+      "language": "en",
+      "sttMs": 270.5,
+      "receivedMs": 12301.4
+    },
+    {
+      "type": "listen_done",
+      "jobId": "fixture",
+      "name": "Codex audio probe",
+      "total": 5,
+      "serial": "665",
+      "seconds": 12,
+      "chunks": 5,
+      "receivedMs": 12301.4
+    }
+  ],
+  "audioEvents": []
+}

@@ -64,7 +64,7 @@ hyprchan tui
 
 ### Codex desktop preview
 
-For the experimental GTK companion with streamed Codex replies, continuous local speech recognition, and automatic camera/screen context, see [setup and controls](benchmarks/codex-rp/README.md) and the [measured latency report](benchmarks/codex-rp/REPORT.md). This preview is separate from the autonomous kernel and does not yet guarantee responses within two seconds.
+For the experimental GTK companion with streamed Codex replies, a kawaii persona, local speech recognition, persistent user facts, automatic camera/screen context, and optional screen/audio reactions, see [setup and controls](benchmarks/codex-rp/README.md) and the [measured latency report](benchmarks/codex-rp/REPORT.md). Screen checks run about once a minute with a `NO_REPLY` gate. New PipeWire channels can prompt her to listen to a playback stream for up to 20 seconds; longer requests deliver five transcript chunks. This preview is separate from the autonomous kernel and does not guarantee responses within two seconds.
 
 ---
 

@@ -16,10 +16,11 @@ const cleanError = error => String(error?.message ?? error)
   .replace(/Bearer\s+\S+|sk-[A-Za-z0-9_-]+|eyJ[A-Za-z0-9_.-]+/g, '[redacted]').slice(0, 1400);
 
 export class CodexHarness extends EventEmitter {
-  constructor({ binary = process.env.HYPRCHAN_CODEX_BIN || 'codex', timeoutMs = 30000, configLines = [] } = {}) {
+  constructor({ binary = process.env.HYPRCHAN_CODEX_BIN || 'codex', timeoutMs = 30000, configLines = [], toolHandler = null } = {}) {
     super();
     this.binary = binary;
     this.timeoutMs = timeoutMs;
+    this.toolHandler = toolHandler;
     this.pending = new Map();
     this.sequence = 0;
     this.directory = mkdtempSync(join(tmpdir(), 'hyprchan-codex-bench-'));
@@ -65,9 +66,8 @@ export class CodexHarness extends EventEmitter {
           else pending.resolve(message.result);
         }
       } else if (message.id != null && message.method) {
-        // No host tool execution is permitted in these dialogue benchmarks.
         this.emit('serverRequest', message);
-        this.send({ id: message.id, error: { code: -32601, message: 'Tools disabled in dialogue benchmark' } });
+        void this.handleServerRequest(message);
       } else {
         this.emit('notification', message);
       }
@@ -75,6 +75,21 @@ export class CodexHarness extends EventEmitter {
   }
 
   send(message) { this.child.stdin.write(JSON.stringify(message) + '\n'); }
+
+  async handleServerRequest(message) {
+    if (message.method !== 'item/tool/call' || !this.toolHandler) {
+      this.send({ id: message.id, error: { code: -32601, message: 'Tool is not enabled' } });
+      return;
+    }
+    try {
+      const value = await this.toolHandler(message.params);
+      this.send({ id: message.id, result: { success: true,
+        contentItems: [{ type: 'inputText', text: JSON.stringify(value) }] } });
+    } catch (error) {
+      this.send({ id: message.id, result: { success: false,
+        contentItems: [{ type: 'inputText', text: cleanError(error) }] } });
+    }
+  }
 
   request(method, params = {}) {
     const id = ++this.sequence;
@@ -117,7 +132,7 @@ export class CodexHarness extends EventEmitter {
     return models;
   }
 
-  async startThread({ model, prompt, tier = 'fast', effort = 'low' }) {
+  async startThread({ model, prompt, tier = 'fast', effort = 'low', dynamicTools = [] }) {
     const started = performance.now();
     const result = await this.request('thread/start', {
       model, baseInstructions: prompt, developerInstructions: '',
@@ -125,6 +140,7 @@ export class CodexHarness extends EventEmitter {
       environments: [], ephemeral: true, serviceTier: tier,
       allowProviderModelFallback: false,
       config: { model_reasoning_effort: effort, model_reasoning_summary: 'none' },
+      ...(dynamicTools.length ? { dynamicTools } : {}),
     });
     if (result.model !== model) throw new Error(`Model changed: requested ${model}, got ${result.model}`);
     const expectedTier = tier === 'fast' ? 'priority' : tier;
@@ -138,7 +154,8 @@ export class CodexHarness extends EventEmitter {
       effort: result.reasoningEffort, setupMs: performance.now() - started };
   }
 
-  async turn(thread, input, { effort = 'low', tier = 'fast' } = {}) {
+  async turn(thread, input, { effort = 'low', tier = 'fast', signal } = {}) {
+    if (signal?.aborted) return { status: 'interrupted', text: '', errors: [] };
     const started = performance.now();
     const data = { text: '', firstTextMs: null, lastTextMs: null, completedMs: null,
       toolCalls: 0, reasoningItems: 0, usage: null, errors: [], warnings: [], eventTypes: new Set() };
@@ -159,6 +176,9 @@ export class CodexHarness extends EventEmitter {
         data.text = p.item.text || '';
         if (data.text) data.firstTextMs = data.lastTextMs = performance.now() - started;
       }
+      if (message.method === 'item/completed' && p.item?.type === 'agentMessage' && p.item.phase !== 'commentary') {
+        data.finalText = p.item.text || '';
+      }
       if (message.method === 'thread/tokenUsage/updated') data.usage = p.tokenUsage?.last ?? p.tokenUsage;
       if (message.method === 'error') data.errors.push(cleanError(p.error));
       if (message.method === 'turn/completed') {
@@ -172,6 +192,13 @@ export class CodexHarness extends EventEmitter {
     this.on('notification', receive);
     this.on('serverRequest', request);
     let turnId;
+    let interruptRequest;
+    const interrupt = () => {
+      if (turnId && !interruptRequest) {
+        interruptRequest = this.request('turn/interrupt', { threadId: thread.id, turnId }).catch(() => {});
+      }
+    };
+    signal?.addEventListener('abort', interrupt, { once: true });
     const timer = setTimeout(() => { data.status = 'timeout'; resolveTurn(); }, this.timeoutMs);
     try {
       const result = await this.request('turn/start', {
@@ -179,6 +206,8 @@ export class CodexHarness extends EventEmitter {
         effort, serviceTierForTurn: tier, summary: 'none', environments: [],
       });
       turnId = result.turn.id;
+      // Cancellation may arrive before turn/start returns its id.
+      if (signal?.aborted) interrupt();
       await done;
       if (data.status === 'timeout') {
         await this.request('turn/interrupt', { threadId: thread.id, turnId }).catch(() => {});
@@ -188,6 +217,7 @@ export class CodexHarness extends EventEmitter {
       data.errors.push(cleanError(error));
     } finally {
       clearTimeout(timer);
+      signal?.removeEventListener('abort', interrupt);
       this.off('notification', receive);
       this.off('serverRequest', request);
     }
