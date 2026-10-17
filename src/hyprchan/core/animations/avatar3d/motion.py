@@ -4,7 +4,7 @@ from __future__ import annotations
 import math
 import re
 import time
-from .emote_api import FINGER_BONES, HAND_SHAPES, hand_target
+from .emote_api import FINGER_BONES, HAND_SHAPES, hand_target, jump
 
 EXPRESSIONS = {
     'smile': 28, 'joy': 3, 'angry': 1, 'sad': 4, 'surprised': 5,
@@ -34,23 +34,34 @@ BUILTINS = {
     'nod': ('Mhm!', {'smile': .5}, {}, .1),
     'wave_front': ('Wave in front of my face', {'smile': .65}, {'head': [0,-3,-3]}, .18),
     'peace': ('Peace sign by my face', {'smile': .65, 'wink_left': .6}, {'head': [0,-3,-3]}, .25),
+    'jump': ('Happy jump', {}, {}, .2),
 }
+LOWER_BODY_BONES = {'hips', 'leftUpperLeg', 'rightUpperLeg', 'leftLowerLeg', 'rightLowerLeg',
+                    'leftFoot', 'rightFoot', 'leftToes', 'rightToes'}
 BONES = {'head', 'neck', 'chest', 'upperChest', 'spine', 'leftShoulder', 'rightShoulder',
-         'leftUpperArm', 'rightUpperArm', 'leftLowerArm', 'rightLowerArm', 'leftHand', 'rightHand'} | FINGER_BONES
+         'leftUpperArm', 'rightUpperArm', 'leftLowerArm', 'rightLowerArm', 'leftHand', 'rightHand'} | FINGER_BONES | LOWER_BODY_BONES
 
 
 def validate_frame(frame):
     """Scripts are executable; the rendering protocol still needs finite values."""
     if not isinstance(frame, dict):
         raise ValueError('A frame must be an object')
-    if unknown := set(frame)-{'expressions','bones','hands'}:
+    if unknown := set(frame)-{'expressions','bones','hands','root'}:
         raise ValueError(f'Unknown frame channels: {sorted(unknown)}')
     expressions = frame.get('expressions', {})
     bones = frame.get('bones', {})
     hands = frame.get('hands', {})
     if not all(isinstance(value, dict) for value in (expressions,bones,hands)):
         raise ValueError('expressions, bones and hands must be objects')
-    result = {'expressions': {}, 'bones': {}, 'hands': {}}
+    root = frame.get('root', [0,0,0])
+    if not isinstance(root,(list,tuple)) or len(root)!=3:
+        raise ValueError('Root translation must be [x,y,z] metres')
+    root = [float(value) for value in root]
+    if not all(math.isfinite(value) for value in root):
+        raise ValueError('Root translation must be finite')
+    if not (-.15 <= root[0] <= .15 and -.10 <= root[1] <= .18 and -.15 <= root[2] <= .15):
+        raise ValueError('Root translation exceeds portrait range: X/Z ±0.15 m, Y -0.10..0.18 m')
+    result = {'expressions': {}, 'bones': {}, 'hands': {}, 'root': root}
     for name, value in expressions.items():
         if name not in EXPRESSIONS and name not in {'blush', 'puff'}:
             raise ValueError(f'Unknown expression: {name}')
@@ -101,6 +112,8 @@ class AvatarMotion:
         self.last_sample = time.monotonic()
         self.smoothed = {}
         self.hand_targets = {}
+        self.root = [0,0,0]
+        self.headroom = 0.0
         self.hair = [0, 0]
         self.hair_velocity = [0, 0]
         self.previous_head = [0, 0, 0]
@@ -122,6 +135,9 @@ class AvatarMotion:
         self.script_frame = None
         self.emote = None
         self.hand_targets.clear()
+        self.root = [0,0,0]
+        self.headroom = 0.0
+        for name in LOWER_BODY_BONES: self.smoothed.pop(name,None)
 
     def voice(self, level):
         self.voice_level = max(0, min(1, float(level)))
@@ -134,6 +150,7 @@ class AvatarMotion:
         if tool_played: return None
         actions = ' '.join(re.findall(r'\*([^*]+)\*', text)).lower()
         for pattern, name in [
+            (r'прыг|подскок|подскаки|\bjump\w*\b|\bhop(?:s|ped|ping)?\b', 'jump'),
             (r'✌|peace\s*sign|v[ -]sign', 'peace'),
             (r'перед\s+лицом|in\s+front\s+of\s+(?:my\s+|her\s+|your\s+)?face', 'wave_front'),
             (r'наду|щёк|щеки|puff|pout', 'pout'), (r'подмиг|wink', 'wink'),
@@ -155,11 +172,14 @@ class AvatarMotion:
         energy = self.mood.get('e', .7)
         expressions = {'smile': max(0, self.mood.get('v', .5)) * .3}
         hands = {}
+        root = [0,0,0]
         bones = {'leftUpperArm': [0, 0, -72], 'rightUpperArm': [0, 0, 72],
                  'leftLowerArm': [0, -8, -8], 'rightLowerArm': [0, 8, 8],
                  'head': [math.sin(t * .7) * 1.1, math.sin(t * .38) * 2, math.sin(t * .51) * 1.5],
                  'chest': [math.sin(t * 1.7) * .5 * energy, 0, math.sin(t * .5) * .5]}
+        for name in LOWER_BODY_BONES & self.smoothed.keys(): bones[name] = [0,0,0]
         elapsed = now - self.emote_at
+        if self.emote and elapsed >= self.duration: self.emote = None
         if self.emote and elapsed < self.duration:
             _, face, pose, blush = BUILTINS[self.emote]
             weight = min(1, elapsed / .22, (self.duration - elapsed) / .5) * self.intensity
@@ -175,11 +195,19 @@ class AvatarMotion:
                 peace = self.emote == 'peace'
                 hands['right'] = hand_target([-.035 if peace else .018*math.sin(elapsed*7), -.025, .14],
                     shape='peace' if peace else 'open', roll=-8 if peace else 16*math.sin(elapsed*9), weight=weight)
+            if self.emote == 'jump':
+                pose = jump(elapsed/self.duration, height=.10)
+                root = [value*self.intensity for value in pose['root']]
+                expressions.update({name:value*self.intensity for name,value in pose['expressions'].items()})
+                for name, values in pose['bones'].items():
+                    base = bones.get(name,[0,0,0])
+                    bones[name] = [a+(b-a)*self.intensity for a,b in zip(base,values)]
         if self.script_frame is not None:
             # Last pose remains until the runner completes or the user stops it.
             expressions.update(self.script_frame['expressions'])
             bones.update(self.script_frame['bones'])
             hands.update(self.script_frame['hands'])
+            root = self.script_frame['root']
         blink_phase = (t + .31 * math.sin(t * .33)) % 4.3
         blink = max(0, 1 - abs(blink_phase - .14) / .11)
         expressions['blink'] = max(expressions.get('blink', 0), blink, max(0, fatigue - .65))
@@ -191,6 +219,10 @@ class AvatarMotion:
         dt = max(0, min(.05, now-self.last_sample))
         self.last_sample = now
         blend = 1-math.exp(-dt*15)
+        self.root = [a+(b-a)*blend for a,b in zip(self.root,root)]
+        # Reserve headroom while airborne, then ease the portrait back after
+        # landing. The actual lift remains a skeletal hips translation.
+        self.headroom = max(0,self.root[1],self.headroom*math.exp(-dt*5))
         for side in self.hand_targets.keys() | hands.keys():
             target = hands.get(side)
             old = self.hand_targets.get(side)

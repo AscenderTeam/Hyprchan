@@ -7,7 +7,7 @@ from pathlib import Path
 
 import gi
 gi.require_version('Gtk', '4.0')
-from gi.repository import Gtk
+from gi.repository import Gtk, GLib
 import numpy as np
 from OpenGL import GL as gl
 from OpenGL.GL.shaders import compileProgram, compileShader
@@ -168,6 +168,15 @@ class Avatar3D(Gtk.GLArea):
     def capture(self, path):
         self.capture_path = Path(path)
         self.queue_render()
+        # Explicit avatar-only capture must also work on an occluded workspace,
+        # where the compositor can stop requesting ordinary frames.
+        def capture_frame():
+            if self.capture_path and self.program and self.get_realized() and not self.failed:
+                self.make_current()
+                self.attach_buffers()
+                self.render()
+            return False
+        GLib.idle_add(capture_frame)
 
     def render(self, *_):
         if not self.program or self.failed: return True
@@ -184,11 +193,13 @@ class Avatar3D(Gtk.GLArea):
             gl.glEnable(gl.GL_BLEND)
             gl.glBlendFuncSeparate(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA, gl.GL_ONE, gl.GL_ONE_MINUS_SRC_ALPHA)
             gl.glUseProgram(self.program)
+            angles, morphs, blush, puff = self.motion.sample()
+            headroom = getattr(self.motion,'headroom',0)
             # Orthographic portrait, chest to the top of the hair. Expand width
             # as needed instead of cropping the head when the user resizes.
-            half_y = max(.325, .23 * height / width)
+            half_y = max(.325, .23 * height / width)+headroom/2
             half_x = half_y * width / height
-            projection = np.array([[1/half_x,0,0,0],[0,1/half_y,0,-1.315/half_y],
+            projection = np.array([[1/half_x,0,0,0],[0,1/half_y,0,-(1.315+headroom/2)/half_y],
                                    [0,0,-.5,0],[0,0,0,1]], dtype=np.float32)
             projection = projection @ euler([0, self.yaw, 0])
             light = np.array([-.65,.55,.65]); light /= np.linalg.norm(light)
@@ -196,11 +207,11 @@ class Avatar3D(Gtk.GLArea):
             up = np.cross(light,right)
             lighting = np.eye(4,dtype=np.float32)
             lighting[:3,:3] = [right/.45,up/.45,-light/.8]
-            lighting[:3,3] = -lighting[:3,:3] @ np.array([0,1.28,0])
+            root = getattr(self.motion,'root',[0,0,0])
+            lighting[:3,3] = -lighting[:3,:3] @ (np.array([0,1.28,0])+root)
             gl.glUniformMatrix4fv(self.uniforms['lightProjection'], 1, True, lighting)
             gl.glUniform1i(self.uniforms['shadowTexture'], 2)
-            angles, morphs, blush, puff = self.motion.sample()
-            world = self.data.posed(angles, self.motion.hair, self.motion.hand_targets)
+            world = self.data.posed(angles, self.motion.hair, self.motion.hand_targets, root=root)
             skins = [np.ascontiguousarray([world[j] @ inv for j, inv in zip(joints, inverse)], dtype=np.float32)
                      for joints, inverse in self.data.skins]
             gl.glUniform1i(self.uniforms['colorTexture'], 0)

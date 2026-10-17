@@ -31,7 +31,7 @@ sys.path.insert(0, str(ROOT/'src'))
 from hyprchan.core.animations.avatar3d.widget import Avatar3D
 from hyprchan.core.animations.avatar3d.shaders import VERTEX
 from hyprchan.core.animations.avatar3d.hair_collision import MINIMUM, MAXIMUM
-from hyprchan.core.animations.avatar3d.emote_api import hand_target
+from hyprchan.core.animations.avatar3d.emote_api import hand_target, jump
 
 
 def feedback_program(source):
@@ -150,10 +150,12 @@ def outfit_triangles(avatar):
 
 
 class Pose:
-    def __init__(self, bones=None, hands=None):
+    def __init__(self, bones=None, hands=None, root=None):
         self.bones = {'leftUpperArm': [0, 0, -72], 'rightUpperArm': [0, 0, 72], **(bones or {})}
         self.hair = (2, -2)
         self.hand_targets = hands or {}
+        self.root = root or [0,0,0]
+        self.headroom = max(0,self.root[1])
 
     def sample(self): return self.bones, {}, 0, 0
 
@@ -253,6 +255,9 @@ def main():
                     ('peek', Pose(hands={'right': hand_target([-.085, -.07, .13]),
                                         'left': hand_target([.085, -.07, .13])}), 0),
                 ]
+                for name,progress in [('jump_crouch',.20),('jump_apex',.40),('jump_land',.60),('jump_rest',1)]:
+                    pose = jump(progress)
+                    cases.append((name,Pose(pose['bones'],root=pose['root']),0))
                 if args.poses: cases=[case for case in cases if case[0] in args.poses]
                 if not cases: raise ValueError('No matching poses')
                 for name, pose, yaw in cases:

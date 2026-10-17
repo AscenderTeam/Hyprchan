@@ -17,8 +17,10 @@ FINGER_BONES = {side+finger+part for side in ('left', 'right')
                 for finger, parts in FINGERS.items() for part in parts}
 
 
-def frame(expressions=None, bones=None, hands=None):
-    print(json.dumps({'expressions': expressions or {}, 'bones': bones or {}, 'hands': hands or {}}, allow_nan=False), flush=True)
+def frame(expressions=None, bones=None, hands=None, root=None):
+    pose = {'expressions': expressions or {}, 'bones': bones or {}, 'hands': hands or {}}
+    if root is not None: pose['root'] = root
+    print(json.dumps(pose, allow_nan=False), flush=True)
 
 
 def hand_target(position=(0, -.02, .14), *, space='face', shape='open', roll=0, weight=1):
@@ -48,7 +50,7 @@ def animate(seconds, sample, fps=30):
     while True:
         progress = min(1, (time.monotonic() - start) / seconds)
         pose = sample(progress)
-        frame(pose.get('expressions'), pose.get('bones'), pose.get('hands'))
+        frame(pose.get('expressions'), pose.get('bones'), pose.get('hands'), pose.get('root'))
         if progress >= 1: break
         index += 1
         time.sleep(max(0, start + index / fps - time.monotonic()))
@@ -57,3 +59,46 @@ def animate(seconds, sample, fps=30):
 def ease(t):
     t = max(0, min(1, t))
     return t*t*(3-2*t)
+
+
+def jump(t, height=.10):
+    """One VRM hop: crouch, takeoff, flight, landing and a neutral return.
+
+    t is animate() progress 0..1; height is 0.02..0.16 metres. Translation is
+    applied to the humanoid hips before skinning, hand IK and hair contact.
+    The whole sequence follows the model-selected animation duration.
+    """
+    t, height = float(t), float(height)
+    if not math.isfinite(t) or not math.isfinite(height) or not .02 <= height <= .16:
+        raise ValueError('Jump progress must be finite and height must be 0.02–0.16 metres')
+    t = max(0, min(1, t))
+    crouch = lift = flight = 0.0
+    if t < .20:
+        crouch = ease(t/.20)
+    elif t < .30:
+        crouch = 1-ease((t-.20)/.10)
+    elif t < .50:
+        u = (t-.30)/.20
+        flight = 4*u*(1-u)
+        lift = height*flight
+    elif t < .70:
+        crouch = .7*math.sin(math.pi*(t-.50)/.20)**2
+    lift -= (.015+.2*height)*crouch
+    arms = ease(min(t/.22, (1-t)/.26))
+    return {
+        'root': [0, lift, 0],
+        'expressions': {'smile': .65*arms, 'brow_happy': .3*arms, 'blush': .2*arms},
+        'bones': {
+            'chest': [10*crouch-3*flight, 0, 0], 'head': [-3*flight, 0, 0],
+            'leftUpperArm': [-8*crouch, 0, -72+18*arms],
+            'rightUpperArm': [-8*crouch, 0, 72-18*arms],
+            'leftLowerArm': [0, -8, -8-12*arms],
+            'rightLowerArm': [0, 8, 8+12*arms],
+            'leftUpperLeg': [-16*crouch-7*flight, 0, 0],
+            'rightUpperLeg': [-16*crouch-7*flight, 0, 0],
+            'leftLowerLeg': [32*crouch+14*flight, 0, 0],
+            'rightLowerLeg': [32*crouch+14*flight, 0, 0],
+            'leftFoot': [-16*crouch-7*flight, 0, 0],
+            'rightFoot': [-16*crouch-7*flight, 0, 0],
+        },
+    }

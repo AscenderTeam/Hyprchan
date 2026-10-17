@@ -85,6 +85,11 @@
     "description": "Anticipate, do a peace sign, return, then wave. Reset each segment's weight rather than jumping between poses."
   },
   {
+    "id": "vrm_jump",
+    "file": "vrm_jump.py",
+    "description": "An actual VRM jump: hips translation, bent knees, takeoff, airborne lift and soft landing. Customize height and expressions; the portrait reserves headroom automatically."
+  },
+  {
     "id": "manual_frames",
     "file": "manual_frames.py",
     "description": "Direct frame() protocol with explicit pacing and a neutral final frame. Use animate() for ordinary scripts."

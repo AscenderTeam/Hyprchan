@@ -59,7 +59,7 @@ class ExampleTest(unittest.TestCase):
         for identity, (frames, _) in self.samples.items():
             with self.subTest(example=identity):
                 for pose in frames[::3]:
-                    world = self.model.posed({**REST, **pose.get('bones', {})}, hands=pose.get('hands'))
+                    world = self.model.posed({**REST, **pose.get('bones', {})}, hands=pose.get('hands'),root=pose.get('root',[0,0,0]))
                     self.assertTrue(np.isfinite(world).all())
                     for side, diagnostic in self.model.hand_diagnostics.items():
                         self.assertFalse(diagnostic['reachClamped'], (identity, diagnostic))

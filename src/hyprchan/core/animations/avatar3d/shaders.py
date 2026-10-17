@@ -127,6 +127,15 @@ void main() {
     paint=mix(vec3(.025,.20,.25),vec3(.06,.36,.37),lum);
   } else if(kind==6) {
     paint=mix(vec3(.08,.08,.14),vec3(.25,.16,.22),lum);
+  } else if(kind==7) {
+    // Official Hyprland mark gradient: blue at the bottom, turquoise at top.
+    float height=clamp((bindPosition.y-1.504)/.032,0.0,1.0);
+    paint=mix(vec3(0,.65882,.95686),vec3(0,.89804,.81569),height);
+    // Crossing strands of a woven lace, filtered out below pixel size.
+    vec2 weave=vec2(texCoord.x+texCoord.y*6.0,texCoord.x-texCoord.y*6.0);
+    vec2 detail=1.0-smoothstep(vec2(.15),vec2(.8),fwidth(weave));
+    float fibers=dot(cos(weave*6.283185),detail)*.055;
+    paint*=.97+fibers;
   }
   vec3 n=normalize(worldNormal);
   if(!gl_FrontFacing) n=-n;
@@ -151,7 +160,7 @@ void main() {
   }
   // Keep face shadows warm and gentle; let the hood and hair cast distinct
   // blue-lilac shadows onto the white fabric.
-  ramp*=mix(1.0,visibility,kind==3?.32:kind==4?1.0:kind==1?.6:0.0);
+  ramp*=mix(1.0,visibility,kind==3?.32:kind==4?1.0:kind==1?.6:kind==7?.9:0.0);
   vec3 shaded=mix(albedo*shadeColor,albedo,ramp);
   // Equalized ambient fill preserves the illustration's colors on the face.
   shaded*=mix(.96,1.0,clamp(n.y*.5+.5,0.0,1.0));
@@ -171,6 +180,11 @@ void main() {
   if(kind==2) {
     // Small luminous lower iris, while the pupil and upper lash remain dark.
     shaded+=linear(vec3(.025,.17,.14))*smoothstep(.12,.55,lum);
+  }
+  if(kind==7) {
+    // Broad, soft thread sheen over the actual round cord surface.
+    float highlight=pow(max(0.0,dot(n,normalize(light+view))),20.0);
+    shaded+=vec3(.64,.88,.92)*highlight*visibility*.18;
   }
   color=vec4(srgb(shaded),tex.a);
 }

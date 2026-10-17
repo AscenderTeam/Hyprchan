@@ -1,0 +1,79 @@
+{
+  "syntheticOnly": true,
+  "turns": [
+    {
+      "type": "done",
+      "id": 0,
+      "text": "*land softly back at ground level* Hehe, `vrm_jump_test` is saved and played!",
+      "status": "completed",
+      "quiet": false,
+      "effort": "medium",
+      "reasoningTokens": 0,
+      "firstTextMs": 3055.507,
+      "lastTextMs": 3214.278,
+      "completedMs": 3292.788,
+      "errors": [],
+      "imageCount": 0,
+      "toolCalls": 1,
+      "webSearches": 0,
+      "tangentWords": 0,
+      "lookCalls": 0,
+      "memoryCount": 0
+    }
+  ],
+  "emotes": [
+    {
+      "tool": "emote_create",
+      "result": {
+        "id": "vrm_jump_test",
+        "title": "VRM Jump Test",
+        "description": "A real 10 cm rigged hop with anticipation and a soft grounded landing.",
+        "seconds": 3.0,
+        "updatedAt": 1792268896.167704,
+        "started": true,
+        "maxSeconds": 5.0,
+        "saved": true
+      }
+    }
+  ],
+  "scripts": [
+    {
+      "id": "vrm_jump_test",
+      "code": "\"\"\"A small rigged hop with anticipation and a soft landing.\"\"\"\nfrom hyprchan.core.animations.avatar3d.emote_api import animate, jump\n\ndef pose(t):\n    result = jump(t, height=.10)\n    result['expressions']['eyes_happy'] = .2 * max(0, 1-abs(t-.40)/.20)\n    return result\n\nanimate(3, pose)"
+    }
+  ],
+  "animations": [
+    {
+      "state": "finished",
+      "id": "vrm_jump_test",
+      "frames": 91,
+      "error": null,
+      "timedOut": false,
+      "wallSeconds": 3.046
+    }
+  ],
+  "spatial": {},
+  "jump": {
+    "frames": 90,
+    "minLiftM": -0.034999966621398926,
+    "maxLiftM": 0.10000002384185791,
+    "lastLiftM": 0.0,
+    "maxHipsErrorMm": 5.0508930288239995e-05
+  },
+  "ready": {
+    "type": "ready",
+    "model": "gpt-6-luna",
+    "tier": "priority",
+    "webSearch": "disabled",
+    "emoteExamples": 19,
+    "reasoning": "adaptive: low greetings, medium conversation"
+  },
+  "animation": {
+    "state": "finished",
+    "id": "vrm_jump_test",
+    "frames": 91,
+    "error": null,
+    "timedOut": false,
+    "wallSeconds": 3.046
+  }
+}

@@ -90,6 +90,7 @@ def add_hoodie(model):
                 'pbrMetallicRoughness': {'baseColorFactor': [*linear(color).tolist(), 1]}},
             'attributes': {'POSITION': p, 'NORMAL': normal, 'TEXCOORD_0': np.zeros((len(p), 2)),
                            'JOINTS_0': joint_ids, 'WEIGHTS_0': weights}})
+        return model.primitives[-1]
 
     def rings(centers, radii, color, joint=0, axis='y', name='Hoodie'):
         count = 48; vertices = []; indices = []
@@ -210,11 +211,12 @@ def add_hoodie(model):
             vertices.append([*(point+radius*np.array([np.cos(a),np.sin(a)])),.153])
         for n in range(24):indices.extend([center,center+1+n,center+1+(n+1)%24])
     mesh(vertices,indices,teal,name='Hyprchan W')
-    # Small four-point sunshine clip echoes the warm gold emblem without changing
-    # her turquoise/white design. It is attached to the head, not the camera.
+    # Keep her original gold sparkle; the Hyprland pin is on the other side.
     vertices = [(-.065, 1.52, .075)]
     for n in range(8):
         a = np.pi/2 + n*np.pi/4
         r = .012 if n%2 == 0 else .004
         vertices.append([-.065+r*np.cos(a), 1.52+r*np.sin(a), .071])
     mesh(vertices, [v for n in range(8) for v in (0, n+1, (n+1)%8+1)], [1, .8, .12], 6, 'Sunshine clip')
+    from .hairpin import add_hyprland_pin
+    add_hyprland_pin(model,mesh,front_hit)

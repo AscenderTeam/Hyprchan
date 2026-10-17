@@ -116,6 +116,8 @@ class AvatarModel:
                     'indices': self.accessor(primitive['indices']).astype(np.uint32).ravel(),
                     'material': self.document['materials'][primitive['material']], 'targets': targets,
                     'names': mesh.get('extras', {}).get('targetNames', [])})
+        from .portrait import shape_eyes
+        shape_eyes(self)
 
     def read_view(self, view_index, offset, count, components, dtype):
         view = self.document['bufferViews'][view_index]
@@ -151,7 +153,7 @@ class AvatarModel:
             result[index] = local[index] if parent < 0 else result[parent] @ local[index]
         return result
 
-    def posed(self, angles, hair=(0, 0), hands=None):
+    def posed(self, angles, hair=(0, 0), hands=None, root=(0,0,0)):
         local = [matrix.copy() for matrix in self.local]
         for name, degrees in angles.items():
             index = self.bones.get(name)
@@ -161,6 +163,13 @@ class AvatarModel:
         for index in self.hair_roots:
             basis = self.bind_world[index].copy(); basis[:3, 3] = 0
             local[index] = local[index] @ np.linalg.inv(basis) @ euler([hair[0], 0, hair[1]]) @ basis
+        # Translate the VRM humanoid hips before solving dependent bones. Every
+        # skin joint of the bundled rig (including cloth and hair) descends from
+        # hips; face/body targets follow it while world targets stay anchored.
+        hips = self.bones['hips']
+        parent = self.parents[hips]
+        basis = self.bind_world[parent][:3,:3] if parent >= 0 else np.eye(3)
+        local[hips][:3,3] += np.linalg.solve(basis,np.asarray(root,dtype=np.float32))
         world = self.world(local)
         def update(index):
             parent = self.parents[index]

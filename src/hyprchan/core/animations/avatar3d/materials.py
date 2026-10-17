@@ -15,7 +15,8 @@ def portrait_material(material):
     name = material['name']
     printed = name in {'Sunshine emblem', 'Hyprchan W'}
     source = material.get('extensions', {}).get('VRMC_materials_mtoon', {})
-    kind = (1 if 'HAIR' in name else 2 if 'EyeIris' in name else
+    kind = (7 if name=='Hyprland pin cord' else
+            1 if 'HAIR' in name else 2 if 'EyeIris' in name else
             3 if 'SKIN' in name else 4 if name.startswith('Hoodie') or printed else
             5 if 'FaceBrow' in name else 6 if 'FaceEyeline' in name else 0)
     result = dict(kind=kind, shift=source.get('shadingShiftFactor', 0),
@@ -40,6 +41,9 @@ def portrait_material(material):
     elif name.startswith('Sunshine'):
         result.update(shift=0, shade=linear([.80, .57, .28]),
                       outline=linear([.35, .25, .14]), width=.00055)
+    elif kind == 7:
+        result.update(shift=-.08,toony=.3,shade=linear([.28,.42,.55]),
+                      rim=linear([.10,.24,.30]),rim_power=4,width=0)
     else:
         # Eye whites, lashes and painted highlights should stay legible in shade.
         result.update(shift=.5, shade=linear([.95, .93, .97]))

@@ -179,6 +179,9 @@ class DesktopAvatar:
     def tick(self):
         if self.host.closing: return False
         self.motion.mood = self.host.mood_values[self.host.mood.get_selected()]
+        # Wayland pauses frame callbacks for occluded windows. Keep animation
+        # time and completion independent of drawing, without doing GL work.
+        self.motion.sample()
         # Keep the most recent fully reached pose, not the fade-out frame.
         if self.runner.identity and self.widgets:
             pose = getattr(getattr(self.widgets[0], 'data', None), 'hand_diagnostics', {})
@@ -201,6 +204,7 @@ class DesktopAvatar:
     def status(self):
         return {'mode': self.mode, 'error': self.error, 'emotes': len(self.items),
                 'script': self.runner.identity, 'lastEvent': self.last_event,
+                'builtin': self.motion.emote, 'root': self.motion.root,
                 'hands': getattr(getattr(self.widgets[0], 'data', None), 'hand_diagnostics', {}) if self.widgets else {},
                 'renderers': [{'frames': w.frames, 'drawMs': round(w.draw_ms, 2), 'error': w.failed} for w in self.widgets]}
 

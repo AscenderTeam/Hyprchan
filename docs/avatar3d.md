@@ -18,8 +18,8 @@ masked inverted-hull outlines, rim light and a filtered shadow map. Hair and the
 lined hood cast visible shadows onto the fabric. Skin has gentler warm shadows;
 hair has a broad illustrated highlight. Blinking, breathing, damped hair movement
 and speech-amplitude mouth
-animation. There are 16 built-in gestures; scripts can combine the named face
-channels, upper-body/finger bones and spatial hand targets. FVEA mood affects the idle expression and motion.
+animation. There are 17 built-in gestures; scripts can combine the named face
+channels, body/finger bones, hips translation and spatial hand targets. FVEA mood affects the idle expression and motion.
 This is an animated companion, not camera-based facial motion capture. The
 bundled asset is a customized **pixiv base**; see its
 [source, hash and license](../src/hyprchan/assets/avatar3d/CREDITS.md).
@@ -131,18 +131,70 @@ finger curls, unreachable goals, fading and late text fallback.
 The repaired saved wave and peace sign also passed the spatial assertions in
 the running GUI and were visually checked in its own framebuffer captures;
 [live check metadata](../benchmarks/codex-rp/results/avatar-spatial-live-20261017.json)
-contains no chat or desktop images. Background workspaces pause drawing, so
-live visual checks require a visible window. The standalone studio keeps its
-bounded capture/gallery rendering active even when occluded.
+contains no chat or desktop images. Background workspaces can pause ordinary
+drawing. Explicit avatar captures now render through the GLArea even when
+occluded, and motion timing continues independently of compositor callbacks.
+The standalone studio also keeps bounded review rendering active when occluded.
 
 The model can invent gestures, save them and reuse them later. Short greetings
 do not need tool calls. A distinctive new gesture in a longer reply is a good
 occasion to make a script; creation is not mandatory on every turn.
 
+### Jumping through the VRM rig
+
+Ask her to jump, or choose **Emotes… → Happy jump**. The `jump` built-in also
+responds to written English/Russian hopping gestures. She can call
+`emote_play` with `{"id":"jump","seconds":3}` or create her own variation:
+
+```python
+from hyprchan.core.animations.avatar3d.emote_api import animate, jump
+
+animate(3, lambda t: jump(t, height=.10))
+```
+
+`jump()` returns a frame with a crouch, leg bends, upward hips translation and
+a soft landing. Height is 0.02–0.16 metres. The movement runs through the actual
+VRM skeleton; the skinned hoodie, hair and body follow it. The portrait reserves
+headroom during the lift. The selected 3–30 second duration retimes the complete
+sequence, and Stop immediately clears the lift.
+
+Custom frames can set `root: [x,y,z]` (also the fourth argument to `frame()`).
+This translates the humanoid hips in model metres before skinning, hand IK and
+hair contact. X/Z stay within ±0.15 m and Y within -0.10..0.18 m; nonfinite and
+out-of-range values are rejected. End at `[0,0,0]`. Face/body hand targets follow
+the moving rig, while world targets remain fixed. Bone rotations now include
+hips, left/right UpperLeg, LowerLeg, Foot and Toes.
+
+The [real Codex check](../benchmarks/codex-rp/results/avatar-jump-agent-20261017.json)
+created and ran a 91-frame jump in 3.046 seconds: the VRM hips crouched 3.5 cm,
+rose 10 cm and returned to their starting height. All 51 Python and 39 Node
+checks passed. The [GPU check](../benchmarks/codex-rp/results/avatar-jump-render-20261017.json)
+found zero outfit/neck/hand intersections in crouch, apex, landing and rest;
+these are sampled poses, not a proof for every custom jump. Actual captures:
+[crouch](avatar3d-jump/crouch.png), [airborne](avatar3d-jump/airborne.png).
+
+The [live GUI check](../benchmarks/codex-rp/results/avatar-jump-live-20261017.json)
+also observed the jump's crouch and lift, return to ground and cleared emote
+state, with no errors in either portrait renderer.
+
+### Cord hairpin and larger eyes
+
+The original gold sparkle stays on one side; a small shaded Hyprland mark sits
+on the other. Its official blue/turquoise outline is adapted into a rounded
+5 mm cord with capped ends and subtle woven highlights. Both pins follow the
+head bone. [Source and license](../src/hyprchan/assets/avatar3d/CREDITS.md).
+
+The eye openings are widened by up to 10% and raised by up to 16%, with a smooth
+falloff into the surrounding skin. Irises, whites, lashes, highlights and facial
+blend shapes receive the same deformation, preserving eyelid closure and the
+nose bridge. Actual native renders were reviewed across ten expressions:
+[front](avatar3d-hairpin/front.png), [turn](avatar3d-hairpin/turn.png),
+[wink](avatar3d-hairpin/wink.png). The pixel renderer remains available.
+
 ### Executable examples in the model context
 
 The [cookbook manifest](../src/hyprchan/assets/avatar3d/emote-examples/manifest.json)
-indexes 18 complete Python scripts. The bridge reads their actual source into
+indexes 19 complete Python scripts. The bridge reads their actual source into
 the thread's initial instructions, together with examples of `emote_create` and
 `emote_play` arguments. The model receives the code directly, without a lookup
 tool call or repeated copies in each message. The ready event and GUI control
@@ -158,6 +210,7 @@ The examples cover:
   acting. Normal speech keeps its existing PCM-driven mouth animation.
 - A multistage gesture with anticipation and separate hand movements, and the
   lower-level `frame()` protocol with explicit pacing.
+- A VRM jump with hips translation, crouching knees, airborne lift and landing.
 
 Each script can be copied independently and adapted. Face/body/world coordinates
 and arm ownership are explained explicitly: a hand target controls its arm and
@@ -165,7 +218,7 @@ fingers, while the raw-bone example uses the separate path without a target.
 Catalogue names are references, not saved emote IDs; `emote_create` makes a script
 available in the persistent picker. Pixel art remains selectable.
 
-Regression checks execute all 18 source files, sample their animation curves,
+Regression checks execute all 19 source files, sample their animation curves,
 validate every frame, and evaluate reaches on the actual bundled skeleton.
 They check all expression/shape/space categories, both hands, rigid arm lengths,
 finite transforms, reach accuracy and smooth release. The
@@ -174,7 +227,7 @@ finite transforms, reach accuracy and smooth release. The
 in native GL captures.
 
 The [full-context Codex run](../benchmarks/codex-rp/results/avatar-examples-20261017/result.json)
-loaded all 18 examples and generated its own front wave and peace sign. Both
+loaded the original 18 examples and generated its own front wave and peace sign. Both
 scripts completed 121 frames, with target error below 1 mm and no reach clamping.
 Held palms stayed at least 12.8 cm in front of the face. Greeting text completed
 in 1.283–1.363 s; script creation plus final text took 3.597 s and 4.342 s.

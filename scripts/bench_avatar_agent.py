@@ -23,10 +23,11 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--output', required=True)
 parser.add_argument('--timing', action='store_true', help='Ask the model to choose its own duration')
 parser.add_argument('--spatial', action='store_true', help='Generate and measure face-relative wave/peace gestures')
+parser.add_argument('--jump', action='store_true', help='Generate and run a real VRM hips jump')
 args = parser.parse_args()
 output = Path(args.output); output.parent.mkdir(parents=True, exist_ok=True)
 report = {'syntheticOnly': True, 'turns': [], 'emotes': [], 'scripts': [], 'animations': [], 'spatial': {}}
-if args.spatial:
+if args.spatial or args.jump:
     from hyprchan.core.animations.avatar3d.model import AvatarModel
     rig=AvatarModel()
 with tempfile.TemporaryDirectory(prefix='hyprchan-avatar-test-') as temporary:
@@ -65,6 +66,12 @@ with tempfile.TemporaryDirectory(prefix='hyprchan-avatar-test-') as temporary:
             'hi']
     if args.timing:
         requests=['hi', 'Invent and play a cute reusable gesture called duration_choice. Choose its duration yourself, at least three seconds, appropriate for a short gesture with anticipation and a smooth return. Use one animate() call. Only animate; do not use files, network or system commands. Finish with one short sentence.', 'hi']
+    if args.jump:
+        requests=['Create and play a new reusable three-second emote called vrm_jump_test. '
+                  'Actually jump through your VRM rig, about 10 cm high, with anticipation and a soft landing, '
+                  'then finish back at ground level. Use emote_create, not just a written gesture. '
+                  'Only animate; do not access files, network or system commands. Finish with one short sentence.']
+        report['jump']={'frames':0,'minLiftM':0,'maxLiftM':0,'lastLiftM':None,'maxHipsErrorMm':0}
     animation_started=None
     deadline = time.monotonic()+120
     next_index = None
@@ -107,6 +114,16 @@ with tempfile.TemporaryDirectory(prefix='hyprchan-avatar-test-') as temporary:
                 next_index = event['id']+1
             elif kind == 'error': raise RuntimeError(event['message'])
             frame, animation = runner.poll()
+            if args.jump and frame:
+                root=frame.get('root',[0,0,0])
+                world=rig.posed(frame['bones'],hands=frame['hands'],root=root)
+                hips=rig.bones['hips']
+                actual=float(world[hips][1,3]-rig.bind_world[hips][1,3])
+                item=report['jump'];item['frames']+=1
+                item['minLiftM']=min(item['minLiftM'],actual)
+                item['maxLiftM']=max(item['maxLiftM'],actual)
+                item['lastLiftM']=actual
+                item['maxHipsErrorMm']=max(item['maxHipsErrorMm'],abs(actual-root[1])*1000)
             if args.spatial and frame and frame.get('hands'):
                 rig.posed({'leftUpperArm':[0,0,-72],'rightUpperArm':[0,0,72],**frame['bones']},hands=frame['hands'])
                 item = report['spatial'].setdefault(running_id,{'frames':0,'heldFrames':0,'maxErrorMm':0,
@@ -136,6 +153,10 @@ with tempfile.TemporaryDirectory(prefix='hyprchan-avatar-test-') as temporary:
             seconds=report['emotes'][0]['result']['seconds']
             assert 3<=seconds<=30 and seconds<=report['animation']['wallSeconds']<seconds+2
             assert not report['animation']['timedOut']
+        if args.jump:
+            item=report['jump']
+            assert item['frames']>=30 and item['minLiftM']<-.005 and item['maxLiftM']>.05,item
+            assert abs(item['lastLiftM'])<.003 and item['maxHipsErrorMm']<.1,item
         if args.spatial:
             for identity,shape in [('face_wave_test','open'),('face_peace_test','peace')]:
                 item=report['spatial'][identity]
