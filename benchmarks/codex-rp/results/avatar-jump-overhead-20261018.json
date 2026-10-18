@@ -607,5 +607,70 @@
         "maxGapMs": 208.367
       }
     }
-  ]
+  ],
+  "live": {
+    "sourceFilesMatch": true,
+    "sourceFilesChecked": 3,
+    "voiceActiveBefore": true,
+    "voiceActiveAfter": true,
+    "outfit": "cyan_yellow",
+    "samples": [
+      {
+        "phase": "crouch",
+        "root": [
+          0.0,
+          -0.0192863811204578,
+          0.0
+        ],
+        "builtin": "jump",
+        "rendererErrors": [
+          null,
+          null
+        ]
+      },
+      {
+        "phase": "overhead",
+        "root": [
+          0.0,
+          0.07376186214394653,
+          0.0
+        ],
+        "builtin": "jump",
+        "rendererErrors": [
+          null,
+          null
+        ]
+      },
+      {
+        "phase": "lowering",
+        "root": [
+          0.0,
+          -0.013100878958138558,
+          0.0
+        ],
+        "builtin": "jump",
+        "rendererErrors": [
+          null,
+          null
+        ]
+      },
+      {
+        "phase": "rest",
+        "root": [
+          0.0,
+          -1.328071218217172e-12,
+          0.0
+        ],
+        "builtin": null,
+        "rendererErrors": [
+          null,
+          null
+        ]
+      }
+    ],
+    "rendererFrameDelta": [
+      44,
+      48
+    ]
+  }
 }
