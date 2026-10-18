@@ -63,6 +63,8 @@ class Avatar3D(Gtk.GLArea):
         self.textures = []
         self.last_tick = 0
         self.yaw = 0
+        self.hand_headroom = 0.0
+        self.framed_at = time.perf_counter()
         self.connect('realize', self.initialize)
         self.connect('unrealize', self.cleanup)
         self.connect('render', self.render)
@@ -205,10 +207,26 @@ class Avatar3D(Gtk.GLArea):
             gl.glBlendFuncSeparate(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA, gl.GL_ONE, gl.GL_ONE_MINUS_SRC_ALPHA)
             gl.glUseProgram(self.program)
             angles, morphs, blush, puff = self.motion.sample()
-            headroom = getattr(self.motion,'headroom',0)
+            root = getattr(self.motion,'root',[0,0,0])
+            world = self.data.posed(angles, self.motion.hair, self.motion.hand_targets, root=root)
+            base_half_y = max(.325, .23 * height / width)
+            # Fully raised hands extend above the head. Fit their posed tips,
+            # including the lift, and ease the framing back as the arms lower.
+            tips=[]
+            for side in ('left','right'):
+                for finger in ('Thumb','Index','Middle','Ring','Little'):
+                    index=self.data.bones[side+finger+'Distal']
+                    children=self.data.nodes[index].get('children',[])
+                    tip=world[children[0]][1,3] if children else world[index][1,3]+.03
+                    tips.append(tip)
+            hand_top = max(tips)+.025
+            dt = max(0, min(.1, started-self.framed_at)); self.framed_at = started
+            self.hand_headroom = max(0,hand_top-(1.315+base_half_y),
+                                     self.hand_headroom*np.exp(-dt*6))
+            headroom = max(getattr(self.motion,'headroom',0),self.hand_headroom)
             # Orthographic portrait, chest to the top of the hair. Expand width
             # as needed instead of cropping the head when the user resizes.
-            half_y = max(.325, .23 * height / width)+headroom/2
+            half_y = base_half_y+headroom/2
             half_x = half_y * width / height
             projection = np.array([[1/half_x,0,0,0],[0,1/half_y,0,-(1.315+headroom/2)/half_y],
                                    [0,0,-.5,0],[0,0,0,1]], dtype=np.float32)
@@ -218,11 +236,9 @@ class Avatar3D(Gtk.GLArea):
             up = np.cross(light,right)
             lighting = np.eye(4,dtype=np.float32)
             lighting[:3,:3] = [right/.45,up/.45,-light/.8]
-            root = getattr(self.motion,'root',[0,0,0])
             lighting[:3,3] = -lighting[:3,:3] @ (np.array([0,1.28,0])+root)
             gl.glUniformMatrix4fv(self.uniforms['lightProjection'], 1, True, lighting)
             gl.glUniform1i(self.uniforms['shadowTexture'], 2)
-            world = self.data.posed(angles, self.motion.hair, self.motion.hand_targets, root=root)
             self.contact_geometry=contact_geometry(self.data,world) if self.outfit=='cyan_yellow' else None
             self.upload_hair_contact(self.program)
             skins = [np.ascontiguousarray([world[j] @ inv for j, inv in zip(joints, inverse)], dtype=np.float32)

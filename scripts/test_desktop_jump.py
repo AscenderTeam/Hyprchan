@@ -75,5 +75,28 @@ class JumpTest(unittest.TestCase):
             with self.assertRaises(ValueError): validate_frame({'root':root})
         self.assertEqual(validate_frame({})['root'],[0,0,0])
 
+    def test_jump_raises_both_hands_overhead_and_lowers_them_afterward(self):
+        model=self.model
+        start=jump(0)
+        rest=model.posed(start['bones'],root=start['root'])
+        for source in ('sdk','builtin'):
+            motion=AvatarMotion();motion.play('jump',duration=3)
+            motion.last_sample=motion.emote_at
+            samples={}
+            for i in range(181):
+                if source=='sdk':
+                    pose=jump(i/180);bones,root=pose['bones'],pose['root']
+                else:
+                    bones,*_=motion.sample(motion.emote_at+i/60);root=motion.root
+                if i in (72,180):samples[i]=model.posed(bones,root=root)
+            with self.subTest(source=source):
+                apex=samples[72]
+                for side in ('left','right'):
+                    wrist=model.bones[side+'Hand'];elbow=model.bones[side+'LowerArm']
+                    self.assertGreater(apex[wrist][1,3]-apex[model.bones['head']][1,3],.25)
+                    forearm=apex[wrist][:3,3]-apex[elbow][:3,3]
+                    self.assertGreater(forearm[1]/np.linalg.norm(forearm),.9)
+                    np.testing.assert_allclose(samples[180][wrist][:3,3],rest[wrist][:3,3],atol=.004)
+
 
 if __name__=='__main__':unittest.main()

@@ -222,10 +222,12 @@ animate(3, lambda t: jump(t, height=.10))
 ```
 
 `jump()` returns a frame with a crouch, leg bends, upward hips translation and
-a soft landing. Height is 0.02–0.16 metres. The movement runs through the actual
-VRM skeleton; the skinned hoodie, hair and body follow it. The portrait reserves
-headroom during the lift. The selected 3–30 second duration retimes the complete
-sequence, and Stop immediately clears the lift.
+a soft landing. Both hands sweep forward and fully overhead at takeoff, stay
+up through the apex, then lower during landing. Height is 0.02–0.16 metres. The
+movement runs through the actual VRM skeleton; the skinned hoodie, hair and body
+follow it. The portrait reserves
+headroom for the lift and the actual posed fingertips. The selected 3–30 second
+duration retimes the complete sequence, and Stop immediately clears the lift.
 
 Custom frames can set `root: [x,y,z]` (also the fourth argument to `frame()`).
 This translates the humanoid hips in model metres before skinning, hand IK and
@@ -245,6 +247,12 @@ these are sampled poses, not a proof for every custom jump. Actual captures:
 The [live GUI check](../benchmarks/codex-rp/results/avatar-jump-live-20261017.json)
 also observed the jump's crouch and lift, return to ground and cleared emote
 state, with no errors in either portrait renderer.
+
+The overhead-arm revision passes five jump checks, including actual wrist and
+forearm positions for both the built-in and SDK jump, followed by a return to
+rest. Its [native GPU checks](../benchmarks/codex-rp/results/avatar-jump-overhead-20261018.json)
+found zero measured hair/clothing intersections across four costume jump poses
+and the hoodie apex. [Overhead pose](avatar3d-jump/overhead.png).
 
 ### Cord hairpin and larger eyes
 

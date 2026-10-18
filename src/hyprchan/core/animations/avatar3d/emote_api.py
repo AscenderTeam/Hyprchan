@@ -84,16 +84,20 @@ def jump(t, height=.10):
     elif t < .70:
         crouch = .7*math.sin(math.pi*(t-.50)/.20)**2
     lift -= (.015+.2*height)*crouch
-    arms = ease(min(t/.22, (1-t)/.26))
+    expression = ease(min(t/.22, (1-t)/.26))
+    # Drive both hands fully overhead at takeoff, hold through the apex, then
+    # lower them during landing. Sweep forward rather than through a T-pose.
+    arms = ease((t-.16)/.18)*(1-ease((t-.46)/.28))
+    forward = 35*(math.sin(math.pi*arms)+arms)
     return {
         'root': [0, lift, 0],
-        'expressions': {'smile': .65*arms, 'brow_happy': .3*arms, 'blush': .2*arms},
+        'expressions': {'smile': .65*expression, 'brow_happy': .3*expression, 'blush': .2*expression},
         'bones': {
             'chest': [10*crouch-3*flight, 0, 0], 'head': [-3*flight, 0, 0],
-            'leftUpperArm': [-8*crouch, 0, -72+18*arms],
-            'rightUpperArm': [-8*crouch, 0, 72-18*arms],
-            'leftLowerArm': [0, -8, -8-12*arms],
-            'rightLowerArm': [0, 8, 8+12*arms],
+            'leftUpperArm': [-8*crouch, -forward, -72+142*arms],
+            'rightUpperArm': [-8*crouch, forward, 72-142*arms],
+            'leftLowerArm': [0, -8+43*arms, -8+18*arms],
+            'rightLowerArm': [0, 8-43*arms, 8-18*arms],
             'leftUpperLeg': [-16*crouch-7*flight, 0, 0],
             'rightUpperLeg': [-16*crouch-7*flight, 0, 0],
             'leftLowerLeg': [32*crouch+14*flight, 0, 0],
