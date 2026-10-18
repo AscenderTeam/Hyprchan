@@ -12,6 +12,7 @@ from .wardrobe import add_hoodie
 from .skin_yoke import restore_shoulders
 from .costume_shell import fitted_bodice, front_position
 from .neck_ribbon import NeckSurface
+from .collar_skin import CollarSkin
 
 WHITE = [.96, .98, 1.0]
 BLACK = [.055, .073, .105]
@@ -152,42 +153,80 @@ def add_costume(model):
         'material':{'name':'Costume bodice','doubleSided':True,
                     'pbrMetallicRoughness':{'baseColorFactor':[*linear(WHITE).tolist(),1]}}})
     model.costume='cyan_yellow'
+    collar_skin=CollarSkin(model,tailor.skin)
+    def collar_weights(points):
+        return collar_skin.blend(points,garment_weights(model,tailor.skin,points))
 
     # Rounded sailor/Peter Pan collar: a sculpted upper surface, rolled edges,
     # opposing accent colors, and a second fine inset trim.
-    inner=curve([(.035,1.315),(.040,1.289),(.032,1.259),(.020,1.234),(.004,1.220)],73)
-    outer=curve([(.079,1.320),(.083,1.290),(.072,1.259),(.045,1.231),(.009,1.214)],73)
+    inner=curve([(.048,1.309),(.041,1.285),(.032,1.259),(.020,1.234),(.004,1.220)],73)
+    outer=curve([(.098,1.294),(.087,1.279),(.072,1.253),(.045,1.231),(.009,1.214)],73)
+    def collar_offset(v):
+        return .005+.002*np.sin(np.pi*v)
     # Camisole bridges the open neckline beneath the two collar leaves.
     def camisole(u,v):
         x=(v-.5)*.091
         y=1.265+.005*(abs(v-.5)*2)**2-u*.043
-        return tailor.front(x,y,.006)
+        return tailor.front(x,y,.002)
     tailor.grid(camisole,25,41,BLACK,'underlay')
-    tailor.tube([camisole(0,v)+[0,0,.002] for v in np.linspace(0,1,65)],.0015,WHITE,'camisole edging')
-    # Continue both lapels around the back of the neck instead of leaving
-    # their upper ends as flat, visibly cut-off strips in the front portrait.
+    tailor.tube([camisole(0,v)+[0,0,.0015] for v in np.linspace(.10,.90,65)],.0012,WHITE,'camisole edging')
+    # The opening must wrap BEHIND the neck. The old half-ellipse terminated
+    # inside it, and its raised outer rim made a stiff shelf at the shoulders.
+    # These curves clear the neck and descend toward the shoulder/back surface.
+    def collar_back_path(xy, middle):
+        start=tailor.front(*xy,.005)
+        half=[start,*middle]
+        return curve([*half,*[np.array([-p[0],p[1],p[2]]) for p in half[-2::-1]]],97)
+    back_inner=collar_back_path(inner[0],[(.069,1.307,.010),(.073,1.303,-.040),
+                                        (.048,1.301,-.078),(0,1.300,-.085)])
+    back_outer=collar_back_path(outer[0],[(.115,1.286,.012),(.103,1.281,-.060),
+                                        (.060,1.277,-.086),(0,1.275,-.097)])
+    body=next(p for p in model.primitives if p['material']['name']=='Body_00_SKIN')
+    skin=body['attributes']['POSITION'][body['indices'].reshape(-1,3)].astype(float)
+    skin=skin[(skin[:,:,1].max(1)>1.25)&(skin[:,:,1].min(1)<1.325)]
+    skin=skin[(skin[:,:,0].max(1)>-.15)&(skin[:,:,0].min(1)<.15)]
+    a,b,c=skin.transpose(1,0,2);ab=b-a;ac=c-a
+    determinant=ab[:,0]*ac[:,2]-ab[:,2]*ac[:,0]
+    inverse=np.divide(1,determinant,out=np.zeros_like(determinant),where=abs(determinant)>1e-10)
+    back_paths={}
     def back_collar(u,v):
-        angle=np.pi*u
-        radius=.035*(1-v)+.079*v
-        y=1.315+.005*v
-        z=tailor.front(radius,y,.009+.006*np.sin(np.pi*v))[2]
-        return [radius*np.cos(angle),y+.014*np.sin(angle),z-.103*np.sin(angle)]
-    tailor.grid(back_collar,65,25,WHITE,'collar')
+        if v not in back_paths:
+            p=back_inner*(1-v)+back_outer*v
+            # Match the front lapel exactly at both joins, with a shallow roll.
+            xy=inner[0]*(1-v)+outer[0]*v
+            dz=tailor.front(*xy,collar_offset(v))[2]-(back_inner[0,2]*(1-v)+back_outer[0,2]*v)
+            along=np.linspace(0,1,97)
+            p[:,2]+=dz*abs(2*along-1)**6
+            p[:,1]+=.0015*np.sin(np.pi*v)*np.sin(np.pi*along)
+            # Drape above the actual shoulder surface. Lowering a guessed
+            # ellipse alone would merely move the intersection into the arms.
+            delta=p[:,None]-a
+            s=(delta[:,:,0]*ac[:,2]-delta[:,:,2]*ac[:,0])*inverse
+            t=(ab[:,0]*delta[:,:,2]-ab[:,2]*delta[:,:,0])*inverse
+            hit=(abs(determinant)>1e-10)&(s>=0)&(t>=0)&(s+t<=1)
+            height=a[:,1]+s*ab[:,1]+t*ac[:,1]
+            top=np.max(np.where(hit,height,-np.inf),axis=1)
+            p[:,1]=np.maximum(p[:,1],top+.007)
+            back_paths[v]=p
+        position=np.clip(u*96,0,96)
+        index=min(95,int(position));fraction=position-index
+        return back_paths[v][index]*(1-fraction)+back_paths[v][index+1]*fraction
+    tailor.grid(back_collar,97,41,WHITE,'collar',collar_weights)
     for first,last,accent in [(0,.5,YELLOW),(.5,1,CYAN)]:
         for v,r,color in [(1,.0023,accent),(.86,.0008,BLACK),(.78,.0007,accent),(0,.0013,BLACK)]:
-            tailor.tube([np.array(back_collar(u,v))+[0,.001,0] for u in np.linspace(first,last,41)],r,color,'collar trim')
+            tailor.tube([np.array(back_collar(u,v))+[0,.001,0] for u in np.linspace(first,last,97)],r,color,'collar trim',collar_weights)
     for side,accent in [(-1,CYAN),(1,YELLOW)]:
         def collar(u,v):
             index=min(72,int(round(u*72)))
             xy=inner[index]*(1-v)+outer[index]*v
-            return tailor.front(side*xy[0],xy[1],.009+.006*np.sin(np.pi*v))
-        tailor.grid(collar,73,41,WHITE,'collar')
+            return tailor.front(side*xy[0],xy[1],collar_offset(v))
+        tailor.grid(collar,73,41,WHITE,'collar',collar_weights)
         for v,r,color in [(1,.0023,accent),(.86,.0008,BLACK),(.78,.0007,accent),(0,.0013,BLACK)]:
-            tailor.tube([collar(u,v)+[0,0,.003] for u in np.linspace(0,1,73)],r,color,'collar trim')
+            tailor.tube([collar(u,v)+[0,0,.003] for u in np.linspace(0,1,73)],r,color,'collar trim',collar_weights)
         # Two fine rows of embroidered stitches sit between the rolled trims.
         for u in np.linspace(.08,.88,22):
             tailor.tube([collar(u-.003,v)+[0,0,.002] for v in np.linspace(.87,.95,3)],
-                        .00035,WHITE,'stitching',sides=6)
+                        .00035,WHITE,'stitching',collar_weights,sides=6)
 
         # Fitted dark side inserts, princess seams and small functional lacing.
         def insert(u,v):

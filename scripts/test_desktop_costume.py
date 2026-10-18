@@ -12,6 +12,17 @@ from hyprchan.core.animations.avatar3d.model import AvatarModel
 from hyprchan.core.animations.avatar3d.costume import add_costume
 
 
+def skinned_triangles(model, parts, world):
+    result=[]
+    for part in parts:
+        a=part['attributes'];joints,inverse=model.skins[part['skin']]
+        palette=np.array([world[j]@inv for j,inv in zip(joints,inverse)])
+        p=np.column_stack([a['POSITION'],np.ones(len(a['POSITION']))])
+        p=np.einsum('nkij,nj,nk->ni',palette[a['JOINTS_0'].astype(int)],p,a['WEIGHTS_0'])[:,:3]
+        result.append(p[part['indices'].reshape(-1,3)])
+    return np.concatenate(result)
+
+
 class AppearanceTest(unittest.TestCase):
     def test_legacy_malformed_and_unknown_settings(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -86,8 +97,14 @@ class CostumeTest(unittest.TestCase):
             return np.einsum('nkij,nj,nk->ni',palettes[a['JOINTS_0'][used].astype(int)],p,a['WEIGHTS_0'][used])[:,:3]
         for part in self.parts:
             name=part['material']['name']
-            if name in {'Costume bodice','Costume collar','Costume bow','Costume side panels'}:
+            if name in {'Costume bodice','Costume bow','Costume side panels'}:
                 np.testing.assert_allclose(positions(part,rest),positions(part,raised),atol=1e-6,err_msg=name)
+            elif name=='Costume collar':
+                # The front lapels stay sewn to the bodice; the rear fold
+                # follows the shoulders instead of allowing skin through it.
+                used=np.unique(part['indices']);p=part['attributes']['POSITION'][used]
+                front=(p[:,2]>.045)&(p[:,1]<1.29)
+                np.testing.assert_allclose(positions(part,rest)[front],positions(part,raised)[front],atol=1e-6)
             elif name=='Costume sleeves':
                 self.assertGreater(float(np.linalg.norm(positions(part,raised)-positions(part,rest),axis=1).max()),.25)
 
@@ -104,23 +121,30 @@ class CostumeTest(unittest.TestCase):
         # A visible skin gap below the chin, rather than the old rigid ring
         # that reached into the jaw and used a single neck-bone influence.
         self.assertLess(float(band['attributes']['POSITION'][:,1].max()),1.344)
-        def triangles(parts,world):
-            result=[]
-            for part in parts:
-                a=part['attributes']; joints,inverse=self.model.skins[part['skin']]
-                palette=np.array([world[j]@inv for j,inv in zip(joints,inverse)])
-                p=np.column_stack([a['POSITION'],np.ones(len(a['POSITION']))])
-                p=np.einsum('nkij,nj,nk->ni',palette[a['JOINTS_0'].astype(int)],p,a['WEIGHTS_0'])[:,:3]
-                result.append(p[part['indices'].reshape(-1,3)])
-            return np.concatenate(result)
         for pose in ({},{'head':[25,0,0]},{'head':[-18,15,0]},
                      {'head':[8,40,12]},{'head':[8,-40,-12]},
                      {'neck':[12,20,8],'head':[10,-15,0]},
                      {'leftUpperArm':[0,0,-75],'rightUpperArm':[0,0,75]}):
             with self.subTest(pose=pose):
                 world=self.model.posed(pose)
-                surface=triangles(skin,world)
-                result=surface_crossings(triangles(ribbon,world),surface,np.full(len(surface),'skin'))
+                surface=skinned_triangles(self.model,skin,world)
+                result=surface_crossings(skinned_triangles(self.model,ribbon,world),surface,np.full(len(surface),'skin'))
+                self.assertEqual(result['crossings'],0,result)
+
+    def test_white_collar_and_trim_clear_neck_and_shoulders(self):
+        from bench_avatar_collision import surface_crossings
+        skin=[p for p in self.model.primitives if p['material']['name'] in {'Body_00_SKIN','Face_00_SKIN'}]
+        collar=[p for p in self.parts if p['material']['name'] in {'Costume collar','Costume collar trim','Costume stitching'}]
+        self.assertLess(max(float(p['attributes']['POSITION'][:,1].max()) for p in collar),1.32)
+        for pose in ({},{'head':[25,0,0]},{'head':[-18,15,0]},
+                     {'head':[8,40,12]},{'head':[8,-40,-12]},
+                     {'neck':[12,20,8],'head':[10,-15,0]},
+                     {'leftUpperArm':[0,0,-75],'rightUpperArm':[0,0,75]},
+                     {'leftUpperArm':[0,0,-40],'rightUpperArm':[0,0,40]}):
+            with self.subTest(pose=pose):
+                world=self.model.posed(pose)
+                surface=skinned_triangles(self.model,skin,world)
+                result=surface_crossings(skinned_triangles(self.model,collar,world),surface,np.full(len(surface),'skin'))
                 self.assertEqual(result['crossings'],0,result)
 
 

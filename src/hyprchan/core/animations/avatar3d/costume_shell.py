@@ -42,7 +42,7 @@ def fitted_bodice(source):
     # The front neckline rises into the collar straps and dips at the centre.
     # A horizontal tube opening made the collar read as a flat shoulder bib.
     front=np.maximum(np.cos(theta),0)
-    top=1.281+.038*np.exp(-((abs(np.sin(theta))-.57)/.23)**2)*front
+    top=1.281+.018*np.exp(-((abs(np.sin(theta))-.70)/.23)**2)*front
     top-=.019*np.exp(-(np.sin(theta)/.29)**2)*front
     y=.995+u*(top-.995)
     x,y,z=surface(y,theta)

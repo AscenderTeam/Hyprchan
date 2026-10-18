@@ -5,10 +5,11 @@
     {
       "pose": "rest",
       "skinningOnly": {
-        "pairs": 9835,
-        "crossings": 797,
+        "pairs": 10513,
+        "crossings": 874,
         "materials": {
-          "Costume bodice": 293,
+          "Costume bodice": 303,
+          "Costume collar trim": 67,
           "Costume lacing": 72,
           "Costume piping": 56,
           "Costume side panels": 83,
@@ -25,6 +26,18 @@
               0.11926999688148499,
               1.2701599597930908,
               0.09443999826908112
+            ]
+          ],
+          "Costume collar trim": [
+            [
+              0.1007699966430664,
+              1.2850199937820435,
+              0.02449999935925007
+            ],
+            [
+              0.11456000059843063,
+              1.3004499673843384,
+              0.03353000059723854
             ]
           ],
           "Costume lacing": [
@@ -76,7 +89,7 @@
             0.09440000355243683
           ]
         ],
-        "outfitAndBodyCrossings": 504,
+        "outfitAndBodyCrossings": 581,
         "triangles": 73487
       },
       "contact": {
@@ -100,16 +113,17 @@
         ],
         "outfitAndBodyCrossings": 0,
         "triangles": 73487,
-        "drawMedianMs": 10.848
+        "drawMedianMs": 11.01
       }
     },
     {
       "pose": "side",
       "skinningOnly": {
-        "pairs": 9835,
-        "crossings": 797,
+        "pairs": 10513,
+        "crossings": 874,
         "materials": {
-          "Costume bodice": 293,
+          "Costume bodice": 303,
+          "Costume collar trim": 67,
           "Costume lacing": 72,
           "Costume piping": 56,
           "Costume side panels": 83,
@@ -126,6 +140,18 @@
               0.11926999688148499,
               1.2701599597930908,
               0.09443999826908112
+            ]
+          ],
+          "Costume collar trim": [
+            [
+              0.1007699966430664,
+              1.2850199937820435,
+              0.02449999935925007
+            ],
+            [
+              0.11456000059843063,
+              1.3004499673843384,
+              0.03353000059723854
             ]
           ],
           "Costume lacing": [
@@ -177,7 +203,7 @@
             0.09440000355243683
           ]
         ],
-        "outfitAndBodyCrossings": 504,
+        "outfitAndBodyCrossings": 581,
         "triangles": 73487
       },
       "contact": {
@@ -201,16 +227,17 @@
         ],
         "outfitAndBodyCrossings": 0,
         "triangles": 73487,
-        "drawMedianMs": 17.286
+        "drawMedianMs": 14.046
       }
     },
     {
       "pose": "back",
       "skinningOnly": {
-        "pairs": 9835,
-        "crossings": 797,
+        "pairs": 10513,
+        "crossings": 874,
         "materials": {
-          "Costume bodice": 293,
+          "Costume bodice": 303,
+          "Costume collar trim": 67,
           "Costume lacing": 72,
           "Costume piping": 56,
           "Costume side panels": 83,
@@ -227,6 +254,18 @@
               0.11926999688148499,
               1.2701599597930908,
               0.09443999826908112
+            ]
+          ],
+          "Costume collar trim": [
+            [
+              0.1007699966430664,
+              1.2850199937820435,
+              0.02449999935925007
+            ],
+            [
+              0.11456000059843063,
+              1.3004499673843384,
+              0.03353000059723854
             ]
           ],
           "Costume lacing": [
@@ -278,7 +317,7 @@
             0.09440000355243683
           ]
         ],
-        "outfitAndBodyCrossings": 504,
+        "outfitAndBodyCrossings": 581,
         "triangles": 73487
       },
       "contact": {
@@ -302,27 +341,26 @@
         ],
         "outfitAndBodyCrossings": 0,
         "triangles": 73487,
-        "drawMedianMs": 17.501
+        "drawMedianMs": 22.64
       }
     },
     {
       "pose": "left",
       "skinningOnly": {
-        "pairs": 46572,
-        "crossings": 5341,
+        "pairs": 52607,
+        "crossings": 6035,
         "materials": {
           "Body_00_SKIN": 1107,
-          "Costume bodice": 1179,
-          "Costume camisole edging": 106,
-          "Costume collar": 138,
-          "Costume collar trim": 58,
+          "Costume bodice": 1183,
+          "Costume collar": 361,
+          "Costume collar trim": 612,
           "Costume lace": 163,
           "Costume metal": 225,
           "Costume piping": 78,
           "Costume placket": 74,
           "Costume sleeve bands": 320,
           "Costume sleeves": 1224,
-          "Costume underlay": 376,
+          "Costume underlay": 395,
           "Face_00_SKIN": 293
         },
         "materialBounds": {
@@ -350,40 +388,28 @@
               0.1410599946975708
             ]
           ],
-          "Costume camisole edging": [
-            [
-              -0.045340001583099365,
-              1.2616300582885742,
-              0.08033999800682068
-            ],
-            [
-              -0.010320000350475311,
-              1.2732900381088257,
-              0.09358999878168106
-            ]
-          ],
           "Costume collar": [
             [
-              -0.05420999974012375,
-              1.2405200004577637,
-              0.08021999895572662
+              -0.12967999279499054,
+              1.2314499616622925,
+              -0.04236000031232834
             ],
             [
-              -0.02295999974012375,
-              1.2741899490356445,
-              0.11148999631404877
+              -0.02167999930679798,
+              1.3071099519729614,
+              0.1143999993801117
             ]
           ],
           "Costume collar trim": [
             [
-              -0.0421999990940094,
-              1.2430700063705444,
-              0.07754000276327133
+              -0.1307000070810318,
+              1.2392100095748901,
+              -0.056620001792907715
             ],
             [
-              -0.02425999939441681,
-              1.2797000408172607,
-              0.11016999930143356
+              -0.02167999930679798,
+              1.3071099519729614,
+              0.11031000316143036
             ]
           ],
           "Costume lace": [
@@ -460,14 +486,14 @@
           ],
           "Costume underlay": [
             [
-              -0.04709000140428543,
-              1.225559949874878,
-              0.08033999800682068
+              -0.04879000037908554,
+              1.2210899591445923,
+              0.08180999755859375
             ],
             [
-              0.003599999938160181,
-              1.2704600095748901,
-              0.1214900016784668
+              0.004920000210404396,
+              1.2658400535583496,
+              0.1230200007557869
             ]
           ]
         },
@@ -483,7 +509,7 @@
             0.14110000431537628
           ]
         ],
-        "outfitAndBodyCrossings": 5048,
+        "outfitAndBodyCrossings": 5742,
         "triangles": 73487
       },
       "contact": {
@@ -507,27 +533,27 @@
         ],
         "outfitAndBodyCrossings": 0,
         "triangles": 73487,
-        "drawMedianMs": 18.918
+        "drawMedianMs": 11.893
       }
     },
     {
       "pose": "right",
       "skinningOnly": {
-        "pairs": 34347,
-        "crossings": 3771,
+        "pairs": 41668,
+        "crossings": 4726,
         "materials": {
           "Body_00_SKIN": 684,
-          "Costume bodice": 1326,
-          "Costume camisole edging": 152,
-          "Costume collar": 79,
-          "Costume collar trim": 60,
+          "Costume bodice": 1331,
+          "Costume camisole edging": 78,
+          "Costume collar": 410,
+          "Costume collar trim": 692,
           "Costume lace": 103,
           "Costume metal": 80,
           "Costume piping": 36,
           "Costume placket": 54,
           "Costume sleeve bands": 164,
           "Costume sleeves": 499,
-          "Costume underlay": 241,
+          "Costume underlay": 302,
           "Face_00_SKIN": 293
         },
         "materialBounds": {
@@ -557,38 +583,38 @@
           ],
           "Costume camisole edging": [
             [
-              -0.0030499999411404133,
-              1.2610499858856201,
-              0.0757799968123436
+              0.0021100000012665987,
+              1.2615000009536743,
+              0.07839000225067139
             ],
             [
-              0.04645000025629997,
-              1.2729400396347046,
-              0.09430000185966492
+              0.023240000009536743,
+              1.270609974861145,
+              0.0871099978685379
             ]
           ],
           "Costume collar": [
             [
-              0.02556999959051609,
-              1.2509000301361084,
-              0.07208999991416931
+              0.023979999125003815,
+              1.2463899850845337,
+              -0.04766000062227249
             ],
             [
-              0.04961000010371208,
-              1.2829300165176392,
-              0.10053999722003937
+              0.127020001411438,
+              1.3080899715423584,
+              0.10181000083684921
             ]
           ],
           "Costume collar trim": [
             [
-              0.02556999959051609,
-              1.2509000301361084,
-              0.06984999775886536
+              0.023979999125003815,
+              1.2463899850845337,
+              -0.054260000586509705
             ],
             [
-              0.04363999888300896,
-              1.2888100147247314,
-              0.10053999722003937
+              0.1302500069141388,
+              1.3080899715423584,
+              0.10181000083684921
             ]
           ],
           "Costume lace": [
@@ -665,14 +691,14 @@
           ],
           "Costume underlay": [
             [
-              -0.008299999870359898,
-              1.2392300367355347,
-              0.0757799968123436
+              -0.010029999539256096,
+              1.230370044708252,
+              0.07573000341653824
             ],
             [
-              0.04645000025629997,
-              1.2724699974060059,
-              0.10885000228881836
+              0.044860001653432846,
+              1.2701300382614136,
+              0.11122000217437744
             ]
           ]
         },
@@ -688,7 +714,7 @@
             0.12890000641345978
           ]
         ],
-        "outfitAndBodyCrossings": 3478,
+        "outfitAndBodyCrossings": 4433,
         "triangles": 73487
       },
       "contact": {
@@ -712,17 +738,19 @@
         ],
         "outfitAndBodyCrossings": 0,
         "triangles": 73487,
-        "drawMedianMs": 12.536
+        "drawMedianMs": 12.594
       }
     },
     {
       "pose": "nod",
       "skinningOnly": {
-        "pairs": 25445,
-        "crossings": 2413,
+        "pairs": 30195,
+        "crossings": 3341,
         "materials": {
           "Body_00_SKIN": 1086,
-          "Costume bodice": 647,
+          "Costume bodice": 650,
+          "Costume collar": 525,
+          "Costume collar trim": 400,
           "Costume sleeves": 387,
           "Face_00_SKIN": 293
         },
@@ -747,8 +775,32 @@
             ],
             [
               0.13479000329971313,
-              1.2848600149154663,
+              1.2859599590301514,
               0.014600000344216824
+            ]
+          ],
+          "Costume collar": [
+            [
+              -0.12748999893665314,
+              1.2758699655532837,
+              -0.021889999508857727
+            ],
+            [
+              0.12178999930620193,
+              1.3084299564361572,
+              0.01735999993979931
+            ]
+          ],
+          "Costume collar trim": [
+            [
+              -0.13179999589920044,
+              1.2758699655532837,
+              -0.021889999508857727
+            ],
+            [
+              0.12178999930620193,
+              1.3084299564361572,
+              0.01496999990195036
             ]
           ],
           "Costume sleeves": [
@@ -776,7 +828,7 @@
             0.04360000044107437
           ]
         ],
-        "outfitAndBodyCrossings": 2120,
+        "outfitAndBodyCrossings": 3048,
         "triangles": 73487
       },
       "contact": {
@@ -800,21 +852,22 @@
         ],
         "outfitAndBodyCrossings": 0,
         "triangles": 73487,
-        "drawMedianMs": 9.312
+        "drawMedianMs": 12.254
       }
     },
     {
       "pose": "lean",
       "skinningOnly": {
-        "pairs": 44666,
-        "crossings": 4959,
+        "pairs": 51011,
+        "crossings": 5736,
         "materials": {
           "Body_00_SKIN": 1310,
           "Costume bodice": 1885,
           "Costume bow": 190,
           "Costume bow stripe": 56,
           "Costume bow trim": 18,
-          "Costume collar trim": 38,
+          "Costume collar": 357,
+          "Costume collar trim": 458,
           "Costume lace": 64,
           "Costume metal": 85,
           "Costume sleeve bands": 231,
@@ -882,16 +935,28 @@
               0.16238999366760254
             ]
           ],
-          "Costume collar trim": [
+          "Costume collar": [
             [
-              -0.06554000079631805,
-              1.2266099452972412,
-              0.1264999955892563
+              -0.1658100038766861,
+              1.2615300416946411,
+              -0.026350000873208046
             ],
             [
-              -0.05429000034928322,
-              1.236340045928955,
-              0.13595999777317047
+              -0.14295999705791473,
+              1.2925000190734863,
+              0.05452999845147133
+            ]
+          ],
+          "Costume collar trim": [
+            [
+              -0.1680999994277954,
+              1.2615300416946411,
+              -0.03956000134348869
+            ],
+            [
+              -0.13952000439167023,
+              1.2837799787521362,
+              0.049320001155138016
             ]
           ],
           "Costume lace": [
@@ -955,7 +1020,7 @@
             0.18729999661445618
           ]
         ],
-        "outfitAndBodyCrossings": 4666,
+        "outfitAndBodyCrossings": 5443,
         "triangles": 73487
       },
       "contact": {
@@ -979,17 +1044,19 @@
         ],
         "outfitAndBodyCrossings": 0,
         "triangles": 73487,
-        "drawMedianMs": 22.8
+        "drawMedianMs": 15.633
       }
     },
     {
       "pose": "nod_mid",
       "skinningOnly": {
-        "pairs": 26107,
-        "crossings": 3319,
+        "pairs": 33818,
+        "crossings": 4573,
         "materials": {
           "Body_00_SKIN": 408,
-          "Costume bodice": 1233,
+          "Costume bodice": 1249,
+          "Costume collar": 490,
+          "Costume collar trim": 734,
           "Costume lace": 92,
           "Costume lacing": 89,
           "Costume metal": 186,
@@ -997,6 +1064,7 @@
           "Costume side panels": 306,
           "Costume sleeve bands": 177,
           "Costume sleeves": 321,
+          "Costume stitching": 14,
           "Face_00_SKIN": 293
         },
         "materialBounds": {
@@ -1016,12 +1084,36 @@
             [
               -0.14086000621318817,
               1.1180299520492554,
-              0.0013899999903514981
+              0.0004199999966658652
             ],
             [
               0.13213999569416046,
               1.2940000295639038,
               0.061799999326467514
+            ]
+          ],
+          "Costume collar": [
+            [
+              -0.12454000115394592,
+              1.2783700227737427,
+              -0.0013699999544769526
+            ],
+            [
+              0.12084999680519104,
+              1.3030400276184082,
+              0.03878999873995781
+            ]
+          ],
+          "Costume collar trim": [
+            [
+              -0.12883000075817108,
+              1.2773300409317017,
+              -0.0013699999544769526
+            ],
+            [
+              0.12185999751091003,
+              1.3001500368118286,
+              0.039639998227357864
             ]
           ],
           "Costume lace": [
@@ -1107,6 +1199,18 @@
               1.2038899660110474,
               0.032910000532865524
             ]
+          ],
+          "Costume stitching": [
+            [
+              0.09167999774217606,
+              1.2892299890518188,
+              0.029929999262094498
+            ],
+            [
+              0.09317000210285187,
+              1.2953799962997437,
+              0.037950001657009125
+            ]
           ]
         },
         "bounds": [
@@ -1121,7 +1225,7 @@
             0.061900001019239426
           ]
         ],
-        "outfitAndBodyCrossings": 3026,
+        "outfitAndBodyCrossings": 4280,
         "triangles": 73487
       },
       "contact": {
@@ -1145,24 +1249,24 @@
         ],
         "outfitAndBodyCrossings": 0,
         "triangles": 73487,
-        "drawMedianMs": 12.989
+        "drawMedianMs": 12.388
       }
     },
     {
       "pose": "left_mid",
       "skinningOnly": {
-        "pairs": 28435,
-        "crossings": 3450,
+        "pairs": 30348,
+        "crossings": 3663,
         "materials": {
           "Body_00_SKIN": 89,
-          "Costume bodice": 603,
-          "Costume collar": 233,
-          "Costume collar trim": 332,
+          "Costume bodice": 617,
+          "Costume collar": 263,
+          "Costume collar trim": 490,
           "Costume lace": 325,
           "Costume metal": 136,
           "Costume sleeve bands": 338,
           "Costume sleeves": 1060,
-          "Costume stitching": 41,
+          "Costume stitching": 52,
           "Face_00_SKIN": 293
         },
         "materialBounds": {
@@ -1192,26 +1296,26 @@
           ],
           "Costume collar": [
             [
-              -0.08223000168800354,
-              1.240380048751831,
-              0.0587799996137619
+              -0.08138000220060349,
+              1.2379499673843384,
+              -0.01924999989569187
             ],
             [
-              -0.05398000031709671,
-              1.28371000289917,
-              0.10179000347852707
+              0.1295900046825409,
+              1.3015600442886353,
+              0.1035199984908104
             ]
           ],
           "Costume collar trim": [
             [
-              -0.0873199999332428,
-              1.2379499673843384,
-              0.056699998676776886
+              -0.1263200044631958,
+              1.2357699871063232,
+              -0.05266999825835228
             ],
             [
-              -0.05398000031709671,
-              1.2842199802398682,
-              0.1036200001835823
+              0.13098999857902527,
+              1.3020600080490112,
+              0.1035199984908104
             ]
           ],
           "Costume lace": [
@@ -1264,14 +1368,14 @@
           ],
           "Costume stitching": [
             [
-              -0.07756000012159348,
-              1.2617299556732178,
-              0.059130001813173294
+              -0.08138000220060349,
+              1.2570899724960327,
+              0.06233999878168106
             ],
             [
-              -0.06814999878406525,
-              1.279539942741394,
-              0.07794000208377838
+              -0.0674699991941452,
+              1.271939992904663,
+              0.07975000143051147
             ]
           ]
         },
@@ -1287,7 +1391,7 @@
             0.13259999454021454
           ]
         ],
-        "outfitAndBodyCrossings": 3157,
+        "outfitAndBodyCrossings": 3370,
         "triangles": 73487
       },
       "contact": {
@@ -1311,25 +1415,25 @@
         ],
         "outfitAndBodyCrossings": 0,
         "triangles": 73487,
-        "drawMedianMs": 22.485
+        "drawMedianMs": 11.946
       }
     },
     {
       "pose": "right_mid",
       "skinningOnly": {
-        "pairs": 27358,
-        "crossings": 3148,
+        "pairs": 28174,
+        "crossings": 3252,
         "materials": {
           "Body_00_SKIN": 234,
-          "Costume bodice": 409,
-          "Costume collar": 631,
-          "Costume collar trim": 265,
+          "Costume bodice": 423,
+          "Costume collar": 600,
+          "Costume collar trim": 446,
           "Costume lace": 252,
           "Costume metal": 116,
           "Costume sleeve bands": 281,
           "Costume sleeves": 565,
-          "Costume stitching": 93,
-          "Costume underlay": 9,
+          "Costume stitching": 21,
+          "Costume underlay": 21,
           "Face_00_SKIN": 293
         },
         "materialBounds": {
@@ -1359,26 +1463,26 @@
           ],
           "Costume collar": [
             [
-              0.04569000005722046,
-              1.2511199712753296,
-              0.04205000028014183
+              0.04383999854326248,
+              1.2374299764633179,
+              -0.05754999816417694
             ],
             [
-              0.08263999968767166,
-              1.3239400386810303,
-              0.09570000320672989
+              0.1249300017952919,
+              1.3059600591659546,
+              0.10064999759197235
             ]
           ],
           "Costume collar trim": [
             [
-              0.06369999796152115,
-              1.2523599863052368,
-              0.04072999954223633
+              0.05079999938607216,
+              1.2419899702072144,
+              -0.05837000161409378
             ],
             [
-              0.0887800008058548,
-              1.3273600339889526,
-              0.08412999659776688
+              0.13078999519348145,
+              1.308210015296936,
+              0.09900999814271927
             ]
           ],
           "Costume lace": [
@@ -1431,26 +1535,26 @@
           ],
           "Costume stitching": [
             [
-              0.06756000220775604,
-              1.2615900039672852,
-              0.04343000054359436
+              0.06614000350236893,
+              1.2523599863052368,
+              0.05291000008583069
             ],
             [
-              0.08376999944448471,
-              1.317829966545105,
-              0.08077000081539154
+              0.08651000261306763,
+              1.282789945602417,
+              0.08412999659776688
             ]
           ],
           "Costume underlay": [
             [
-              0.04383999854326248,
-              1.2528599500656128,
+              0.04293999820947647,
+              1.2453999519348145,
               0.08296000212430954
             ],
             [
-              0.048239998519420624,
-              1.2621999979019165,
-              0.09217999875545502
+              0.05079999938607216,
+              1.258389949798584,
+              0.09556999802589417
             ]
           ]
         },
@@ -1466,7 +1570,7 @@
             0.12770000100135803
           ]
         ],
-        "outfitAndBodyCrossings": 2855,
+        "outfitAndBodyCrossings": 2959,
         "triangles": 73487
       },
       "contact": {
@@ -1490,17 +1594,19 @@
         ],
         "outfitAndBodyCrossings": 0,
         "triangles": 73487,
-        "drawMedianMs": 16.066
+        "drawMedianMs": 11.216
       }
     },
     {
       "pose": "look_up",
       "skinningOnly": {
-        "pairs": 38506,
-        "crossings": 4648,
+        "pairs": 42559,
+        "crossings": 5206,
         "materials": {
           "Body_00_SKIN": 1199,
           "Costume bodice": 1630,
+          "Costume collar": 124,
+          "Costume collar trim": 434,
           "Costume lace": 127,
           "Costume metal": 80,
           "Costume sleeve bands": 172,
@@ -1530,6 +1636,30 @@
               0.10309000313282013,
               1.284409999847412,
               0.019500000402331352
+            ]
+          ],
+          "Costume collar": [
+            [
+              -0.1281599998474121,
+              1.2796000242233276,
+              -0.07004000246524811
+            ],
+            [
+              -0.10070999711751938,
+              1.304479956626892,
+              -0.012140000239014626
+            ]
+          ],
+          "Costume collar trim": [
+            [
+              -0.1331000030040741,
+              1.2796000242233276,
+              -0.07485999912023544
+            ],
+            [
+              -0.10070999711751938,
+              1.3072099685668945,
+              -0.005979999899864197
             ]
           ],
           "Costume lace": [
@@ -1593,7 +1723,7 @@
             0.030700000002980232
           ]
         ],
-        "outfitAndBodyCrossings": 4355,
+        "outfitAndBodyCrossings": 4913,
         "triangles": 73487
       },
       "contact": {
@@ -1617,17 +1747,18 @@
         ],
         "outfitAndBodyCrossings": 0,
         "triangles": 73487,
-        "drawMedianMs": 23.318
+        "drawMedianMs": 15.174
       }
     },
     {
       "pose": "wave_mid",
       "skinningOnly": {
-        "pairs": 14175,
-        "crossings": 1560,
+        "pairs": 14853,
+        "crossings": 1637,
         "materials": {
           "Body_00_SKIN": 152,
-          "Costume bodice": 293,
+          "Costume bodice": 303,
+          "Costume collar trim": 67,
           "Costume lacing": 72,
           "Costume metal": 116,
           "Costume piping": 56,
@@ -1659,6 +1790,18 @@
               0.11926999688148499,
               1.2701599597930908,
               0.09443999826908112
+            ]
+          ],
+          "Costume collar trim": [
+            [
+              0.1007699966430664,
+              1.2850199937820435,
+              0.02449999935925007
+            ],
+            [
+              0.11456000059843063,
+              1.3004499673843384,
+              0.03353000059723854
             ]
           ],
           "Costume lacing": [
@@ -1746,7 +1889,7 @@
             0.11540000140666962
           ]
         ],
-        "outfitAndBodyCrossings": 1267,
+        "outfitAndBodyCrossings": 1344,
         "triangles": 73487
       },
       "contact": {
@@ -1770,17 +1913,18 @@
         ],
         "outfitAndBodyCrossings": 0,
         "triangles": 73487,
-        "drawMedianMs": 21.211
+        "drawMedianMs": 12.842
       }
     },
     {
       "pose": "wave",
       "skinningOnly": {
-        "pairs": 12092,
-        "crossings": 1263,
+        "pairs": 12770,
+        "crossings": 1340,
         "materials": {
           "Body_00_SKIN": 227,
-          "Costume bodice": 293,
+          "Costume bodice": 303,
+          "Costume collar trim": 67,
           "Costume lace": 86,
           "Costume lacing": 72,
           "Costume piping": 56,
@@ -1812,6 +1956,18 @@
               0.11926999688148499,
               1.2701599597930908,
               0.09443999826908112
+            ]
+          ],
+          "Costume collar trim": [
+            [
+              0.1007699966430664,
+              1.2850199937820435,
+              0.02449999935925007
+            ],
+            [
+              0.11456000059843063,
+              1.3004499673843384,
+              0.03353000059723854
             ]
           ],
           "Costume lace": [
@@ -1899,7 +2055,7 @@
             0.10329999774694443
           ]
         ],
-        "outfitAndBodyCrossings": 970,
+        "outfitAndBodyCrossings": 1047,
         "triangles": 73487
       },
       "contact": {
@@ -1923,17 +2079,18 @@
         ],
         "outfitAndBodyCrossings": 0,
         "triangles": 73487,
-        "drawMedianMs": 24.326
+        "drawMedianMs": 13.991
       }
     },
     {
       "pose": "peek_mid",
       "skinningOnly": {
-        "pairs": 10888,
-        "crossings": 1063,
+        "pairs": 11349,
+        "crossings": 1139,
         "materials": {
           "Body_00_SKIN": 182,
-          "Costume bodice": 293,
+          "Costume bodice": 303,
+          "Costume collar trim": 66,
           "Costume lacing": 72,
           "Costume piping": 56,
           "Costume side panels": 83,
@@ -1964,6 +2121,18 @@
               0.11926999688148499,
               1.2701599597930908,
               0.09443999826908112
+            ]
+          ],
+          "Costume collar trim": [
+            [
+              0.1007699966430664,
+              1.2896100282669067,
+              0.02449999935925007
+            ],
+            [
+              0.11422999948263168,
+              1.3021800518035889,
+              0.0325700007379055
             ]
           ],
           "Costume lacing": [
@@ -2039,7 +2208,7 @@
             0.11540000140666962
           ]
         ],
-        "outfitAndBodyCrossings": 770,
+        "outfitAndBodyCrossings": 846,
         "triangles": 73487
       },
       "contact": {
@@ -2063,17 +2232,17 @@
         ],
         "outfitAndBodyCrossings": 0,
         "triangles": 73487,
-        "drawMedianMs": 17.991
+        "drawMedianMs": 13.243
       }
     },
     {
       "pose": "peek",
       "skinningOnly": {
-        "pairs": 17037,
-        "crossings": 2152,
+        "pairs": 16938,
+        "crossings": 2162,
         "materials": {
           "Body_00_SKIN": 295,
-          "Costume bodice": 293,
+          "Costume bodice": 303,
           "Costume lace": 133,
           "Costume lacing": 72,
           "Costume metal": 64,
@@ -2205,7 +2374,7 @@
             0.10890000313520432
           ]
         ],
-        "outfitAndBodyCrossings": 1859,
+        "outfitAndBodyCrossings": 1869,
         "triangles": 73487
       },
       "contact": {
@@ -2229,16 +2398,17 @@
         ],
         "outfitAndBodyCrossings": 0,
         "triangles": 73487,
-        "drawMedianMs": 13.019
+        "drawMedianMs": 16.731
       }
     },
     {
       "pose": "jump_crouch",
       "skinningOnly": {
-        "pairs": 9241,
-        "crossings": 797,
+        "pairs": 9882,
+        "crossings": 874,
         "materials": {
-          "Costume bodice": 293,
+          "Costume bodice": 303,
+          "Costume collar trim": 67,
           "Costume lacing": 72,
           "Costume piping": 56,
           "Costume side panels": 83,
@@ -2255,6 +2425,18 @@
               0.11926999688148499,
               1.2277899980545044,
               0.11490000039339066
+            ]
+          ],
+          "Costume collar trim": [
+            [
+              0.1007699966430664,
+              1.250380039215088,
+              0.062059998512268066
+            ],
+            [
+              0.11422999948263168,
+              1.2607200145721436,
+              0.07134000211954117
             ]
           ],
           "Costume lacing": [
@@ -2306,7 +2488,7 @@
             0.11490000039339066
           ]
         ],
-        "outfitAndBodyCrossings": 504,
+        "outfitAndBodyCrossings": 581,
         "triangles": 73487
       },
       "contact": {
@@ -2330,13 +2512,13 @@
         ],
         "outfitAndBodyCrossings": 0,
         "triangles": 73487,
-        "drawMedianMs": 23.216
+        "drawMedianMs": 13.731
       }
     },
     {
       "pose": "jump_apex",
       "skinningOnly": {
-        "pairs": 6132,
+        "pairs": 6127,
         "crossings": 293,
         "materials": {
           "Face_00_SKIN": 293
@@ -2378,16 +2560,17 @@
         ],
         "outfitAndBodyCrossings": 0,
         "triangles": 73487,
-        "drawMedianMs": 17.022
+        "drawMedianMs": 13.512
       }
     },
     {
       "pose": "jump_land",
       "skinningOnly": {
-        "pairs": 9364,
-        "crossings": 797,
+        "pairs": 9989,
+        "crossings": 874,
         "materials": {
-          "Costume bodice": 293,
+          "Costume bodice": 303,
+          "Costume collar trim": 67,
           "Costume lacing": 72,
           "Costume piping": 56,
           "Costume side panels": 83,
@@ -2404,6 +2587,18 @@
               0.11926999688148499,
               1.2411199808120728,
               0.10903999954462051
+            ]
+          ],
+          "Costume collar trim": [
+            [
+              0.1007699966430664,
+              1.2628400325775146,
+              0.0508899986743927
+            ],
+            [
+              0.11422999948263168,
+              1.273360013961792,
+              0.05982000008225441
             ]
           ],
           "Costume lacing": [
@@ -2455,7 +2650,7 @@
             0.10899999737739563
           ]
         ],
-        "outfitAndBodyCrossings": 504,
+        "outfitAndBodyCrossings": 581,
         "triangles": 73487
       },
       "contact": {
@@ -2479,16 +2674,17 @@
         ],
         "outfitAndBodyCrossings": 0,
         "triangles": 73487,
-        "drawMedianMs": 12.751
+        "drawMedianMs": 13.28
       }
     },
     {
       "pose": "jump_rest",
       "skinningOnly": {
-        "pairs": 9700,
-        "crossings": 797,
+        "pairs": 10378,
+        "crossings": 874,
         "materials": {
-          "Costume bodice": 293,
+          "Costume bodice": 303,
+          "Costume collar trim": 67,
           "Costume lacing": 72,
           "Costume piping": 56,
           "Costume side panels": 83,
@@ -2505,6 +2701,18 @@
               0.11926999688148499,
               1.2701599597930908,
               0.09443999826908112
+            ]
+          ],
+          "Costume collar trim": [
+            [
+              0.1007699966430664,
+              1.2850199937820435,
+              0.02449999935925007
+            ],
+            [
+              0.11456000059843063,
+              1.3004499673843384,
+              0.03353000059723854
             ]
           ],
           "Costume lacing": [
@@ -2556,7 +2764,7 @@
             0.09440000355243683
           ]
         ],
-        "outfitAndBodyCrossings": 504,
+        "outfitAndBodyCrossings": 581,
         "triangles": 73487
       },
       "contact": {
@@ -2580,7 +2788,7 @@
         ],
         "outfitAndBodyCrossings": 0,
         "triangles": 73487,
-        "drawMedianMs": 15.958
+        "drawMedianMs": 12.01
       }
     }
   ],
@@ -2592,7 +2800,7 @@
   ],
   "passed": true,
   "guiHeartbeat": {
-    "ticks": 351,
-    "maxGapMs": 535.729
+    "ticks": 283,
+    "maxGapMs": 724.235
   }
 }

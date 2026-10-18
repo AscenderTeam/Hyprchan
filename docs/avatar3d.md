@@ -35,7 +35,7 @@ package install or upgrade was needed on the tested Asahi machine.
 ## Cyan and yellow costume
 
 The second costume keeps the turquoise hair, teal eyes, sparkle and Hyprland
-pins. Its front portrait takes the tall collar, striped bow and detached lace
+pins. Its front portrait takes the sailor collar, striped bow and detached lace
 sleeves from the supplied sailor reference, with the neck charm, piped edges
 and button details from the second reference. White fabric remains the main
 color; narrow black side inserts carry cyan/yellow lacing. Fine stitching,
@@ -55,6 +55,11 @@ clavicle. Cutting that bridge at a flat height previously produced exposed gaps.
 The neck ribbon sits below the jaw and is fitted to the actual skin surface
 with 3 mm of clearance. Its interpolated skin influences let it deform with
 the neck, head and shoulders instead of cutting into them as a rigid oval.
+The white collar has its own larger opening around the back of the neck. Its
+outer fold sits lower and follows the measured shoulder surface with a shallow
+roll. Surface-transferred neck/shoulder weights keep the rear fold clear when
+her arms lower, while the front lapels stay attached to the bodice. The camisole
+hem sits beneath those lapels.
 
 Cloth has a restrained rose-lilac shadow ramp, softer cast shadows and a small
 warm transition tint. Satin ribbons and enamel use distinct highlights. The
@@ -74,7 +79,7 @@ The [GPU collision report](../benchmarks/codex-rp/results/avatar-costume-2026101
 checks 19 synthetic poses, including turns, raised hands and jumping. All had
 zero measured hair intersections with clothing, neck or hands. Original scalp
 attachments are reported separately. The main-loop heartbeat stayed below
-536 ms; per-pose median render checks ranged from 9.3 to 24.4 ms at 960×1200.
+725 ms; per-pose median render checks ranged from 11.0 to 22.7 ms at 960×1200.
 These checks do not establish that every arbitrary executable pose is free of
 clipping, or that both live windows sustain the same frame rate.
 
@@ -85,7 +90,9 @@ renderers through all three appearances, verifies persistence and exercises
 shared motion. Geometry regressions cover native index buffers, bone weights,
 independent sleeves, the open shoulder seam and chest/neckline proportions.
 A separate triangle-intersection regression checks the neck ribbon, edging and
-charm against the skin in seven rest, turn, nod and raised-arm poses.
+charm against the skin in seven rest, turn, nod and raised-arm poses. A separate
+eight-pose regression covers the white collar, its piping and stitching; checking
+only the neck ribbon had missed the white fabric cutting into the neck.
 
 ```sh
 python scripts/preview_avatar3d.py --outfit cyan_yellow
