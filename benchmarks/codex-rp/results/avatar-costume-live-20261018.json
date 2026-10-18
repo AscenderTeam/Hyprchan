@@ -1,32 +1,23 @@
 {
   "syntheticAvatarOnly": true,
   "sourceFilesMatch": true,
-  "sourceFilesChecked": 14,
-  "voiceActive": false,
-  "ttsPlaying": false,
+  "sourceFilesChecked": 15,
+  "voiceActive": true,
+  "ttsPlaying": true,
+  "normalSystemOutput": true,
   "appearance": {
     "mode": "3d",
     "outfit": "cyan_yellow",
     "error": null,
-    "emotes": 28,
-    "script": null,
-    "lastEvent": null,
-    "builtin": null,
-    "root": [
-      0.0,
-      0.0,
-      0.0
-    ],
-    "hands": {},
     "renderers": [
       {
-        "frames": 314,
-        "drawMs": 11.79,
+        "frames": 238,
+        "drawMs": 9.14,
         "error": null
       },
       {
-        "frames": 316,
-        "drawMs": 10.43,
+        "frames": 234,
+        "drawMs": 9.79,
         "error": null
       }
     ]
@@ -36,6 +27,6 @@
     "outfit": "cyan_yellow"
   },
   "savedVoice": {
-    "enabled": false
+    "enabled": true
   }
 }
