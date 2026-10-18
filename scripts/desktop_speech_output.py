@@ -31,10 +31,10 @@ def save_voice_enabled(enabled):
 
 
 def playback_target(requested=None):
-    """Resolve just before playback, and lock to this exact PipeWire node.
+    """Resolve the current default or an explicit output just before playback.
 
-    A missing explicit target is an error, never an invitation to use speakers.
-    The serial prevents a removed device's replacement from inheriting a stream.
+    Speakers are a normal default output. Only an explicit device selection
+    must fail when unavailable instead of silently choosing a different output.
     """
     if not requested:
         requested = subprocess.check_output(["pactl", "get-default-sink"], text=True, timeout=3).strip()
@@ -47,10 +47,15 @@ def playback_target(requested=None):
     raise RuntimeError("Selected voice output is unavailable. Speech stays silent.")
 
 
-def playback_properties():
-    return {"application.name": "Hyprchan voice", "node.name": "hyprchan-voice",
-            "media.name": "Hyprchan speech", "node.dont-reconnect": True,
-            "node.dont-fallback": True, "node.dont-move": True}
+def playback_properties(*, locked=False):
+    properties = {"application.name": "Hyprchan voice", "node.name": "hyprchan-voice",
+                  "media.name": "Hyprchan speech"}
+    # Default mode follows the desktop's routing policy, including speakers and
+    # changes through its sound controls. A requested device stays explicit.
+    if locked:
+        properties.update({"node.dont-reconnect": True, "node.dont-fallback": True,
+                           "node.dont-move": True})
+    return properties
 
 
 def spoken_text(text):

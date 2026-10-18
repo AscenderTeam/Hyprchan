@@ -183,7 +183,7 @@ class SpeechOutput:
                             child = playing = None
                             continue
                         sink, serial, label = playback_target(self.target)
-                        props = playback_properties()
+                        props = playback_properties(locked=bool(self.target))
                         child = subprocess.Popen(["pw-play", "--raw", "--format", "s16", "--rate", str(chunk.sample_rate),
                             "--channels", "1", "--latency", "20ms", "--target", serial,
                             "--volume", str(self.volume), "-P", json.dumps(props), "-"],
@@ -211,7 +211,7 @@ class SpeechOutput:
                         job.first_write_ms = (time.monotonic() - job.started) * 1000
                         emit("playing", id=job.identity, firstWriteMs=round(job.first_write_ms, 1),
                              firstPcmMs=round(job.first_pcm_ms, 1), language=job.language,
-                             sink=sink, sinkLabel=label)
+                             sink=sink, sinkLabel=label if self.target else "system output")
             except Exception as exc:
                 self.fail(job, str(exc))
                 if child:

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Exercise real PipeWire disconnect/fallback behavior with zero-valued PCM only."""
+"""Check normal and explicit PipeWire routing with zero-valued PCM only."""
 import argparse
 import json
 import os
@@ -15,12 +15,16 @@ def graph():
     return json.loads(subprocess.check_output(["pw-dump"], text=True, timeout=3))
 
 
-def destinations(pid):
-    objects = graph()
+def stream_nodes(pid, objects):
     clients = {node["id"] for node in objects if str(node.get("info", {}).get("props", {}).get(
         "application.process.id")) == str(pid) and node["type"] == "PipeWire:Interface:Client"}
-    sources = {node["id"] for node in objects if node.get("info", {}).get("props", {}).get(
+    return {node["id"] for node in objects if node.get("info", {}).get("props", {}).get(
         "client.id") in clients and node["type"] == "PipeWire:Interface:Node"}
+
+
+def destinations(pid):
+    objects = graph()
+    sources = stream_nodes(pid, objects)
     sinks = {node["id"] for node in objects if node.get("info", {}).get("props", {}).get(
         "media.class") == "Audio/Sink"}
     return {node["info"]["input-node-id"] for node in objects
@@ -28,10 +32,37 @@ def destinations(pid):
             and node["info"].get("input-node-id") in sinks}
 
 
-def start_silent_player(target):
+def output_reachable(pid, target):
+    """Include paired processing nodes, e.g. the user's EasyEffects sink."""
+    objects = graph()
+    reached = stream_nodes(pid, objects)
+    groups = {}
+    edges = []
+    for node in objects:
+        info = node.get("info", {})
+        props = info.get("props", {})
+        if node["type"] == "PipeWire:Interface:Node" and props.get("node.link-group"):
+            groups.setdefault(props["node.link-group"], set()).add(node["id"])
+        elif node["type"] == "PipeWire:Interface:Link":
+            edges.append((info["output-node-id"], info["input-node-id"]))
+    while True:
+        following = reached | {b for a, b in edges if a in reached}
+        for group in groups.values():
+            if group & reached:
+                following |= group
+        if following == reached:
+            return target in reached
+        reached = following
+
+
+def start_silent_player(target, *, locked=True):
+    properties = playback_properties(locked=locked)
+    # Keep test stream routing/volume history separate from the real companion.
+    properties.update({"application.name": "Hyprchan routing check",
+                       "node.name": f"hyprchan-routing-check-{os.getpid()}"})
     process = subprocess.Popen(["pw-play", "--raw", "--format", "s16", "--rate", "48000",
         "--channels", "1", "--target", target, "--volume", "0",
-        "-P", json.dumps(playback_properties()), "-"],
+        "-P", json.dumps(properties), "-"],
         stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     def zeros():
         try:
@@ -74,6 +105,19 @@ def main():
         _, serial, _ = playback_target(name)
         sink_id = next(node["id"] for node in graph() if str(node.get("info", {}).get("props", {}).get(
             "object.serial")) == serial and node["type"] == "PipeWire:Interface:Node")
+        _, default_serial, _ = playback_target()
+        default_id = next(node["id"] for node in graph() if str(node.get("info", {}).get("props", {}).get(
+            "object.serial")) == default_serial and node["type"] == "PipeWire:Interface:Node")
+        player, thread = start_silent_player(default_serial, locked=False)
+        deadline = time.monotonic()+3
+        while time.monotonic() < deadline and not output_reachable(player.pid, default_id):
+            time.sleep(.05)
+        assert output_reachable(player.pid, default_id), "Normal mode missed the current system output"
+        rows.append({"case": "system_output", "currentDefaultReachable": True,
+                     "processingFiltersAllowed": True,
+                     "sessionManagerReroutedStream": destinations(player.pid) != {default_id}})
+        stop_player(player, thread)
+        player = None
         player, thread = start_silent_player(serial)
         deadline = time.monotonic()+3
         while time.monotonic() < deadline and not destinations(player.pid):
@@ -105,7 +149,8 @@ def main():
         current = subprocess.check_output(["pactl", "get-default-sink"], text=True).strip()
         assert current == default, "System default changed during test"
         report = {"passed": True, "allPcmSamplesZero": True, "streamVolume": 0,
-                  "physicalPlaybackUsed": False, "systemDefaultUnchanged": True, "rows": rows}
+                  "audiblePlaybackUsed": False, "physicalOutputLinkedWithSilence": True,
+                  "systemDefaultUnchanged": True, "rows": rows}
         args.output.write_text(json.dumps(report, indent=2)+"\n")
         print(json.dumps(report))
     finally:

@@ -131,6 +131,18 @@ The separate worker keeps the audition-selected female voices warm: **Kokoro Bel
 
 **Voice on/off** controls spoken replies independently of the microphone and persists across restarts in `~/.config/hyprchan/voice.json`. **Stop speaking**, typing, or detected microphone speech cancels the current utterance and drops pending audio. Turning voice back on does not replay old replies. Headphones are recommended for reliable interruption: the preview does not supply acoustic echo cancellation, so loudspeaker output can reach the microphone. Her own PipeWire speech stream is excluded from audio-awareness events and listening targets.
 
+Speech uses the current system output, including speakers. It resolves that
+output immediately before playback and allows the normal WirePlumber/EasyEffects
+routing policy to move the stream; it does not retain the startup device or
+force headphones. `HYPRCHAN_TTS_SINK` is an optional explicit device override.
+Only that mode locks the selected node and stays silent if it disappears.
+Remove the override from the environment or `preview-launch.json` and reopen
+Hyprchan to return to system routing. This follows WirePlumber's
+[default-target and stream-moving policy](https://pipewire.pages.freedesktop.org/wireplumber/daemon/configuration/settings.html#linking-follow-default-target).
+The [silent routing check](results/voice-system-output-20261018.json) verified
+the current output through EasyEffects, plus explicit-target disconnect and
+missing-device behavior. It sent only zero-valued samples at zero stream volume.
+
 The expressive backend uses an isolated user environment. The following setup uses the CPU-only PyTorch wheel and downloads models from their upstream locations; it does not change system packages:
 
 ```sh
@@ -197,7 +209,7 @@ python scripts/verify_listen_in.py /tmp/jfk.flac /tmp/hyprchan-listening-new.jso
 python scripts/verify_desktop_audio.py /tmp/jfk.flac /tmp/hyprchan-audio-model-new.json
 ```
 
-The audio verifiers use a temporary silent sink and clean it up; they never record the microphone. The memory verifier uses fictional facts in a temporary database. Implementation references: [Codex dynamic tools](https://learn.chatgpt.com/docs/app-server), [Node SQLite](https://nodejs.org/download/release/v26.5.0/docs/api/sqlite.html), [PipeWire monitor](https://docs.pipewire.org/page_man_pw-dump_1.html), [PipeWire stream capture](https://docs.pipewire.org/page_man_pw-cat_1.html), and [PipeWire stream properties](https://docs.pipewire.org/page_man_pipewire-props_7.html).
+The synthesis verifiers use a temporary silent sink and clean it up. The routing verifier additionally links zero-valued PCM at zero volume to the current system output; none of these verifiers records the microphone. The memory verifier uses fictional facts in a temporary database. Implementation references: [Codex dynamic tools](https://learn.chatgpt.com/docs/app-server), [Node SQLite](https://nodejs.org/download/release/v26.5.0/docs/api/sqlite.html), [PipeWire monitor](https://docs.pipewire.org/page_man_pw-dump_1.html), [PipeWire stream capture](https://docs.pipewire.org/page_man_pw-cat_1.html), and [PipeWire stream properties](https://docs.pipewire.org/page_man_pipewire-props_7.html).
 
 `verify_listen_in.py` deliberately supplies the obsolete Russian hint with the English public fixture; all nonempty chunks must still detect English. `test_desktop_transcription.py` covers repetitive output, recovery, rejection, silence, and cancellation before a retry. To measure the playback recognition policy on synthetic English/Russian greetings and short public speech chunks, run this with the speech environment and your fixture paths:
 

@@ -72,10 +72,15 @@ class VoiceRoutingTests(unittest.TestCase):
                 playback_target("headphones")
             self.assertEqual(run.call_count, 1)
             self.assertNotIn("get-default-sink", run.call_args.args[0])
-        properties = playback_properties()
+        properties = playback_properties(locked=True)
         self.assertTrue(properties["node.dont-fallback"])
         self.assertTrue(properties["node.dont-reconnect"])
         self.assertTrue(properties["node.dont-move"])
+
+    def test_system_output_allows_normal_desktop_routing(self):
+        properties = playback_properties()
+        for key in ("node.dont-fallback", "node.dont-reconnect", "node.dont-move"):
+            self.assertFalse(properties.get(key, False))
 
 
 if __name__ == "__main__":
