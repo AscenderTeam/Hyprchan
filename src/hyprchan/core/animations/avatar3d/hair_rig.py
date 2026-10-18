@@ -2,25 +2,34 @@
 import numpy as np
 
 
-def solve_hair(model, local, world, update):
-    from .model import from_to
-    reference=[matrix[:3,3].copy() for matrix in world]
-    # Garment volume in bind coordinates; the chest and hood follow their own
-    # rig pivots. These include the tailored bust rather than the base tee.
-    shapes=[('chest',(0,1.10,.005),(.14,.20,.115)),
+def contact_shapes(model):
+    if getattr(model, 'costume', 'hoodie') == 'cyan_yellow':
+        return [('chest',(0,1.10,-.01),(.125,.19,.103)),
+                ('chest',(.048,1.18,.028),(.093,.092,.130)),
+                ('chest',(-.048,1.18,.028),(.093,.092,.130)),
+                ('upperChest',(0,1.276,.004),(.138,.052,.110)),
+                ('neck',(0,1.323,-.024),(.065,.053,.061)),
+                ('upperChest',(0,1.226,.098),(.067,.047,.090))]
+    return [('chest',(0,1.10,.005),(.14,.20,.115)),
             ('chest',(.052,1.177,.073),(.087,.085,.133)),
             ('chest',(-.052,1.177,.073),(.087,.085,.133)),
             ('upperChest',(0,1.31,-.030),(.123,.057,.143))]
-    centers=[]; rotations=[]; radii=[]
-    for bone,center,radius in shapes:
+
+
+def contact_geometry(model, world):
+    """Posed 3D garment volumes shared by joint and ribbon contact solvers."""
+    transforms=[];radii=[]
+    for bone,center,radius in contact_shapes(model):
         index=model.bones[bone]
-        transform=world[index]@model.inverse_bind_world[index]
-        centers.append((transform@[*center,1])[:3]);rotations.append(transform[:3,:3]);radii.append(radius)
-    centers=np.asarray(centers);rotations=np.asarray(rotations);radii=np.asarray(radii)
+        transform=(world[index]@model.inverse_bind_world[index]).copy()
+        transform[:3,3]=(transform@[*center,1])[:3]
+        transforms.append(transform);radii.append(radius)
     capsules=[]
+    atelier = getattr(model, 'costume', 'hoodie') == 'cyan_yellow'
     for side in ('left','right'):
         points=[world[model.bones[side+name]][:3,3] for name in ('UpperArm','LowerArm','Hand')]
-        capsules.extend([(points[0],points[1],.065),(points[1],points[2],.05)])
+        capsules.extend([(points[0],points[1],.071 if atelier else .065),
+                         (points[1],points[2],.063 if atelier else .05)])
         palm=world[model.bones[side+'MiddleProximal']][:3,3]
         distal=model.bones[side+'MiddleDistal']
         children=model.nodes[distal].get('children',[])
@@ -29,6 +38,14 @@ def solve_hair(model, local, world, update):
         capsules.extend([(points[2],palm,.065),(palm,tip,.060)])
         thumb=world[model.bones[side+'ThumbDistal']][:3,3]
         capsules.append((points[2],thumb,.040))
+    return np.asarray(transforms,np.float32),np.asarray(radii,np.float32),capsules
+
+
+def solve_hair(model, local, world, update):
+    from .model import from_to
+    reference=[matrix[:3,3].copy() for matrix in world]
+    transforms,radii,capsules=contact_geometry(model,world)
+    centers=transforms[:,:3,3];rotations=transforms[:,:3,:3]
     starts=np.array([a for a,_,_ in capsules]);ends=np.array([b for _,b,_ in capsules])
     segments=ends-starts;lengths=np.einsum('ij,ij->i',segments,segments)
     arm_radii=np.array([r for _,_,r in capsules])

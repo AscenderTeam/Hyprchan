@@ -15,11 +15,13 @@ def portrait_material(material):
     name = material['name']
     printed = name in {'Sunshine emblem', 'Hyprchan W'}
     source = material.get('extensions', {}).get('VRMC_materials_mtoon', {})
-    kind = (7 if name=='Hyprland pin cord' else
+    kind = (8 if name in {'Costume metal', 'Costume enamel', 'Costume neck charm'} else
+            7 if name=='Hyprland pin cord' else
             1 if 'HAIR' in name else 2 if 'EyeIris' in name else
-            3 if 'SKIN' in name else 4 if name.startswith('Hoodie') or printed else
+            3 if 'SKIN' in name else 4 if name.startswith(('Hoodie', 'Costume')) or printed else
             5 if 'FaceBrow' in name else 6 if 'FaceEyeline' in name else 0)
     result = dict(kind=kind, shift=source.get('shadingShiftFactor', 0),
+                  rose=0., shadow_strength=1., satin=0.,
                   toony=source.get('shadingToonyFactor', .9),
                   shade=source.get('shadeColorFactor', [1, 1, 1]),
                   rim=source.get('parametricRimColorFactor', [0, 0, 0]),
@@ -38,12 +40,21 @@ def portrait_material(material):
             # Ink receives the fabric's lighting and cast shadows. It has no
             # separate silhouette: a hull would expose stroke triangulation.
             result['width'] = 0
+        if name.startswith('Costume'):
+            result.update(shift=.025, toony=.68, shade=linear([.76,.755,.84]),
+                          rim=linear([.08,.065,.10]), rose=.065,
+                          shadow_strength=.50, width=0)
+            if name in {'Costume bow','Costume neck ribbon'}:
+                result.update(satin=.40,toony=.25)
     elif name.startswith('Sunshine'):
         result.update(shift=0, shade=linear([.80, .57, .28]),
                       outline=linear([.35, .25, .14]), width=.00055)
     elif kind == 7:
         result.update(shift=-.08,toony=.3,shade=linear([.28,.42,.55]),
                       rim=linear([.10,.24,.30]),rim_power=4,width=0)
+    elif kind == 8:
+        result.update(shift=-.12,toony=.25,shade=linear([.55,.48,.32]),
+                      rim=linear([.18,.15,.10]),rim_power=3,width=0)
     else:
         # Eye whites, lashes and painted highlights should stay legible in shade.
         result.update(shift=.5, shade=linear([.95, .93, .97]))

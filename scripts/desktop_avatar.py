@@ -1,7 +1,6 @@
 """Optional 3D presentation and emote controls for the existing GTK companion."""
 from __future__ import annotations
 
-import json
 import os
 from pathlib import Path
 import subprocess
@@ -10,6 +9,7 @@ import time
 from gi.repository import Gtk, GLib
 from hyprchan.core.animations.avatar3d.motion import AvatarMotion, BUILTINS
 from hyprchan.core.animations.avatar3d.emotes import EmoteLibrary, EmoteRunner, animation_seconds
+from hyprchan.core.animations.avatar3d.appearance import OUTFITS, read_appearance, save_appearance
 
 
 class DesktopAvatar:
@@ -19,7 +19,10 @@ class DesktopAvatar:
         self.library = EmoteLibrary()
         self.runner = EmoteRunner()
         self.widgets = []
+        self.costume_widgets = {}
         self.mode = 'pixel'
+        self.outfit = 'hoodie'
+        self.selecting = False
         self.error = None
         self.script_request = None
         self.next_refresh = 0
@@ -40,10 +43,10 @@ class DesktopAvatar:
         host.overlay.stack.remove(host.overlay.image)
         self.overlay_stack.add_named(host.overlay.image, 'pixel')
         host.overlay.stack.append(self.overlay_stack)
-        self.selector = Gtk.DropDown.new_from_strings(['Pixel art', '3D · turquoise hoodie'])
-        self.selector.set_tooltip_text('Choose her appearance · both renderers remain available')
+        self.selector = Gtk.DropDown.new_from_strings(['Pixel art', *OUTFITS.values()])
+        self.selector.set_tooltip_text('Choose pixel art or either 3D costume')
         portrait.append(self.selector)
-        self.selector.connect('notify::selected', lambda *_: self.set_mode('3d' if self.selector.get_selected() else 'pixel'))
+        self.selector.connect('notify::selected', self.select_appearance)
         self.emote_picker = Gtk.DropDown()
         popover_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
         for side in ('top','bottom','start','end'): getattr(popover_box, 'set_margin_'+side)(10)
@@ -73,9 +76,8 @@ class DesktopAvatar:
         portrait.append(self.label)
         self.items = []
         self.refresh()
-        try: saved = json.loads(self.settings.read_text()).get('mode', 'pixel')
-        except (OSError, ValueError): saved = 'pixel'
-        self.selector.set_selected(1 if saved == '3d' else 0)
+        saved, outfit = read_appearance(self.settings)
+        self.set_mode(saved, outfit)
         GLib.timeout_add(33, self.tick)
 
     def failed(self, message):
@@ -87,29 +89,43 @@ class DesktopAvatar:
         self.label.set_label('3D unavailable: ' + str(self.error)[:180])
         return False
 
-    def set_mode(self, mode):
+    def select_appearance(self, *_):
+        if self.selecting: return
+        selected = self.selector.get_selected()
+        if selected == 0:
+            self.set_mode('pixel')
+        elif selected <= len(OUTFITS):
+            self.set_mode('3d', list(OUTFITS)[selected-1])
+
+    def set_mode(self, mode, outfit=None):
         if mode not in {'pixel', '3d'}: raise ValueError('Choose pixel or 3d')
-        if mode == '3d' and not self.widgets:
+        outfit = self.outfit if outfit is None else outfit
+        if outfit not in OUTFITS: raise ValueError('Unknown avatar costume')
+        if mode == '3d' and outfit not in self.costume_widgets:
             try:
                 from hyprchan.core.animations.avatar3d.widget import Avatar3D
+                pair = []
                 for stack in (self.portrait_stack, self.overlay_stack):
-                    widget = Avatar3D(self.motion, self.failed)
+                    widget = Avatar3D(self.motion, self.failed, outfit=outfit)
                     widget.set_size_request(250, 300)
-                    stack.add_named(widget, '3d')
-                    self.widgets.append(widget)
+                    stack.add_named(widget, '3d:'+outfit)
+                    pair.append(widget)
+                self.costume_widgets[outfit] = pair
             except Exception as error:
                 self.failed(str(error))
                 return
         self.mode = mode
-        self.portrait_stack.set_visible_child_name(mode)
-        self.overlay_stack.set_visible_child_name(mode)
-        selected = 1 if mode == '3d' else 0
-        if self.selector.get_selected() != selected: self.selector.set_selected(selected)
+        self.outfit = outfit
+        if mode == '3d': self.widgets = self.costume_widgets[outfit]
+        child = '3d:'+outfit if mode == '3d' else 'pixel'
+        self.portrait_stack.set_visible_child_name(child)
+        self.overlay_stack.set_visible_child_name(child)
+        selected = 1+list(OUTFITS).index(outfit) if mode == '3d' else 0
+        self.selecting = True
+        try: self.selector.set_selected(selected)
+        finally: self.selecting = False
         try:
-            self.settings.parent.mkdir(parents=True, exist_ok=True)
-            temporary = self.settings.with_suffix('.tmp')
-            temporary.write_text(json.dumps({'mode': mode})+'\n')
-            temporary.replace(self.settings)
+            save_appearance(self.settings, mode, outfit)
         except OSError as error:
             self.label.set_label('Could not save appearance: '+str(error))
         self.sync()
@@ -127,7 +143,7 @@ class DesktopAvatar:
     def sync(self):
         if self.host.model_ready:
             self.host.send('model', {'type': 'emote_state', 'mode': self.mode, 'items': self.items,
-                                     'lastEvent': self.last_event})
+                                     'outfit': self.outfit, 'lastEvent': self.last_event})
 
     def play_selected(self, *_):
         self.set_mode('3d')
@@ -202,7 +218,7 @@ class DesktopAvatar:
         return True
 
     def status(self):
-        return {'mode': self.mode, 'error': self.error, 'emotes': len(self.items),
+        return {'mode': self.mode, 'outfit': self.outfit, 'error': self.error, 'emotes': len(self.items),
                 'script': self.runner.identity, 'lastEvent': self.last_event,
                 'builtin': self.motion.emote, 'root': self.motion.root,
                 'hands': getattr(getattr(self.widgets[0], 'data', None), 'hand_diagnostics', {}) if self.widgets else {},

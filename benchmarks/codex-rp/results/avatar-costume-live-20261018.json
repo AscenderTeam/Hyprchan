@@ -1,0 +1,41 @@
+{
+  "syntheticAvatarOnly": true,
+  "sourceFilesMatch": true,
+  "sourceFilesChecked": 14,
+  "voiceActive": false,
+  "ttsPlaying": false,
+  "appearance": {
+    "mode": "3d",
+    "outfit": "cyan_yellow",
+    "error": null,
+    "emotes": 28,
+    "script": null,
+    "lastEvent": null,
+    "builtin": null,
+    "root": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "hands": {},
+    "renderers": [
+      {
+        "frames": 314,
+        "drawMs": 11.79,
+        "error": null
+      },
+      {
+        "frames": 316,
+        "drawMs": 10.43,
+        "error": null
+      }
+    ]
+  },
+  "savedAppearance": {
+    "mode": "3d",
+    "outfit": "cyan_yellow"
+  },
+  "savedVoice": {
+    "enabled": false
+  }
+}

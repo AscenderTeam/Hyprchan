@@ -20,6 +20,12 @@ uniform int shadowPass;
 uniform sampler2D collisionTexture;
 uniform vec3 collisionMin;
 uniform vec3 collisionMax;
+uniform int smoothContact;
+uniform mat4 contactToWorld[6];
+uniform mat4 contactFromWorld[6];
+uniform vec3 contactRadii[6];
+uniform vec4 capsuleStart[10];
+uniform vec3 capsuleEnd[10];
 out vec3 worldPosition;
 out vec3 worldNormal;
 out vec2 texCoord;
@@ -45,6 +51,32 @@ vec3 drapeHair(vec3 p) {
   p.z=side*surface;
   return p;
 }
+float softMaximum(float a,float b,float width) {
+  float h=max(width-abs(a-b),0.0)/width;
+  return max(a,b)+h*h*width*.25;
+}
+vec3 clearHair(vec3 p) {
+  if(smoothContact==0) return drapeHair(p);
+  // Correct in the actual posed volume's coordinates, not just camera Z.
+  // Smooth contact bands preserve the strand surface at grazing angles.
+  for(int pass=0;pass<3;pass++) {
+    for(int i=0;i<6;i++) {
+      vec3 q=(contactFromWorld[i]*vec4(p,1)).xyz;
+      float radius=max(length(q/(contactRadii[i]+.010)),.001);
+      q*=softMaximum(1.0,1.0/radius,.10);
+      p=(contactToWorld[i]*vec4(q,1)).xyz;
+    }
+    for(int i=0;i<10;i++) {
+      vec3 segment=capsuleEnd[i]-capsuleStart[i].xyz;
+      float t=clamp(dot(p-capsuleStart[i].xyz,segment)/max(dot(segment,segment),.000001),0.0,1.0);
+      vec3 center=capsuleStart[i].xyz+t*segment;
+      vec3 q=p-center;
+      float distance=max(length(q),.00001);
+      p=center+q*(softMaximum(distance,capsuleStart[i].w+.010,.010)/distance);
+    }
+  }
+  return p;
+}
 void main() {
   mat4 skin = weights.x*bones[int(joints.x)] + weights.y*bones[int(joints.y)]
             + weights.z*bones[int(joints.z)] + weights.w*bones[int(joints.w)];
@@ -52,14 +84,14 @@ void main() {
   vec3 n=normalize(mat3(skin)*normal);
   if(kind==1 && position.y<1.40) {
     vec3 original=p.xyz;
-    p.xyz=drapeHair(original);
+    p.xyz=clearHair(original);
     if(shadowPass==0) {
       // Transform the normal with the same curved deformation as the strand.
       // Keeping the old normal would leave a flat painted highlight at contact.
       vec3 t=normalize(cross(n,abs(n.y)<.9?vec3(0,1,0):vec3(1,0,0)));
       vec3 b=cross(n,t);
-      vec3 dt=drapeHair(original+t*.006)-p.xyz;
-      vec3 db=drapeHair(original+b*.006)-p.xyz;
+      vec3 dt=clearHair(original+t*.003)-clearHair(original-t*.003);
+      vec3 db=clearHair(original+b*.003)-clearHair(original-b*.003);
       vec3 bent=cross(dt,db);
       if(length(bent)>.0000001) n=normalize(bent);
     }
@@ -98,6 +130,9 @@ uniform float shadingToony;
 uniform vec3 viewDirection;
 uniform float blush;
 uniform float alphaCutoff;
+uniform float roseTint;
+uniform float shadowStrength;
+uniform float fabricSheen;
 out vec4 color;
 vec3 linear(vec3 c) {
   return mix(c/12.92,pow((c+.055)/1.055,vec3(2.4)),step(vec3(.04045),c));
@@ -160,12 +195,19 @@ void main() {
   }
   // Keep face shadows warm and gentle; let the hood and hair cast distinct
   // blue-lilac shadows onto the white fabric.
-  ramp*=mix(1.0,visibility,kind==3?.32:kind==4?1.0:kind==1?.6:kind==7?.9:0.0);
-  vec3 shaded=mix(albedo*shadeColor,albedo,ramp);
+  ramp*=mix(1.0,visibility,shadowStrength*(kind==3?.32:kind==4?1.0:kind==1?.6:(kind==7||kind==8)?.9:0.0));
+  vec3 shade=shadeColor;
+  // A restrained rose-lilac bounce at the shadow transition. The base fabric
+  // stays white and the cyan/yellow accent hues remain readable.
+  float transition=4.0*ramp*(1.0-ramp);
+  shade=mix(shade,linear(vec3(.93,.68,.79)),roseTint*(.4+.6*transition));
+  vec3 shaded=mix(albedo*shade,albedo,ramp);
   // Equalized ambient fill preserves the illustration's colors on the face.
   shaded*=mix(.96,1.0,clamp(n.y*.5+.5,0.0,1.0));
   float rim=pow(clamp(1.0-dot(n,view),0.0,1.0),max(rimPower,.001));
   shaded+=rimColor*rim;
+  float satin=pow(max(dot(n,normalize(light+view)),0.0),18.0);
+  shaded+=linear(vec3(.30,.30,.34))*satin*fabricSheen;
   if(kind==1) {
     // Broad illustrated hair sheen (view-normal MatCap lobe), not a round
     // plastic specular hotspot. It follows the head when she turns.
@@ -185,6 +227,10 @@ void main() {
     // Broad, soft thread sheen over the actual round cord surface.
     float highlight=pow(max(0.0,dot(n,normalize(light+view))),20.0);
     shaded+=vec3(.64,.88,.92)*highlight*visibility*.18;
+  }
+  if(kind==8) {
+    float highlight=pow(max(0.0,dot(n,normalize(light+view))),48.0);
+    shaded+=mix(vec3(.9,.94,1),albedo,.35)*highlight*visibility*.7;
   }
   color=vec4(srgb(shaded),tex.a);
 }

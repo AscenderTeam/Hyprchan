@@ -13,6 +13,16 @@ test('runnable cookbook is in the initial instructions, not repeated in each tur
   }
 });
 
+test('the per-turn appearance describes the currently visible costume', () => {
+  const requests = new EmoteRequests(() => {});
+  requests.mode = '3d'; requests.outfit = 'cyan_yellow';
+  assert.match(requests.context(), /Current 3D costume: white layered collar/);
+  requests.outfit = 'hoodie';
+  assert.match(requests.context(), /Current 3D costume: white hoodie/);
+  requests.mode = 'pixel'; requests.outfit = 'cyan_yellow';
+  assert.match(requests.context(), /white hoodie/);
+});
+
 test('emote tool waits for GUI persistence acknowledgement', async () => {
   const sent = [];
   const requests = new EmoteRequests(event => sent.push(event));

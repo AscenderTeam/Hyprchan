@@ -199,6 +199,7 @@ try {
     } else if (command.type === 'emote_state') {
       emotes.items = (command.items || []).slice(0, 128);
       emotes.mode = command.mode;
+      emotes.outfit = command.outfit;
       emotes.lastEvent = command.lastEvent;
     } else if (command.type === 'audio_state') {
       playback = (command.playback || []).filter(item => /^\d+$/.test(item.serial) && item.mediaClass === 'Stream/Output/Audio');

@@ -16,29 +16,35 @@ from PIL import Image
 from .model import AvatarModel, euler
 from .motion import AvatarMotion
 from .wardrobe import add_hoodie
+from .costume import add_costume
 
 from .shaders import VERTEX, FRAGMENT
 from .materials import portrait_material
 from .hair_collision import HairCollision
 from .hair_mesh import refine_hair
+from .hair_rig import contact_geometry
 
-_model = None
+_models = {}
 
 
-def model():
-    global _model
-    if _model is None:
-        _model = AvatarModel()
-        add_hoodie(_model)
-        refine_hair(_model)
-    return _model
+def model(outfit='hoodie'):
+    if outfit not in {'hoodie', 'cyan_yellow'}:
+        raise ValueError('Unknown avatar costume')
+    if outfit not in _models:
+        avatar = AvatarModel()
+        (add_hoodie if outfit == 'hoodie' else add_costume)(avatar)
+        avatar.costume = outfit
+        refine_hair(avatar)
+        _models[outfit] = avatar
+    return _models[outfit]
 
 
 class Avatar3D(Gtk.GLArea):
-    def __init__(self, motion=None, on_error=None):
+    def __init__(self, motion=None, on_error=None, outfit='hoodie'):
         super().__init__()
         self.motion = motion or AvatarMotion()
         self.on_error = on_error
+        self.outfit = outfit
         self.set_required_version(3, 3)
         self.set_use_es(False)
         self.set_has_depth_buffer(True)
@@ -81,14 +87,14 @@ class Avatar3D(Gtk.GLArea):
             self.fail(self.get_error())
             return
         try:
-            self.data = model()
+            self.data = model(self.outfit)
             self.program = compileProgram(compileShader(VERTEX, gl.GL_VERTEX_SHADER), compileShader(FRAGMENT, gl.GL_FRAGMENT_SHADER))
             self.uniforms = {name: gl.glGetUniformLocation(self.program, name) for name in
                              ['bones', 'viewProjection', 'colorTexture', 'baseColor', 'kind', 'blush', 'alphaCutoff',
                               'outlineMask', 'outlinePass', 'outlineWidth', 'outlineColor', 'shadeColor',
                               'rimColor', 'rimPower', 'shadingShift', 'shadingToony', 'viewDirection',
                               'collisionPass', 'shadowPass', 'shadowTexture', 'lightProjection',
-                              'collisionTexture', 'collisionMin', 'collisionMax']}
+                              'collisionTexture', 'collisionMin', 'collisionMax', 'roseTint', 'shadowStrength', 'fabricSheen']}
             for index, pixels in enumerate([*self.data.images, np.full((1, 1, 4), 255, dtype=np.uint8)]):
                 if pixels is None:
                     self.textures.append(0)
@@ -133,6 +139,8 @@ class Avatar3D(Gtk.GLArea):
                     # triangles must not poke through the tailored shoulders.
                     visible = (((a[:, 1] > 1.23) & (np.abs(a[:, 0]) < .102)) |
                                (np.abs(a[:, 0]) > .535))
+                    if self.outfit == 'cyan_yellow':
+                        visible |= ((np.abs(a[:, 0]) < .275) & (a[:, 1] > 1.19))
                     primitive = {**primitive, 'indices': triangles[visible[triangles].all(axis=1)].ravel()}
                 a = primitive['attributes']
                 packed = np.ascontiguousarray(np.column_stack([a['POSITION'], a['NORMAL'], a['TEXCOORD_0'], a['JOINTS_0'], a['WEIGHTS_0']]), dtype=np.float32)
@@ -146,6 +154,8 @@ class Avatar3D(Gtk.GLArea):
                     gl.glEnableVertexAttribArray(location)
                     gl.glVertexAttribPointer(location, size, gl.GL_FLOAT, False, 64, ctypes.c_void_p(offset))
                 primitive = {**primitive, 'portrait': portrait_material(primitive['material'])}
+                if self.outfit=='cyan_yellow' and primitive['material']['name']=='Body_00_SKIN':
+                    primitive['portrait'].update(width=0,shadow_strength=.22,toony=.40,shift=.35)
                 self.meshes.append((primitive, vao, vbo, ebo, packed))
             gl.glBindVertexArray(0)
         except Exception as error:
@@ -171,7 +181,8 @@ class Avatar3D(Gtk.GLArea):
         # Explicit avatar-only capture must also work on an occluded workspace,
         # where the compositor can stop requesting ordinary frames.
         def capture_frame():
-            if self.capture_path and self.program and self.get_realized() and not self.failed:
+            if (self.capture_path and self.program and self.get_realized() and not self.failed
+                    and self.get_width()>0 and self.get_height()>0):
                 self.make_current()
                 self.attach_buffers()
                 self.render()
@@ -179,7 +190,7 @@ class Avatar3D(Gtk.GLArea):
         GLib.idle_add(capture_frame)
 
     def render(self, *_):
-        if not self.program or self.failed: return True
+        if not self.program or self.failed or self.get_width()<1 or self.get_height()<1: return True
         started = time.perf_counter()
         framebuffer = gl.glGetIntegerv(gl.GL_DRAW_FRAMEBUFFER_BINDING)
         try:
@@ -212,6 +223,8 @@ class Avatar3D(Gtk.GLArea):
             gl.glUniformMatrix4fv(self.uniforms['lightProjection'], 1, True, lighting)
             gl.glUniform1i(self.uniforms['shadowTexture'], 2)
             world = self.data.posed(angles, self.motion.hair, self.motion.hand_targets, root=root)
+            self.contact_geometry=contact_geometry(self.data,world) if self.outfit=='cyan_yellow' else None
+            self.upload_hair_contact(self.program)
             skins = [np.ascontiguousarray([world[j] @ inv for j, inv in zip(joints, inverse)], dtype=np.float32)
                      for joints, inverse in self.data.skins]
             gl.glUniform1i(self.uniforms['colorTexture'], 0)
@@ -237,7 +250,10 @@ class Avatar3D(Gtk.GLArea):
                     gl.glBindBuffer(gl.GL_ARRAY_BUFFER, vbo)
                     gl.glBufferSubData(gl.GL_ARRAY_BUFFER, 0, packed.nbytes, packed)
                 primitive['palette'] = skins[primitive['skin']] if primitive['skin'] is not None else np.array([world[primitive['node']]])
-            self.hair_collision.render(self)
+            if self.contact_geometry is None:
+                self.hair_collision.render(self)
+            else:
+                gl.glUniform1i(self.uniforms['collisionPass'],0)
             for shadow in (True, False):
                 gl.glUniform1i(self.uniforms['shadowPass'], int(shadow))
                 gl.glUniformMatrix4fv(self.uniforms['viewProjection'], 1, True, lighting if shadow else projection)
@@ -277,7 +293,7 @@ class Avatar3D(Gtk.GLArea):
                         continue
                     for uniform, key in [('shadeColor','shade'), ('outlineColor','outline'), ('rimColor','rim')]:
                         gl.glUniform3f(self.uniforms[uniform], *toon[key])
-                    for uniform, key in [('shadingShift','shift'), ('shadingToony','toony'), ('rimPower','rim_power'), ('outlineWidth','width')]:
+                    for uniform, key in [('shadingShift','shift'), ('shadingToony','toony'), ('rimPower','rim_power'), ('outlineWidth','width'), ('roseTint','rose'), ('shadowStrength','shadow_strength'), ('fabricSheen','satin')]:
                         gl.glUniform1f(self.uniforms[uniform], toon[key])
                     gl.glBindVertexArray(vao)
                     gl.glUniform1i(self.uniforms['outlinePass'], 0)
@@ -302,3 +318,14 @@ class Avatar3D(Gtk.GLArea):
             gl.glBindFramebuffer(gl.GL_FRAMEBUFFER, framebuffer)
             self.fail(error)
         return True
+
+    def upload_hair_contact(self, program):
+        uniform=lambda name:gl.glGetUniformLocation(program,name)
+        gl.glUniform1i(uniform('smoothContact'),int(self.contact_geometry is not None))
+        if self.contact_geometry is None:return
+        transforms,radii,capsules=self.contact_geometry
+        gl.glUniformMatrix4fv(uniform('contactToWorld'),len(transforms),True,transforms)
+        gl.glUniformMatrix4fv(uniform('contactFromWorld'),len(transforms),True,np.linalg.inv(transforms))
+        gl.glUniform3fv(uniform('contactRadii'),len(radii),radii)
+        gl.glUniform4fv(uniform('capsuleStart'),len(capsules),np.array([[*a,r] for a,b,r in capsules],np.float32))
+        gl.glUniform3fv(uniform('capsuleEnd'),len(capsules),np.array([b for a,b,r in capsules],np.float32))

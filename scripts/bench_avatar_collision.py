@@ -57,6 +57,7 @@ def gpu_hair(avatar, program):
     gl.glUniform1i(uniform('collisionTexture'), 3)
     gl.glUniform3f(uniform('collisionMin'), *MINIMUM)
     gl.glUniform3f(uniform('collisionMax'), *MAXIMUM)
+    avatar.upload_hair_contact(program)
     result = []
     buffer = gl.glGenBuffers(1)
     try:
@@ -133,13 +134,16 @@ def surface_crossings(hair, surface, labels, cancelled=None):
                     & (t>.00001) & (t<.99999))
     return {'pairs': len(pairs), 'crossings': int(hit.sum()),
             'materials': {str(name):int((labels[pairs[hit,1]]==name).sum()) for name in np.unique(labels[pairs[hit,1]])},
+            'materialBounds': {str(name):[first[hit][labels[pairs[hit,1]]==name].min(axis=(0,1)).round(5).tolist(),
+                                          first[hit][labels[pairs[hit,1]]==name].max(axis=(0,1)).round(5).tolist()]
+                               for name in np.unique(labels[pairs[hit,1]]) if name!='Face_00_SKIN'},
             'bounds': [first[hit].min(axis=(0,1)).round(4).tolist(), first[hit].max(axis=(0,1)).round(4).tolist()] if hit.any() else None}
 
 
 def outfit_triangles(avatar):
     result = [];labels=[]
     for primitive, *_ in avatar.meshes:
-        if primitive['portrait']['kind'] not in {3,4} or primitive['material']['name'] in {'Sunshine emblem','Hyprchan W'}: continue
+        if primitive['portrait']['kind'] not in {3,4,8} or primitive['material']['name'] in {'Sunshine emblem','Hyprchan W'}: continue
         a = primitive['attributes']
         positions = np.column_stack([a['POSITION'], np.ones(len(a['POSITION']))])
         matrix = primitive['palette'][a['JOINTS_0'].astype(int)]
@@ -164,16 +168,17 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--output', required=True)
     parser.add_argument('--poses', nargs='+', help='Only these named synthetic poses')
+    parser.add_argument('--outfit', choices=['hoodie', 'cyan_yellow'], default='hoodie')
     args = parser.parse_args()
     output = Path(args.output); output.parent.mkdir(parents=True, exist_ok=True)
-    report = {'syntheticOnly': True, 'poses': [], 'reference': 'Same refined mesh with joint contact and cloth clearance disabled',
+    report = {'syntheticOnly': True, 'outfit': args.outfit, 'poses': [], 'reference': 'Same refined mesh with joint contact and cloth clearance disabled',
               'method': 'Actual GPU vertices; triangle intersection with posed surfaces. Authored scalp/Face_00_SKIN overlaps are reported but excluded from the clothing/neck/hands assertion.'}
     app = Gtk.Application(application_id='org.hyprchan.CollisionReview')
 
     def activate(app):
         window = Gtk.ApplicationWindow(application=app, title='Hyprchan · collision review')
         window.set_default_size(480, 600)
-        avatar = Avatar3D(motion=Pose())
+        avatar = Avatar3D(motion=Pose(), outfit=args.outfit)
         window.set_child(avatar); window.present()
         worker = ThreadPoolExecutor(max_workers=1, thread_name_prefix='hair-check')
         cancelled = threading.Event()
@@ -234,7 +239,7 @@ def main():
             try:
                 if avatar.failed: raise RuntimeError(avatar.failed)
                 avatar.make_current(); avatar.attach_buffers()
-                programs.extend([feedback_program(VERTEX.replace('p.xyz=drapeHair(original);', 'p.xyz=original;')),
+                programs.extend([feedback_program(VERTEX.replace('p.xyz=clearHair(original);', 'p.xyz=original;')),
                                  feedback_program(VERTEX)])
                 pulse()
                 GLib.timeout_add(100, pulse)

@@ -1,7 +1,8 @@
 # 3D Hyprchan and executable emotes
 
 Open the desktop companion normally with `hyprchan`. Under her portrait choose
-**3D · turquoise hoodie**, or **Pixel art** to return to the existing sprites.
+**3D · turquoise hoodie**, **3D · cyan & yellow atelier**, or **Pixel art** to
+return to the existing sprites.
 The choice persists across launches and applies to both the chat portrait and
 the floating desktop overlay. The microphone mute control stays visible;
 camera, memory, reaction and notification controls are in **Awareness…**.
@@ -30,6 +31,67 @@ Native 3D requires GTK 4, desktop OpenGL 3.3, NumPy, Pillow and PyOpenGL. The
 optional Python dependencies are listed in
 [requirements-avatar3d.txt](../scripts/requirements-avatar3d.txt); no system
 package install or upgrade was needed on the tested Asahi machine.
+
+## Cyan and yellow costume
+
+The second costume keeps the turquoise hair, teal eyes, sparkle and Hyprland
+pins. Its front portrait takes the tall collar, striped bow and detached lace
+sleeves from the supplied sailor reference, with the neck charm, piped edges
+and button details from the second reference. White fabric remains the main
+color; narrow black side inserts carry cyan/yellow lacing. Fine stitching,
+linked chain, enamel W brooch and satin ribbon folds are separate shaded meshes.
+The sleeve headers sit close to the shoulders, leaving a narrow opening above
+their scalloped lace instead of the earlier oversized upper-arm cutouts.
+The hoodie is a separate selectable model, and switching through pixel mode
+retains the last costume. The model receives the current outfit in its emote
+context so it can describe the clothes she is actually wearing.
+
+The standing front view is the design target. The bodice uses a continuous
+surface with a shaped neckline and moderate chest projection: cloth bridges
+the centre instead of following two exaggerated bulges. The licensed base has
+missing skin underneath its original shirt; the new shoulder bridge joins its
+actual neck and arm boundaries, preserves bone influences and rounds the
+clavicle. Cutting that bridge at a flat height previously produced exposed gaps.
+The neck ribbon sits below the jaw and is fitted to the actual skin surface
+with 3 mm of clearance. Its interpolated skin influences let it deform with
+the neck, head and shoulders instead of cutting into them as a rigid oval.
+
+Cloth has a restrained rose-lilac shadow ramp, softer cast shadows and a small
+warm transition tint. Satin ribbons and enamel use distinct highlights. The
+reference study used [Ben Ayers' Genshin shader breakdown](https://bjayers.com/blog/9oOD/blender-npr-recreating-the-genshin-impact-shader),
+[NiloCat's shader example](https://github.com/ColinLeung-NiloCat/UnityURPToonLitShaderExample),
+[Reallusion's clothing construction guidelines](https://wiki.reallusion.com/Content_Dev:CC_Clothing_Modeling_Guidelines)
+and [Konstantin Gdalevich's clothing workflow](https://80.lv/articles/003qxl-004adk-character-cloth-production-tips).
+These informed the original geometry and shader changes; no game assets or
+third-party shader source are bundled.
+
+This outfit's hair uses posed 3D ellipsoids and sleeve/hand capsules for both
+joint bending and residual ribbon clearance. A smooth contact band and matching
+normal deformation avoid the shoulder creases caused by the old Z-only depth
+projection. The hoodie retains its existing depth-map contact route.
+
+The [GPU collision report](../benchmarks/codex-rp/results/avatar-costume-20261018.json)
+checks 19 synthetic poses, including turns, raised hands and jumping. All had
+zero measured hair intersections with clothing, neck or hands. Original scalp
+attachments are reported separately. The main-loop heartbeat stayed below
+536 ms; per-pose median render checks ranged from 9.3 to 24.4 ms at 960×1200.
+These checks do not establish that every arbitrary executable pose is free of
+clipping, or that both live windows sustain the same frame rate.
+
+Native captures: [front](avatar3d-costume/front.png),
+[front wave](avatar3d-costume/wave.png), [peek](avatar3d-costume/peek.png),
+[turn](avatar3d-costume/turn.png). The GUI integration check switches both
+renderers through all three appearances, verifies persistence and exercises
+shared motion. Geometry regressions cover native index buffers, bone weights,
+independent sleeves, the open shoulder seam and chest/neckline proportions.
+A separate triangle-intersection regression checks the neck ribbon, edging and
+charm against the skin in seven rest, turn, nod and raised-arm poses.
+
+```sh
+python scripts/preview_avatar3d.py --outfit cyan_yellow
+python scripts/check_avatar_costumes.py
+python scripts/bench_avatar_collision.py --outfit cyan_yellow --output /tmp/hyprchan-costume/result.json
+```
 
 ## Emote tools and scripts
 

@@ -1068,7 +1068,7 @@ def main() -> int:
                 elif kind == "stop_voice":
                     self.stop_voice()
                 elif kind == 'avatar':
-                    self.avatar.set_mode(command['mode'])
+                    self.avatar.set_mode(command['mode'], command.get('outfit'))
                 elif kind == 'emote':
                     self.avatar.play(command['id'], command.get('seconds'))
                 elif kind == 'emote_stop':
