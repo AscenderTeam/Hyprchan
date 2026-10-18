@@ -7,7 +7,7 @@ import subprocess
 import time
 
 from gi.repository import Gtk, GLib
-from hyprchan.core.animations.avatar3d.motion import AvatarMotion, BUILTINS
+from hyprchan.core.animations.avatar3d.motion import AvatarMotion, BUILTINS, roleplay_actions
 from hyprchan.core.animations.avatar3d.emotes import EmoteLibrary, EmoteRunner, animation_seconds
 from hyprchan.core.animations.avatar3d.appearance import OUTFITS, read_appearance, save_appearance
 
@@ -155,6 +155,7 @@ class DesktopAvatar:
             seconds = next((item.get('seconds', 4) for item in self.items if item['id'] == identity), 4)
         seconds = animation_seconds(seconds)
         self.runner.stop()
+        self.runner.poll()  # Consume the old stop event before the new playback.
         self.motion.stop()
         self.last_pose = {}
         if identity in BUILTINS:
@@ -163,12 +164,37 @@ class DesktopAvatar:
         else:
             result = self.runner.play(self.library.path(identity), duration=seconds)
         self.label.set_label('Playing '+next((item['title'] for item in self.items if item['id'] == identity), identity)+f' · {seconds:g}s')
-        return {**result, 'visible': self.mode == '3d'}
+        result = {**result, 'visible': self.mode == '3d'}
+        self.last_event = {'state': 'started', **result}
+        self.sync()
+        return result
 
     def stop(self):
         self.runner.stop()
         self.motion.stop()
         self.label.set_label('Emote stopped')
+
+    def react(self, text, turn, final=False):
+        """Dispatch a written action once, as soon as its closing * arrives."""
+        if turn.get('emote_played') or turn.get('written_emote_played'):
+            return None
+        # The runner may have started without producing its first frame yet.
+        if self.runner.identity or self.motion.script_frame is not None:
+            return None
+        name = self.motion.react(text)
+        if name:
+            turn['written_emote_played'] = name
+            self.last_event = {'state': 'started', 'source': 'written_action', 'id': name,
+                               'builtin': True, 'seconds': self.motion.duration, 'visible': self.mode == '3d'}
+            self.label.set_label('Playing '+BUILTINS[name][0])
+            self.sync()
+        elif final and (actions := roleplay_actions(text)):
+            # Give the model honest feedback instead of silently claiming that
+            # arbitrary prose was animated. Keep diagnostics bounded.
+            self.last_event = {'state': 'unmapped_action', 'source': 'written_action',
+                               'action': actions[0][:180], 'visible': False}
+            self.sync()
+        return name
 
     def request(self, event):
         try:
@@ -198,6 +224,10 @@ class DesktopAvatar:
         # Wayland pauses frame callbacks for occluded windows. Keep animation
         # time and completion independent of drawing, without doing GL work.
         self.motion.sample()
+        if (self.last_event or {}).get('builtin') and self.last_event.get('state') == 'started' and not self.motion.emote:
+            self.last_event = {**self.last_event, 'state': 'finished'}
+            self.label.set_label('Expressions follow her words')
+            self.sync()
         # Keep the most recent fully reached pose, not the fade-out frame.
         if self.runner.identity and self.widgets:
             pose = getattr(getattr(self.widgets[0], 'data', None), 'hand_diagnostics', {})

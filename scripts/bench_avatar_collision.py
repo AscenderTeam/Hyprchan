@@ -32,6 +32,7 @@ from hyprchan.core.animations.avatar3d.widget import Avatar3D
 from hyprchan.core.animations.avatar3d.shaders import VERTEX
 from hyprchan.core.animations.avatar3d.hair_collision import MINIMUM, MAXIMUM
 from hyprchan.core.animations.avatar3d.emote_api import hand_target, jump
+from hyprchan.core.animations.avatar3d.motion import AvatarMotion
 
 
 def feedback_program(source):
@@ -263,6 +264,13 @@ def main():
                 for name,progress in [('jump_crouch',.20),('jump_apex',.40),('jump_land',.60),('jump_rest',1)]:
                     pose = jump(progress)
                     cases.append((name,Pose(pose['bones'],root=pose['root']),0))
+                for name, elapsed in [('heart_hug_raise', .15), ('heart_hug', 1.5), ('heart_hug_lower', 3.85)]:
+                    motion = AvatarMotion()
+                    motion.react('*прижимаю рукава к груди*')
+                    start = motion.emote_at
+                    for frame in range(1, round(elapsed*60)+1):
+                        bones, *_ = motion.sample(start+frame/60)
+                    cases.append((name, Pose(bones, hands=motion.hand_targets), 0))
                 if args.poses: cases=[case for case in cases if case[0] in args.poses]
                 if not cases: raise ValueError('No matching poses')
                 for name, pose, yaw in cases:

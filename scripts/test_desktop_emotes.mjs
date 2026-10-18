@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { EmoteRequests, emoteExamples, emoteInstructions } from './desktop_emotes.mjs';
+import { EmoteRequests, emoteExamples, emoteInstructions, automaticGestures } from './desktop_emotes.mjs';
 import { reasoningFor } from './desktop_reasoning.mjs';
 
 test('runnable cookbook is in the initial instructions, not repeated in each turn', () => {
@@ -11,6 +11,16 @@ test('runnable cookbook is in the initial instructions, not repeated in each tur
     assert.equal(emoteInstructions.split(example.code).length - 1, 1, example.id);
     assert.ok(!perTurn.includes(example.code), example.id);
   }
+});
+
+test('model gets the renderer catalogue and a tool requirement for other movements', () => {
+  assert.ok(automaticGestures.some(item => item.id === 'heart_hug'));
+  for (const item of automaticGestures) {
+    for (const action of item.examples) assert.ok(emoteInstructions.includes(`*${action}*`));
+  }
+  assert.match(emoteInstructions, /outside this list, call emote_play/);
+  assert.match(emoteInstructions, /Wait for started:true/);
+  assert.match(emoteInstructions, /unmapped_action.*did not animate/);
 });
 
 test('the per-turn appearance describes the currently visible costume', () => {

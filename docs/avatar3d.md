@@ -10,8 +10,18 @@ camera, memory, reaction and notification controls are in **Awareness…**.
 **Emotes…** opens the expression library. Select an emote and press **Play emote**;
 the adjacent **Stop** button stops a script and resets the pose. **Emote scripts…**
 opens the local source folder for inspection or editing. Newly saved emotes
-appear automatically. Ordinary `*roleplay gestures*` can trigger built-ins
-without an extra inference call.
+appear automatically. The first supported `*roleplay gesture*` starts as soon
+as its closing asterisk reaches the chat, without an extra inference call. It
+plays once per reply; later chunks and completion do not restart it. A tool-played
+animation takes precedence, including when the final prose arrives after it ends.
+
+The renderer and model share the [automatic gesture catalogue](../src/hyprchan/assets/avatar3d/gesture-triggers.json).
+For example, `*прижимаю рукава к груди*` and `*press my hands to my heart*`
+raise both hands to the chest, hold, and lower them. Unsupported actions report
+`unmapped_action` instead of claiming playback. The model is instructed to use
+a supported action or successfully play/create a fitting animation before
+narrating a new movement. This is a bounded phrase matcher, not a natural-language
+animation generator; novel sequences still need an executable emote.
 
 The native GTK/OpenGL renderer uses a real skinned VRM mesh, sparse facial blend
 shapes, aim/twist constraints, a tailored skinned hoodie, MToon lit/shade ramps,
@@ -19,7 +29,7 @@ masked inverted-hull outlines, rim light and a filtered shadow map. Hair and the
 lined hood cast visible shadows onto the fabric. Skin has gentler warm shadows;
 hair has a broad illustrated highlight. Blinking, breathing, damped hair movement
 and speech-amplitude mouth
-animation. There are 17 built-in gestures; scripts can combine the named face
+animation. There are 18 built-in gestures; scripts can combine the named face
 channels, body/finger bones, hips translation and spatial hand targets. FVEA mood affects the idle expression and motion.
 This is an animated companion, not camera-based facial motion capture. The
 bundled asset is a customized **pixiv base**; see its
@@ -411,11 +421,19 @@ python -m unittest discover -s scripts -p 'test_desktop_*.py'
 node --test scripts/test_desktop_*.mjs
 python scripts/bench_avatar_agent.py --output /tmp/hyprchan-avatar-agent.json
 python scripts/bench_avatar_agent.py --spatial --output /tmp/hyprchan-avatar-spatial.json
+python scripts/bench_avatar_agent.py --gestures --output /tmp/hyprchan-avatar-gestures.json
 ```
 
-The last command uses the real authenticated Codex route and executes the
-synthetic animation it generates. It uses no personal memories, images, audio,
+The benchmark commands use the real authenticated Codex route and execute the
+synthetic animations they generate. They use no personal memories, images, audio,
 web search or notifications.
+
+The written-gesture regression covers chunk boundaries, replay prevention,
+tool precedence, unsupported actions, truthful start/completion feedback, and
+both palms reaching the chest on the actual skeleton. The native GPU review
+samples raising, holding and lowering in both costumes. See the
+[gesture results](../benchmarks/codex-rp/results/avatar-written-gestures-20261018.json)
+and [rendered chest gesture](avatar3d-gestures/heart-hug.png).
 
 ## Printed emblem lighting and selectable timing (2026-10-17)
 

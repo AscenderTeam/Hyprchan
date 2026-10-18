@@ -14,16 +14,19 @@ import sys
 import tempfile
 import threading
 import time
+from types import SimpleNamespace
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT/'src'))
 from hyprchan.core.animations.avatar3d.emotes import EmoteLibrary, EmoteRunner
+from hyprchan.core.animations.avatar3d.motion import AvatarMotion, BUILTINS
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--output', required=True)
 parser.add_argument('--timing', action='store_true', help='Ask the model to choose its own duration')
 parser.add_argument('--spatial', action='store_true', help='Generate and measure face-relative wave/peace gestures')
 parser.add_argument('--jump', action='store_true', help='Generate and run a real VRM hips jump')
+parser.add_argument('--gestures', action='store_true', help='Verify automatic actions and tool-backed new gestures through the GUI dispatcher')
 args = parser.parse_args()
 output = Path(args.output); output.parent.mkdir(parents=True, exist_ok=True)
 report = {'syntheticOnly': True, 'turns': [], 'emotes': [], 'scripts': [], 'animations': [], 'spatial': {}}
@@ -46,6 +49,18 @@ with tempfile.TemporaryDirectory(prefix='hyprchan-avatar-test-') as temporary:
     threading.Thread(target=read, daemon=True).start()
     def send(value):
         bridge.stdin.write(json.dumps(value)+'\n'); bridge.stdin.flush()
+    avatar, gesture_turn, gesture_text = None, {}, ''
+    if args.gestures:
+        import gi
+        gi.require_version('Gtk', '4.0')
+        from desktop_avatar import DesktopAvatar
+        avatar = DesktopAvatar.__new__(DesktopAvatar)
+        avatar.motion, avatar.runner = AvatarMotion(), runner
+        avatar.label = SimpleNamespace(set_label=lambda text: None)
+        avatar.mode, avatar.outfit, avatar.items = '3d', 'hoodie', library.list()
+        avatar.last_event = None
+        avatar.host = SimpleNamespace(model_ready=True, send=lambda _, event: send(event))
+        report['gestures'] = []
     requests = [
         'hi', 'Привет!',
         'Create and immediately play a new reusable Python emote with id hoodie_huff and title Hoodie huff. '
@@ -72,6 +87,12 @@ with tempfile.TemporaryDirectory(prefix='hyprchan-avatar-test-') as temporary:
                   'then finish back at ground level. Use emote_create, not just a written gesture. '
                   'Only animate; do not access files, network or system commands. Finish with one short sentence.']
         report['jump']={'frames':0,'minLiftM':0,'maxLiftM':0,'lastLiftM':None,'maxHipsErrorMm':0}
+    if args.gestures:
+        requests = ['hi',
+            'Прижми обе ладони к груди и скажи что-нибудь ласковое.',
+            'Прикрой правый глаз правой ладонью на секунду, затем опусти руку. '
+            'Покажи это на аватаре и ответь одной короткой фразой. Только анимация: '
+            'не обращайся к файлам, сети или системным командам.']
     animation_started=None
     deadline = time.monotonic()+120
     next_index = None
@@ -98,22 +119,38 @@ with tempfile.TemporaryDirectory(prefix='hyprchan-avatar-test-') as temporary:
                             result.update(runner.play(library.path(a['id']),duration=a['seconds']))
                             running_id=a['id']
                         result['saved'] = True
+                    elif avatar and a['id'] in BUILTINS:
+                        result = avatar.play(a['id'], a['seconds'])
                     else:
                         result = runner.play(library.path(a['id']),duration=a['seconds'])
                         running_id=a['id']
                     animation_started=time.monotonic()
                     report['emotes'].append({'tool':event['tool'],'result':result})
+                    if result.get('started'):
+                        gesture_turn['emote_played'] = True
+                        if avatar: avatar.last_event = {'state': 'started', **result}
                     send({'type':'emote_result','requestId':event['requestId'],'result':result})
                     send({'type':'emote_state','mode':'3d','items':library.list()})
                 except Exception as error:
                     report['emotes'].append({'error':str(error)})
                     send({'type':'emote_result','requestId':event['requestId'],'error':str(error)})
+            elif kind == 'delta' and avatar:
+                gesture_text += event['text']
+                avatar.react(gesture_text, gesture_turn)
             elif kind == 'done':
+                if avatar:
+                    avatar.react(event['text'], gesture_turn, final=True)
+                    report['gestures'].append({'id':event['id'], **gesture_turn,
+                        'lastEvent':avatar.last_event, 'text':event['text']})
                 report['turns'].append(event)
                 print(json.dumps({k:event.get(k) for k in ('id','status','effort','firstTextMs','lastTextMs','toolCalls','reasoningTokens')}),flush=True)
                 next_index = event['id']+1
             elif kind == 'error': raise RuntimeError(event['message'])
             frame, animation = runner.poll()
+            if avatar:
+                if frame: avatar.motion.set_frame(frame)
+                avatar.motion.sample()
+                if animation and animation['state'] in {'finished', 'error'}: avatar.motion.script_frame = None
             if args.jump and frame:
                 root=frame.get('root',[0,0,0])
                 world=rig.posed(frame['bones'],hands=frame['hands'],root=root)
@@ -142,13 +179,19 @@ with tempfile.TemporaryDirectory(prefix='hyprchan-avatar-test-') as temporary:
                 report['animations'].append(animation)
                 report['animation']=animation
                 send({'type':'emote_state','mode':'3d','items':library.list(),'lastEvent':animation})
-            if next_index is not None and runner.process is None:
+            if next_index is not None and runner.process is None and (avatar is None or avatar.motion.emote is None):
                 if next_index == len(requests): break
                 send({'type':'chat','id':next_index,'text':requests[next_index]})
                 next_index=None
+                gesture_turn, gesture_text = {}, ''
         else: raise TimeoutError('Model/emote test timed out')
         assert report['emotes'] and report['animation']['state']=='finished', report
         assert len(report['turns']) == len(requests)
+        if args.gestures:
+            affection, custom = report['gestures'][1:]
+            assert affection.get('written_emote_played') == 'heart_hug' or affection.get('emote_played'), affection
+            assert custom.get('emote_played'), custom
+            assert all(turn['status']=='completed' for turn in report['turns'])
         if args.timing:
             seconds=report['emotes'][0]['result']['seconds']
             assert 3<=seconds<=30 and seconds<=report['animation']['wallSeconds']<seconds+2

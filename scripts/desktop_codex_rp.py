@@ -507,6 +507,7 @@ def main() -> int:
                     self.current["last_gui_ms"] = (time.monotonic() - self.current["started"]) * 1000
                     self.answer.set_label("Hyprchan\n" + self.response)
                     self.overlay.set_overlay_text(self.response)
+                    self.avatar.react(self.response, self.current)
                     self.speak_response(event["text"])
                     GLib.idle_add(self.scroll_bottom)
                 elif kind == "done" and self.current and event["id"] == self.current["id"]:
@@ -517,7 +518,7 @@ def main() -> int:
                     self.answer.set_label("Hyprchan\n" + self.response)
                     self.overlay.set_overlay_text(self.response)
                     if event["status"] == "completed":
-                        self.avatar.motion.react(self.response, tool_played=self.current.get('emote_played',False))
+                        self.avatar.react(self.response, self.current, final=True)
                         # Normally deltas supplied the text; retain a non-streaming fallback.
                         delta = event["text"] if not self.current["speech_phrases"].raw else ""
                         self.speak_response(delta, final=True)
@@ -886,7 +887,7 @@ def main() -> int:
                         (self.current["source"] == "screen" and self.reactions_wanted and self.vision_wanted)):
                     self.add_message("Hyprchan", event["text"])
                     self.overlay.set_overlay_text(event["text"])
-                    self.avatar.motion.react(event['text'], tool_played=self.current.get('emote_played',False))
+                    self.avatar.react(event['text'], self.current, final=True)
                     self.current["speech_phrases"] = SpeechPhrases()
                     self.speak_response(event["text"], final=True)
                     self.stats["reactions"] += 1
@@ -1073,6 +1074,10 @@ def main() -> int:
                     self.avatar.play(command['id'], command.get('seconds'))
                 elif kind == 'emote_stop':
                     self.avatar.stop()
+                elif kind == 'avatar_react':
+                    # Avatar-only replay for diagnosis: no chat, inference or TTS.
+                    if self.busy: raise ValueError('Wait until the current reply finishes')
+                    self.avatar.react(command['text'], {}, final=True)
                 elif kind == 'avatar_capture':
                     if not self.avatar.widgets: raise ValueError('Select 3D first')
                     self.avatar.widgets[-1].capture(command['path'])

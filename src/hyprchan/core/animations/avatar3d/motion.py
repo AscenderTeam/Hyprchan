@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import math
+import json
+from pathlib import Path
 import re
 import time
 from .emote_api import FINGER_BONES, HAND_SHAPES, hand_target, jump
@@ -34,8 +36,27 @@ BUILTINS = {
     'nod': ('Mhm!', {'smile': .5}, {}, .1),
     'wave_front': ('Wave in front of my face', {'smile': .65}, {'head': [0,-3,-3]}, .18),
     'peace': ('Peace sign by my face', {'smile': .65, 'wink_left': .6}, {'head': [0,-3,-3]}, .25),
+    'heart_hug': ('Hands to my heart', {'smile': .65, 'eyes_happy': .12, 'brow_happy': .25},
+                  {'head': [5, 0, -5]}, .4),
     'jump': ('Happy jump', {}, {}, .2),
 }
+GESTURE_TRIGGERS = json.loads((Path(__file__).resolve().parents[3] / 'assets/avatar3d/gesture-triggers.json').read_text())
+_GESTURE_PATTERNS = [(re.compile(item['pattern'], re.IGNORECASE), item['id']) for item in GESTURE_TRIGGERS]
+
+
+def roleplay_actions(text):
+    """Only closed action spans; a partial streaming action must not fire."""
+    return re.findall(r'(?<!\*)\*([^*\n]+)\*(?!\*)', text)
+
+
+def matching_gesture(text):
+    for action in roleplay_actions(text):
+        for pattern, name in _GESTURE_PATTERNS:
+            if pattern.search(action):
+                return name
+    return None
+
+
 LOWER_BODY_BONES = {'hips', 'leftUpperLeg', 'rightUpperLeg', 'leftLowerLeg', 'rightLowerLeg',
                     'leftFoot', 'rightFoot', 'leftToes', 'rightToes'}
 BONES = {'head', 'neck', 'chest', 'upperChest', 'spine', 'leftShoulder', 'rightShoulder',
@@ -147,23 +168,10 @@ class AvatarMotion:
         """Immediate gestures from roleplay text; no model round trip required."""
         # A slow final reply can arrive after its custom script has finished.
         # Do not replace that deliberately chosen pose with a generic keyword.
-        if tool_played: return None
-        actions = ' '.join(re.findall(r'\*([^*]+)\*', text)).lower()
-        for pattern, name in [
-            (r'прыг|подскок|подскаки|\bjump\w*\b|\bhop(?:s|ped|ping)?\b', 'jump'),
-            (r'✌|peace\s*sign|v[ -]sign', 'peace'),
-            (r'перед\s+лицом|in\s+front\s+of\s+(?:my\s+|her\s+|your\s+)?face', 'wave_front'),
-            (r'наду|щёк|щеки|puff|pout', 'pout'), (r'подмиг|wink', 'wink'),
-            (r'маш|wave', 'wave'), (r'хих|сме|giggl|laugh', 'laugh'),
-            (r'смущ|красне|прячу|blush|shy', 'shy'), (r'зева|сон|yawn|sleep', 'sleepy'),
-            (r'наклон|склон|любопыт|tilt|curious', 'curious'), (r'кива|nod', 'nod'),
-            (r'улыб|smil', 'happy'), (r'серди|хмур|angry|frown', 'angry'),
-        ]:
-            if re.search(pattern, actions):
-                if self.script_frame is None:
-                    self.play(name)
-                return name
-        return None
+        if tool_played or self.script_frame is not None: return None
+        name = matching_gesture(text)
+        if name: self.play(name)
+        return name
 
     def sample(self, now=None):
         now = time.monotonic() if now is None else now
@@ -195,6 +203,10 @@ class AvatarMotion:
                 peace = self.emote == 'peace'
                 hands['right'] = hand_target([-.035 if peace else .018*math.sin(elapsed*7), -.025, .14],
                     shape='peace' if peace else 'open', roll=-8 if peace else 16*math.sin(elapsed*9), weight=weight)
+            if self.emote == 'heart_hug':
+                for side, sign in [('left', 1), ('right', -1)]:
+                    hands[side] = hand_target([sign*.045, .18, .21], space='body',
+                                              shape='fist', roll=sign*-15, weight=weight)
             if self.emote == 'jump':
                 pose = jump(elapsed/self.duration, height=.10)
                 root = [value*self.intensity for value in pose['root']]
