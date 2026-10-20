@@ -1,0 +1,101 @@
+{
+  "healthAndTimingOnly": true,
+  "engine": "expressive",
+  "voices": {
+    "ru": "Silero kseniya (high)",
+    "en": "Kokoro af_bella"
+  },
+  "rows": [
+    {
+      "case": "greeting",
+      "language": "en",
+      "timing": {
+        "firstTextMs": 1342.542,
+        "lastTextMs": 1525.116,
+        "completedMs": 1565.85,
+        "imageCount": 2,
+        "toolCalls": 0,
+        "lookCalls": 0,
+        "source": "keyboard",
+        "sttMs": null,
+        "firstGuiMs": 1346.5031740001905,
+        "lastGuiMs": 1529.4193310000992,
+        "visualWaitMs": 96.84970500029522,
+        "inputToFullTextMs": 1626.3972030001241
+      },
+      "tts": {
+        "firstPcmMs": 372.3,
+        "synthMs": 372.3,
+        "language": "en",
+        "firstWriteMs": 372.9,
+        "inputToPlaybackWriteMs": 1951.1
+      }
+    },
+    {
+      "case": "greeting",
+      "language": "ru",
+      "timing": {
+        "firstTextMs": 1563.73,
+        "lastTextMs": 1715.829,
+        "completedMs": 1817.848,
+        "imageCount": 2,
+        "toolCalls": 0,
+        "lookCalls": 0,
+        "source": "keyboard",
+        "sttMs": null,
+        "firstGuiMs": 1572.1605220001038,
+        "lastGuiMs": 1724.277219999749,
+        "visualWaitMs": 112.0139120002932,
+        "inputToFullTextMs": 1836.6968859995723
+      },
+      "tts": {
+        "firstPcmMs": 62.5,
+        "synthMs": 62.4,
+        "language": "ru",
+        "firstWriteMs": 63.0,
+        "inputToPlaybackWriteMs": 1877.8
+      }
+    },
+    {
+      "case": "fresh_screen_and_camera",
+      "look": {
+        "source": "both",
+        "capturedAt": 1792257367.2159586,
+        "images": [
+          "screen",
+          "webcam"
+        ]
+      },
+      "timing": {
+        "firstTextMs": 4675.685,
+        "lastTextMs": 4824.639,
+        "completedMs": 4890.034,
+        "imageCount": 2,
+        "toolCalls": 1,
+        "lookCalls": 1,
+        "source": "keyboard",
+        "sttMs": null,
+        "firstGuiMs": 4682.311697999921,
+        "lastGuiMs": 4834.7778180000205,
+        "visualWaitMs": 136.3791119997586,
+        "inputToFullTextMs": 4971.424473999832
+      }
+    }
+  ],
+  "health": {
+    "ready": true,
+    "tts_ready": true,
+    "voice_active": true,
+    "mic_active": true,
+    "vision_active": true,
+    "visual_sources": [
+      "screen",
+      "webcam"
+    ],
+    "memory_wanted": true,
+    "audio_active": true,
+    "last_error": null,
+    "tts_error": null,
+    "vision_error": null
+  }
+}

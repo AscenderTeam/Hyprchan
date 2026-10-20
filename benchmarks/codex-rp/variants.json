@@ -1,0 +1,8 @@
+[
+  {"id": "luna6-low-fast", "model": "gpt-6-luna", "effort": "low", "tier": "fast"},
+  {"id": "luna6-none-fast", "model": "gpt-6-luna", "effort": "none", "tier": "fast"},
+  {"id": "luna56-low-fast", "model": "gpt-5.6-luna", "effort": "low", "tier": "fast"},
+  {"id": "luna56-none-fast", "model": "gpt-5.6-luna", "effort": "none", "tier": "fast"},
+  {"id": "sol6-low-fast", "model": "gpt-6-sol", "effort": "low", "tier": "fast"},
+  {"id": "sol61-low-ultrafast", "model": "gpt-6.1-sol", "effort": "low", "tier": "ultrafast"}
+]

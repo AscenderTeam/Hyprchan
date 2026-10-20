@@ -1,0 +1,97 @@
+[
+  {
+    "id": "wave_front_right",
+    "file": "wave_front_right.py",
+    "description": "Right open palm directly in front of the face; wrist wave; smooth lift and return."
+  },
+  {
+    "id": "wave_front_left",
+    "file": "wave_front_left.py",
+    "description": "Same front-of-face gesture with the left hand; mirror X and wrist roll, not Y/Z."
+  },
+  {
+    "id": "peace_front",
+    "file": "peace_front.py",
+    "description": "Actual two-finger peace sign directly in front of the face, with a wink."
+  },
+  {
+    "id": "peace_cheek",
+    "file": "peace_cheek.py",
+    "description": "Peace sign beside the right cheek, leaving the centre of the face visible."
+  },
+  {
+    "id": "peek_two_hands",
+    "file": "peek_two_hands.py",
+    "description": "Both hands in front of the lower face; keep them separated so thumbs do not overlap."
+  },
+  {
+    "id": "follow_head",
+    "file": "follow_head.py",
+    "description": "The palm follows the face while the head and torso turn; do not compensate with arm Euler guesses."
+  },
+  {
+    "id": "hand_on_chest",
+    "file": "hand_on_chest.py",
+    "description": "Hand over the hoodie using chest-relative coordinates; leave room for the fabric volume."
+  },
+  {
+    "id": "world_anchor",
+    "file": "world_anchor.py",
+    "description": "Hold a palm at a fixed model-space position as the head turns. World means avatar metres, not desktop pixels."
+  },
+  {
+    "id": "reach_forward",
+    "file": "reach_forward.py",
+    "description": "Reach forward from the chest with an open palm, within the physical arm length."
+  },
+  {
+    "id": "point_side",
+    "file": "point_side.py",
+    "description": "Point toward the viewer's left: right hand, negative X position, positive 90-degree wrist roll."
+  },
+  {
+    "id": "hand_shapes",
+    "file": "hand_shapes.py",
+    "description": "All five supported hand shapes. Each segment lowers the hand before changing its shape."
+  },
+  {
+    "id": "body_nod",
+    "file": "body_nod.py",
+    "description": "Nod and sway through head, neck, spine, chest and shoulders while preserving the resting arms."
+  },
+  {
+    "id": "hoodie_pout",
+    "file": "hoodie_pout.py",
+    "description": "Closed-mouth puff with eyes open, then a soft smile. Explicitly release mouth_close at the end."
+  },
+  {
+    "id": "expression_palette",
+    "file": "expression_palette.py",
+    "description": "Face palette: choose or combine expressions; this sequence demonstrates the channels without moving the hands."
+  },
+  {
+    "id": "mouth_shapes",
+    "file": "mouth_shapes.py",
+    "description": "Manual silent mouth acting only. Normal speech already drives the mouth from PCM amplitude; do not replace that."
+  },
+  {
+    "id": "raw_fingers",
+    "file": "raw_fingers.py",
+    "description": "Advanced legacy bone-space pose beside the face. Individual finger bones work here because no hands target owns this arm. For positional gestures use hand_target."
+  },
+  {
+    "id": "gesture_sequence",
+    "file": "gesture_sequence.py",
+    "description": "Anticipate, do a peace sign, return, then wave. Reset each segment's weight rather than jumping between poses."
+  },
+  {
+    "id": "vrm_jump",
+    "file": "vrm_jump.py",
+    "description": "An actual VRM jump: hips translation, bent knees, takeoff, airborne lift and soft landing. Customize height and expressions; the portrait reserves headroom automatically."
+  },
+  {
+    "id": "manual_frames",
+    "file": "manual_frames.py",
+    "description": "Direct frame() protocol with explicit pacing and a neutral final frame. Use animate() for ordinary scripts."
+  }
+]

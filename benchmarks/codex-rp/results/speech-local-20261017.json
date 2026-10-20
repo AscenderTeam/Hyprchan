@@ -1,0 +1,366 @@
+{
+  "cpuThreads": 4,
+  "computeType": "int8",
+  "trials": [
+    {
+      "model": "tiny",
+      "trial": 0,
+      "case": "hi",
+      "mode": "auto",
+      "audioSeconds": 0.568875,
+      "text": "嗨",
+      "language": "zh",
+      "sttMs": 379.64
+    },
+    {
+      "model": "tiny",
+      "trial": 0,
+      "case": "hi",
+      "mode": "fixed",
+      "audioSeconds": 0.568875,
+      "text": "Hi.",
+      "language": "en",
+      "sttMs": 195.8
+    },
+    {
+      "model": "tiny",
+      "trial": 0,
+      "case": "privet",
+      "mode": "auto",
+      "audioSeconds": 1.097125,
+      "text": "Привет!",
+      "language": "ru",
+      "sttMs": 382.17
+    },
+    {
+      "model": "tiny",
+      "trial": 0,
+      "case": "privet",
+      "mode": "fixed",
+      "audioSeconds": 1.097125,
+      "text": "Привет!",
+      "language": "ru",
+      "sttMs": 186.11
+    },
+    {
+      "model": "tiny",
+      "trial": 0,
+      "case": "phrase",
+      "mode": "auto",
+      "audioSeconds": 3.0,
+      "text": "And so my fellow Americans!",
+      "language": "en",
+      "sttMs": 521.63
+    },
+    {
+      "model": "tiny",
+      "trial": 0,
+      "case": "phrase",
+      "mode": "fixed",
+      "audioSeconds": 3.0,
+      "text": "And so my fellow Americans!",
+      "language": "en",
+      "sttMs": 247.23
+    },
+    {
+      "model": "tiny",
+      "trial": 1,
+      "case": "hi",
+      "mode": "auto",
+      "audioSeconds": 0.568875,
+      "text": "嗨",
+      "language": "zh",
+      "sttMs": 416.09
+    },
+    {
+      "model": "tiny",
+      "trial": 1,
+      "case": "hi",
+      "mode": "fixed",
+      "audioSeconds": 0.568875,
+      "text": "Hi.",
+      "language": "en",
+      "sttMs": 155.34
+    },
+    {
+      "model": "tiny",
+      "trial": 1,
+      "case": "privet",
+      "mode": "auto",
+      "audioSeconds": 1.097125,
+      "text": "Привет!",
+      "language": "ru",
+      "sttMs": 312.52
+    },
+    {
+      "model": "tiny",
+      "trial": 1,
+      "case": "privet",
+      "mode": "fixed",
+      "audioSeconds": 1.097125,
+      "text": "Привет!",
+      "language": "ru",
+      "sttMs": 225.61
+    },
+    {
+      "model": "tiny",
+      "trial": 1,
+      "case": "phrase",
+      "mode": "auto",
+      "audioSeconds": 3.0,
+      "text": "And so my fellow Americans!",
+      "language": "en",
+      "sttMs": 449.21
+    },
+    {
+      "model": "tiny",
+      "trial": 1,
+      "case": "phrase",
+      "mode": "fixed",
+      "audioSeconds": 3.0,
+      "text": "And so my fellow Americans!",
+      "language": "en",
+      "sttMs": 255.8
+    },
+    {
+      "model": "tiny",
+      "trial": 2,
+      "case": "hi",
+      "mode": "auto",
+      "audioSeconds": 0.568875,
+      "text": "嗨",
+      "language": "zh",
+      "sttMs": 411.36
+    },
+    {
+      "model": "tiny",
+      "trial": 2,
+      "case": "hi",
+      "mode": "fixed",
+      "audioSeconds": 0.568875,
+      "text": "Hi.",
+      "language": "en",
+      "sttMs": 205.6
+    },
+    {
+      "model": "tiny",
+      "trial": 2,
+      "case": "privet",
+      "mode": "auto",
+      "audioSeconds": 1.097125,
+      "text": "Привет!",
+      "language": "ru",
+      "sttMs": 309.35
+    },
+    {
+      "model": "tiny",
+      "trial": 2,
+      "case": "privet",
+      "mode": "fixed",
+      "audioSeconds": 1.097125,
+      "text": "Привет!",
+      "language": "ru",
+      "sttMs": 231.99
+    },
+    {
+      "model": "tiny",
+      "trial": 2,
+      "case": "phrase",
+      "mode": "auto",
+      "audioSeconds": 3.0,
+      "text": "And so my fellow Americans!",
+      "language": "en",
+      "sttMs": 351.41
+    },
+    {
+      "model": "tiny",
+      "trial": 2,
+      "case": "phrase",
+      "mode": "fixed",
+      "audioSeconds": 3.0,
+      "text": "And so my fellow Americans!",
+      "language": "en",
+      "sttMs": 265.44
+    },
+    {
+      "model": "base",
+      "trial": 0,
+      "case": "hi",
+      "mode": "auto",
+      "audioSeconds": 0.568875,
+      "text": "Hi.",
+      "language": "en",
+      "sttMs": 541.9
+    },
+    {
+      "model": "base",
+      "trial": 0,
+      "case": "hi",
+      "mode": "fixed",
+      "audioSeconds": 0.568875,
+      "text": "Hi.",
+      "language": "en",
+      "sttMs": 274.14
+    },
+    {
+      "model": "base",
+      "trial": 0,
+      "case": "privet",
+      "mode": "auto",
+      "audioSeconds": 1.097125,
+      "text": "Привет!",
+      "language": "ru",
+      "sttMs": 518.83
+    },
+    {
+      "model": "base",
+      "trial": 0,
+      "case": "privet",
+      "mode": "fixed",
+      "audioSeconds": 1.097125,
+      "text": "Привет!",
+      "language": "ru",
+      "sttMs": 312.93
+    },
+    {
+      "model": "base",
+      "trial": 0,
+      "case": "phrase",
+      "mode": "auto",
+      "audioSeconds": 3.0,
+      "text": "And so my fellow Americans!",
+      "language": "en",
+      "sttMs": 573.86
+    },
+    {
+      "model": "base",
+      "trial": 0,
+      "case": "phrase",
+      "mode": "fixed",
+      "audioSeconds": 3.0,
+      "text": "And so my fellow Americans!",
+      "language": "en",
+      "sttMs": 354.49
+    },
+    {
+      "model": "base",
+      "trial": 1,
+      "case": "hi",
+      "mode": "auto",
+      "audioSeconds": 0.568875,
+      "text": "Hi.",
+      "language": "en",
+      "sttMs": 496.56
+    },
+    {
+      "model": "base",
+      "trial": 1,
+      "case": "hi",
+      "mode": "fixed",
+      "audioSeconds": 0.568875,
+      "text": "Hi.",
+      "language": "en",
+      "sttMs": 271.92
+    },
+    {
+      "model": "base",
+      "trial": 1,
+      "case": "privet",
+      "mode": "auto",
+      "audioSeconds": 1.097125,
+      "text": "Привет!",
+      "language": "ru",
+      "sttMs": 552.68
+    },
+    {
+      "model": "base",
+      "trial": 1,
+      "case": "privet",
+      "mode": "fixed",
+      "audioSeconds": 1.097125,
+      "text": "Привет!",
+      "language": "ru",
+      "sttMs": 313.7
+    },
+    {
+      "model": "base",
+      "trial": 1,
+      "case": "phrase",
+      "mode": "auto",
+      "audioSeconds": 3.0,
+      "text": "And so my fellow Americans!",
+      "language": "en",
+      "sttMs": 657.74
+    },
+    {
+      "model": "base",
+      "trial": 1,
+      "case": "phrase",
+      "mode": "fixed",
+      "audioSeconds": 3.0,
+      "text": "And so my fellow Americans!",
+      "language": "en",
+      "sttMs": 381.75
+    },
+    {
+      "model": "base",
+      "trial": 2,
+      "case": "hi",
+      "mode": "auto",
+      "audioSeconds": 0.568875,
+      "text": "Hi.",
+      "language": "en",
+      "sttMs": 493.01
+    },
+    {
+      "model": "base",
+      "trial": 2,
+      "case": "hi",
+      "mode": "fixed",
+      "audioSeconds": 0.568875,
+      "text": "Hi.",
+      "language": "en",
+      "sttMs": 263.05
+    },
+    {
+      "model": "base",
+      "trial": 2,
+      "case": "privet",
+      "mode": "auto",
+      "audioSeconds": 1.097125,
+      "text": "Привет!",
+      "language": "ru",
+      "sttMs": 559.9
+    },
+    {
+      "model": "base",
+      "trial": 2,
+      "case": "privet",
+      "mode": "fixed",
+      "audioSeconds": 1.097125,
+      "text": "Привет!",
+      "language": "ru",
+      "sttMs": 280.0
+    },
+    {
+      "model": "base",
+      "trial": 2,
+      "case": "phrase",
+      "mode": "auto",
+      "audioSeconds": 3.0,
+      "text": "And so my fellow Americans!",
+      "language": "en",
+      "sttMs": 563.73
+    },
+    {
+      "model": "base",
+      "trial": 2,
+      "case": "phrase",
+      "mode": "fixed",
+      "audioSeconds": 3.0,
+      "text": "And so my fellow Americans!",
+      "language": "en",
+      "sttMs": 323.8
+    }
+  ]
+}

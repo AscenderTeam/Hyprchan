@@ -1,0 +1,172 @@
+{
+  "syntheticOnly": true,
+  "turns": [
+    {
+      "type": "done",
+      "id": 0,
+      "text": "*waves a sleeve* Hiya~",
+      "status": "completed",
+      "quiet": false,
+      "effort": "low",
+      "reasoningTokens": 0,
+      "firstTextMs": 1322.086,
+      "lastTextMs": 1362.653,
+      "completedMs": 1445.892,
+      "errors": [],
+      "imageCount": 0,
+      "toolCalls": 0,
+      "webSearches": 0,
+      "tangentWords": 0,
+      "lookCalls": 0,
+      "memoryCount": 0
+    },
+    {
+      "type": "done",
+      "id": 1,
+      "text": "*waves my open right hand in front of my face, then lowers it* Done~",
+      "status": "completed",
+      "quiet": false,
+      "effort": "medium",
+      "reasoningTokens": 0,
+      "firstTextMs": 3487.905,
+      "lastTextMs": 3597.027,
+      "completedMs": 3640.219,
+      "errors": [],
+      "imageCount": 0,
+      "toolCalls": 1,
+      "webSearches": 0,
+      "tangentWords": 0,
+      "lookCalls": 0,
+      "memoryCount": 0
+    },
+    {
+      "type": "done",
+      "id": 2,
+      "text": "*tilts my head, flashes a peace sign in front of my face, then lowers it* Done~",
+      "status": "completed",
+      "quiet": false,
+      "effort": "medium",
+      "reasoningTokens": 0,
+      "firstTextMs": 4194.705,
+      "lastTextMs": 4341.902,
+      "completedMs": 4417.556,
+      "errors": [],
+      "imageCount": 0,
+      "toolCalls": 1,
+      "webSearches": 0,
+      "tangentWords": 0,
+      "lookCalls": 0,
+      "memoryCount": 0
+    },
+    {
+      "type": "done",
+      "id": 3,
+      "text": "*peek out from my hood and wave a sleeve* Hiya~",
+      "status": "completed",
+      "quiet": false,
+      "effort": "low",
+      "reasoningTokens": 0,
+      "firstTextMs": 1185.585,
+      "lastTextMs": 1282.707,
+      "completedMs": 1353.44,
+      "errors": [],
+      "imageCount": 0,
+      "toolCalls": 0,
+      "webSearches": 0,
+      "tangentWords": 0,
+      "lookCalls": 0,
+      "memoryCount": 0
+    }
+  ],
+  "emotes": [
+    {
+      "tool": "emote_create",
+      "result": {
+        "id": "face_wave_test",
+        "title": "Face wave test",
+        "description": "Raise the open right hand smoothly directly in front of the face, wave, then lower it.",
+        "updatedAt": 1792263415.589667,
+        "started": true,
+        "maxSeconds": 30.0,
+        "saved": true
+      }
+    },
+    {
+      "tool": "emote_create",
+      "result": {
+        "id": "face_peace_test",
+        "title": "Face peace test",
+        "description": "Tilt my head and hold a two-finger peace sign directly in front of my face, then lower my hand.",
+        "updatedAt": 1792263422.1786082,
+        "started": true,
+        "maxSeconds": 30.0,
+        "saved": true
+      }
+    }
+  ],
+  "scripts": [
+    {
+      "id": "face_wave_test",
+      "code": "from math import sin\nfrom hyprchan.core.animations.avatar3d.emote_api import animate, ease, hand_target\n\ndef pose(t):\n    w = ease(min(t/.22, (1-t)/.24))\n    return {\n        'expressions': {'smile': .45*w},\n        'hands': {'right': hand_target([.018*sin(t*20), -.025, .14],\n                    shape='open', roll=16*sin(t*32), weight=w)}\n    }\n\nanimate(4, pose)\n"
+    },
+    {
+      "id": "face_peace_test",
+      "code": "from hyprchan.core.animations.avatar3d.emote_api import animate, ease, hand_target\n\ndef pose(t):\n    w = ease(min(t/.22, (1-t)/.26))\n    return {\n        'expressions': {'smile': .5*w, 'blush': .2*w},\n        'bones': {'head': [0, 0, 8*w]},\n        'hands': {'right': hand_target([-.025, -.025, .14],\n                    shape='peace', roll=-8, weight=w)}\n    }\n\nanimate(4, pose)\n"
+    }
+  ],
+  "animations": [
+    {
+      "state": "finished",
+      "id": "face_wave_test",
+      "frames": 121,
+      "error": null,
+      "timedOut": false
+    },
+    {
+      "state": "finished",
+      "id": "face_peace_test",
+      "frames": 121,
+      "error": null,
+      "timedOut": false
+    }
+  ],
+  "spatial": {
+    "face_wave_test": {
+      "frames": 120,
+      "heldFrames": 73,
+      "maxErrorMm": 0,
+      "clampedFrames": 0,
+      "minForwardM": 0.1286,
+      "maxLateralM": 0.0226,
+      "shapes": [
+        "open"
+      ]
+    },
+    "face_peace_test": {
+      "frames": 118,
+      "heldFrames": 70,
+      "maxErrorMm": 0,
+      "clampedFrames": 0,
+      "minForwardM": 0.1281,
+      "maxLateralM": 0.04,
+      "shapes": [
+        "peace"
+      ]
+    }
+  },
+  "ready": {
+    "type": "ready",
+    "model": "gpt-6-luna",
+    "tier": "priority",
+    "webSearch": "disabled",
+    "emoteExamples": 18,
+    "reasoning": "adaptive: low greetings, medium conversation"
+  },
+  "animation": {
+    "state": "finished",
+    "id": "face_peace_test",
+    "frames": 121,
+    "error": null,
+    "timedOut": false
+  }
+}

@@ -1,0 +1,105 @@
+{
+  "metadataOnly": true,
+  "captureIntervalsSec": [
+    63.155,
+    60.133
+  ],
+  "observations": [
+    {
+      "observedAt": 1792254526.0275846,
+      "sinceStartSec": 6.0,
+      "ready": true,
+      "speech_ready": true,
+      "mic_active": true,
+      "language": "ru",
+      "vision_active": true,
+      "reactions_active": true,
+      "reaction_interval_sec": 60.0,
+      "snapshot_interval_sec": 60.0,
+      "visual_sources": [
+        "screen",
+        "webcam"
+      ],
+      "reaction_checks": 1,
+      "reactions": 0,
+      "quiet_checks": 1,
+      "reactions_interrupted": 0,
+      "last_reaction_timing": {
+        "firstTextMs": 1300.744,
+        "lastTextMs": 1300.808,
+        "completedMs": 1382.936,
+        "imageCount": 1,
+        "status": "completed",
+        "quiet": true,
+        "capturedAt": 1792254521.7374396,
+        "elapsedMs": 1389.2
+      },
+      "last_error": null,
+      "vision_error": null
+    },
+    {
+      "observedAt": 1792254587.0688963,
+      "sinceStartSec": 67.04,
+      "ready": true,
+      "speech_ready": true,
+      "mic_active": true,
+      "language": "ru",
+      "vision_active": true,
+      "reactions_active": true,
+      "reaction_interval_sec": 60.0,
+      "snapshot_interval_sec": 60.0,
+      "visual_sources": [
+        "screen",
+        "webcam"
+      ],
+      "reaction_checks": 2,
+      "reactions": 0,
+      "quiet_checks": 2,
+      "reactions_interrupted": 0,
+      "last_reaction_timing": {
+        "firstTextMs": 1374.775,
+        "lastTextMs": 1377.02,
+        "completedMs": 1493.619,
+        "imageCount": 1,
+        "status": "completed",
+        "quiet": true,
+        "capturedAt": 1792254584.8921907,
+        "elapsedMs": 1495.6
+      },
+      "last_error": null,
+      "vision_error": null
+    },
+    {
+      "observedAt": 1792254647.1216905,
+      "sinceStartSec": 127.1,
+      "ready": true,
+      "speech_ready": true,
+      "mic_active": true,
+      "language": "ru",
+      "vision_active": true,
+      "reactions_active": true,
+      "reaction_interval_sec": 60.0,
+      "snapshot_interval_sec": 60.0,
+      "visual_sources": [
+        "screen",
+        "webcam"
+      ],
+      "reaction_checks": 3,
+      "reactions": 1,
+      "quiet_checks": 2,
+      "reactions_interrupted": 0,
+      "last_reaction_timing": {
+        "firstTextMs": 1235.181,
+        "lastTextMs": 1475.43,
+        "completedMs": 1536.505,
+        "imageCount": 1,
+        "status": "completed",
+        "quiet": false,
+        "capturedAt": 1792254645.024867,
+        "elapsedMs": 1538.5
+      },
+      "last_error": null,
+      "vision_error": null
+    }
+  ]
+}

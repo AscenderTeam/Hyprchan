@@ -1,0 +1,27 @@
+{
+  "timestamp": "2026-10-17T15:20:40.580Z",
+  "codexVersion": "codex-cli 0.163.0",
+  "nodeVersion": "v26.5.1",
+  "platform": "linux",
+  "arch": "arm64",
+  "startupMs": 123.442,
+  "promptPath": "/home/w/programming/all/Hyprchan/benchmarks/codex-rp/current-active-prompt.txt",
+  "promptSha256": "35f6794741ca2e61ee8cd289634d5ee0517867ccdb27831ac78c622200c6bdb9",
+  "promptBytes": 7530,
+  "tier": "fast",
+  "effort": "none",
+  "metric": "monotonic milliseconds from turn/start write to first delta, last delta, and turn/completed",
+  "scope": "local Codex app-server + remote inference; excludes Hyprchan kernel, UI, STT, and TTS",
+  "actualBackendTier": "not exposed by app-server; configured tier is recorded separately",
+  "serial": true,
+  "args": {
+    "models": "gpt-5.6-luna",
+    "effort": "none",
+    "prompt": "benchmarks/codex-rp/current-active-prompt.txt",
+    "trials": "3",
+    "reuse": true,
+    "greetings-only": true,
+    "timeout": "15000",
+    "out": "benchmarks/codex-rp/results/current-prompt"
+  }
+}

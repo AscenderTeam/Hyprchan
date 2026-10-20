@@ -1,0 +1,118 @@
+[
+  {
+    "case": "hi",
+    "gain": 1,
+    "events": [
+      {
+        "emitMs": 1120.0,
+        "audioMs": 608.0
+      }
+    ],
+    "maxProbability": 0.977,
+    "processingMs": 5.4
+  },
+  {
+    "case": "hi",
+    "gain": 0.15,
+    "events": [
+      {
+        "emitMs": 1120.0,
+        "audioMs": 608.0
+      }
+    ],
+    "maxProbability": 0.973,
+    "processingMs": 5.2
+  },
+  {
+    "case": "hi",
+    "gain": 0.025,
+    "events": [
+      {
+        "emitMs": 1152.0,
+        "audioMs": 608.0
+      }
+    ],
+    "maxProbability": 0.962,
+    "processingMs": 5.1
+  },
+  {
+    "case": "privet",
+    "gain": 1,
+    "events": [
+      {
+        "emitMs": 1280.0,
+        "audioMs": 576.0
+      }
+    ],
+    "maxProbability": 0.988,
+    "processingMs": 7.3
+  },
+  {
+    "case": "privet",
+    "gain": 0.15,
+    "events": [
+      {
+        "emitMs": 1408.0,
+        "audioMs": 736.0
+      }
+    ],
+    "maxProbability": 0.991,
+    "processingMs": 7.4
+  },
+  {
+    "case": "privet",
+    "gain": 0.025,
+    "events": [
+      {
+        "emitMs": 1408.0,
+        "audioMs": 704.0
+      }
+    ],
+    "maxProbability": 0.986,
+    "processingMs": 7.1
+  },
+  {
+    "case": "3s",
+    "gain": 1,
+    "events": [
+      {
+        "emitMs": 2816.0,
+        "audioMs": 2176.0
+      }
+    ],
+    "maxProbability": 0.885,
+    "processingMs": 13.0
+  },
+  {
+    "case": "3s",
+    "gain": 0.15,
+    "events": [
+      {
+        "emitMs": 2816.0,
+        "audioMs": 2176.0
+      }
+    ],
+    "maxProbability": 0.902,
+    "processingMs": 12.9
+  },
+  {
+    "case": "3s",
+    "gain": 0.025,
+    "events": [
+      {
+        "emitMs": 2816.0,
+        "audioMs": 2016.0
+      }
+    ],
+    "maxProbability": 0.93,
+    "processingMs": 12.8
+  },
+  {
+    "case": "silence",
+    "events": 0
+  },
+  {
+    "case": "white_noise",
+    "events": 0
+  }
+]

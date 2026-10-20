@@ -1,0 +1,61 @@
+{
+  "date": "2026-10-18",
+  "physicalCapture": "FaceTime HD Camera",
+  "format": "NV12",
+  "captureSize": [
+    1920,
+    1080
+  ],
+  "configuredFps": 30,
+  "uniqueFpsMeasured": false,
+  "obsRestarted": false,
+  "privateImagesSaved": false,
+  "rows": [
+    {
+      "order": [
+        "Hyprchan",
+        "OBS"
+      ],
+      "bothReceive": true,
+      "obs": {
+        "nonblank": true,
+        "changing": true,
+        "size": [
+          320,
+          180
+        ],
+        "sourceShowing": true
+      },
+      "hyprchanSources": [
+        "screen",
+        "webcam"
+      ],
+      "cameraError": null
+    },
+    {
+      "order": [
+        "OBS",
+        "Hyprchan"
+      ],
+      "bothReceive": true,
+      "obs": {
+        "nonblank": true,
+        "changing": true,
+        "size": [
+          320,
+          180
+        ],
+        "sourceShowing": true
+      },
+      "hyprchanSources": [
+        "screen",
+        "webcam"
+      ],
+      "cameraError": null
+    }
+  ],
+  "releasedWhenNoReaders": true,
+  "physicalOwners": 1,
+  "voiceStillMuted": true,
+  "passed": true
+}

@@ -1,0 +1,13 @@
+{
+  "timestamp": "2026-10-17",
+  "command": "node scripts/chat_codex_rp.mjs",
+  "input": "hi",
+  "model": "gpt-6-luna",
+  "effort": "low",
+  "tier": "fast",
+  "reply": "*Gives a sleepy little wave.* Hi.",
+  "firstTextMs": 1564.513,
+  "lastTextMs": 1757.759,
+  "completedMs": 1885.882,
+  "note": "Final default demo: actual streamed inference after startup preparation; /quit and process exit verified."
+}

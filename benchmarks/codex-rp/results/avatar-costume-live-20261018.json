@@ -1,0 +1,32 @@
+{
+  "syntheticAvatarOnly": true,
+  "sourceFilesMatch": true,
+  "sourceFilesChecked": 15,
+  "voiceActive": true,
+  "ttsPlaying": true,
+  "normalSystemOutput": true,
+  "appearance": {
+    "mode": "3d",
+    "outfit": "cyan_yellow",
+    "error": null,
+    "renderers": [
+      {
+        "frames": 238,
+        "drawMs": 9.14,
+        "error": null
+      },
+      {
+        "frames": 234,
+        "drawMs": 9.79,
+        "error": null
+      }
+    ]
+  },
+  "savedAppearance": {
+    "mode": "3d",
+    "outfit": "cyan_yellow"
+  },
+  "savedVoice": {
+    "enabled": true
+  }
+}

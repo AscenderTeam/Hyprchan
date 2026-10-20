@@ -1,0 +1,81 @@
+{
+  "purpose": "Local mock-provider capture: inspect the installed harness overhead, not a latency trial",
+  "model": "gpt-6-luna",
+  "reasoning": {
+    "effort": "low",
+    "context": "all_turns"
+  },
+  "requestKeys": [
+    "model",
+    "stream",
+    "input",
+    "tool_choice",
+    "parallel_tool_calls",
+    "reasoning",
+    "store",
+    "include",
+    "prompt_cache_key",
+    "text",
+    "client_metadata"
+  ],
+  "inputItems": [
+    {
+      "role": "developer",
+      "type": "additional_tools",
+      "bytes": 17425,
+      "toolNamespaces": [
+        {
+          "name": "functions",
+          "tools": [
+            "exec",
+            "wait",
+            "request_user_input",
+            "request_user_input_async"
+          ]
+        },
+        {
+          "name": "collaboration",
+          "tools": [
+            "followup_task",
+            "interrupt_agent",
+            "list_agents",
+            "send_message",
+            "spawn_agent",
+            "wait_agent"
+          ]
+        }
+      ]
+    },
+    {
+      "role": "developer",
+      "type": "message",
+      "bytes": 1252
+    },
+    {
+      "role": "developer",
+      "type": "message",
+      "bytes": 3467
+    },
+    {
+      "role": "developer",
+      "type": "message",
+      "bytes": 2565
+    },
+    {
+      "role": "developer",
+      "type": "message",
+      "bytes": 400
+    },
+    {
+      "role": "user",
+      "type": "message",
+      "bytes": 252
+    },
+    {
+      "role": "user",
+      "type": "message",
+      "bytes": 126
+    }
+  ],
+  "note": "Only metadata retained; this capture did not call a remote model and cannot verify the OpenAI backend tier."
+}

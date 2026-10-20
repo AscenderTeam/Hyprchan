@@ -1,0 +1,29 @@
+{
+  "liveBeforeMute": {
+    "model": "gpt-6-luna",
+    "tier": "priority",
+    "microphone": "MacBook Pro J414 Microphone",
+    "language": "en",
+    "speech_model": "tiny",
+    "last_timing": {
+      "firstTextMs": 1707.244,
+      "lastTextMs": 1880.443,
+      "completedMs": 1950.848,
+      "source": "microphone",
+      "sttMs": 255.4,
+      "firstGuiMs": 1707.754840999769,
+      "lastGuiMs": 1886.9555080000282,
+      "transcriptQueueMs": 0.32533600096940063,
+      "estimatedSpeechEndToTextMs": 2398.8808440009975
+    },
+    "last_error": null
+  },
+  "muteReleasedCapture": true,
+  "resumedCapture": true,
+  "earlierLiveMicrophone": {
+    "sttMs": 278.4,
+    "lastGuiMs": 892.0759650009131,
+    "estimatedSpeechEndToTextMs": 1426.92017500035
+  },
+  "timingNote": "GUI clocks measure label-update callbacks. Speech-end estimates include the configured endpoint pause and queue time, but exclude unmeasured capture buffering and compositor presentation. Live speech text is not saved in this report."
+}

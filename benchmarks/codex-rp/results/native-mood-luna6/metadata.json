@@ -1,0 +1,24 @@
+{
+  "timestamp": "2026-10-17T15:25:19.010Z",
+  "codexVersion": "codex-cli 0.163.0",
+  "nodeVersion": "v26.5.1",
+  "platform": "linux",
+  "arch": "arm64",
+  "startupMs": 116.005,
+  "promptPath": "/home/w/programming/all/Hyprchan/benchmarks/codex-rp/persona.txt",
+  "promptSha256": "7575dfd8d075eca3637e58cf9c93cdba6ff0a87cabb1f6a3b0e44218e8aa1cc6",
+  "promptBytes": 1355,
+  "tier": "fast",
+  "effort": "low",
+  "metric": "monotonic milliseconds from turn/start write to first delta, last delta, and turn/completed",
+  "scope": "local Codex app-server + remote inference; excludes Hyprchan kernel, UI, STT, and TTS",
+  "actualBackendTier": "not exposed by app-server; configured tier is recorded separately",
+  "serial": true,
+  "args": {
+    "models": "gpt-6-luna",
+    "effort": "low",
+    "trials": "1",
+    "cases": "benchmarks/codex-rp/native-mood-cases.json",
+    "out": "benchmarks/codex-rp/results/native-mood-luna6"
+  }
+}

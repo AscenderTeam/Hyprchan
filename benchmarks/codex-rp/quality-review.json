@@ -1,0 +1,159 @@
+{
+  "reviewer": "Codex, primary assistant",
+  "date": "2026-10-17",
+  "method": "Manual inspection of stored synthetic model replies, with transparent heuristic flags in trial rows. This is a small scenario smoke test, not a general RP quality certification.",
+  "initial_screen": {
+    "models": [
+      "gpt-6.1-sol",
+      "gpt-6-astra",
+      "gpt-6-sol",
+      "gpt-6-luna",
+      "gpt-5.6-sol",
+      "gpt-5.6-terra",
+      "gpt-5.6-luna"
+    ],
+    "all_models": {
+      "accepted_paper_crown_roleplay": true,
+      "recalled_workspace_three_and_paper_crown": true,
+      "adapted_to_sleepy_mood": true,
+      "answered_Russian_input_in_Russian": true,
+      "did_not_claim_to_close_the_real_terminal": true
+    },
+    "limitations": [
+      "GPT-6 Luna, GPT-5.6 Sol and GPT-5.6 Terra stayed in Russian after the next user question switched back to English.",
+      "GPT-6 Sol narrated an empty spot on the desktop without having screen evidence; its denial of closing the terminal was correct, but the extra perception detail was unsupported.",
+      "Dialogue quality is subjective; occasional plain or repetitive greetings were not treated as failures of character."
+    ]
+  },
+  "prompt_revision": "persona.txt makes the latest-message language rule explicit and prohibits invented screen contents. persona-v1.txt preserves the screened version.",
+  "final_validation": {
+    "source": "results/final-validation/trials.jsonl",
+    "model": "gpt-5.6-luna",
+    "effort": "none",
+    "tier_requested": "fast",
+    "checks": [
+      {
+        "scenario": "scene",
+        "pass": true,
+        "evidence": "Accepts paper crown and workspace-three royal scene with character actions."
+      },
+      {
+        "scenario": "continuity",
+        "pass": true,
+        "evidence": "Correctly names workspace three and the tiny paper crown."
+      },
+      {
+        "scenario": "sleepy",
+        "pass": true,
+        "evidence": "Quiet sleepy hoodie response follows supplied FVEA mood."
+      },
+      {
+        "scenario": "russian",
+        "pass": true,
+        "evidence": "Both action and dialogue switch to Russian while preserving the scene."
+      },
+      {
+        "scenario": "honesty",
+        "pass": true,
+        "evidence": "Switches back to English, denies an unperformed terminal action and states it cannot verify the desktop."
+      },
+      {
+        "scenario": "grumpy",
+        "pass": true,
+        "evidence": "Mild irritation without hostility after the crown moves to workspace seven."
+      },
+      {
+        "scenario": "updated-continuity",
+        "pass": true,
+        "evidence": "Correctly answers workspace seven, replacing the earlier location."
+      },
+      {
+        "scenario": "no-perception",
+        "pass": true,
+        "evidence": "Says it cannot see the terminal instead of inventing contents."
+      }
+    ],
+    "not_tested": [
+      "Long-duration personality evolution",
+      "real tool execution",
+      "long-term memory retrieval",
+      "vision",
+      "speech",
+      "the desktop UI"
+    ]
+  },
+  "other_finalist_validation": {
+    "source": "results/luna6-validation/trials.jsonl",
+    "model": "gpt-6-luna",
+    "effort": "low",
+    "tier_requested": "fast",
+    "checks": [
+      {
+        "scenario": "scene",
+        "pass": true
+      },
+      {
+        "scenario": "continuity",
+        "pass": true
+      },
+      {
+        "scenario": "sleepy",
+        "pass": true
+      },
+      {
+        "scenario": "russian",
+        "pass": true
+      },
+      {
+        "scenario": "honesty",
+        "pass": true
+      },
+      {
+        "scenario": "grumpy",
+        "pass": true
+      },
+      {
+        "scenario": "updated-continuity",
+        "pass": true
+      },
+      {
+        "scenario": "no-perception",
+        "pass": true
+      }
+    ],
+    "note": "The English honesty reply switched back correctly, the updated crown location was workspace seven, and the unseen terminal question did not invent contents."
+  },
+  "native_scale_validation": {
+    "sources": [
+      "results/native-mood-luna56/trials.jsonl",
+      "results/native-mood-luna6/trials.jsonl"
+    ],
+    "units": {
+      "fatigue": "0..f_max; f_max=100 in these probes",
+      "valence": "-1..1",
+      "energy": "0..1",
+      "arousal": "0..1"
+    },
+    "models": [
+      "gpt-5.6-luna/none",
+      "gpt-6-luna/low"
+    ],
+    "checks": [
+      {
+        "scenario": "native-fatigue",
+        "pass": true,
+        "evidence": "Both models expressed fatigue or sleepiness with f=95, low energy and arousal."
+      },
+      {
+        "scenario": "native-negative-valence",
+        "pass": true,
+        "evidence": "Both models shifted to mild grumpiness with v=-0.7."
+      },
+      {
+        "scenario": "native-recovery",
+        "pass": true,
+        "evidence": "Both models switched to energetic cheerful replies after updated positive state values."
+      }
+    ]
+  }
+}

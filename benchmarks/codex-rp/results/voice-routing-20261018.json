@@ -1,0 +1,20 @@
+{
+  "passed": true,
+  "allPcmSamplesZero": true,
+  "streamVolume": 0,
+  "physicalPlaybackUsed": false,
+  "systemDefaultUnchanged": true,
+  "rows": [
+    {
+      "case": "disconnect",
+      "initialTargetWasNullSink": true,
+      "movedToAnotherSink": false,
+      "playerExited": true
+    },
+    {
+      "case": "target_missing_at_start",
+      "linkedToAnySink": false,
+      "playerRejected": true
+    }
+  ]
+}

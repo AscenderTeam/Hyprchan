@@ -1,0 +1,25 @@
+{
+  "pixelModeStops3dRendering": true,
+  "stopClearsScript": true,
+  "savedEmote": {
+    "state": "finished",
+    "id": "hoodie_huff",
+    "frames": 121,
+    "error": null,
+    "timedOut": false
+  },
+  "renderers": [
+    {
+      "framesPerSecond": 24.6,
+      "lastDrawMs": 6.1,
+      "error": null
+    },
+    {
+      "framesPerSecond": 24.0,
+      "lastDrawMs": 6.12,
+      "error": null
+    }
+  ],
+  "controlsPreserved": true,
+  "persistedMode": "3d"
+}

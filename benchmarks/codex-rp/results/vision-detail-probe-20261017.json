@@ -1,0 +1,49 @@
+{
+  "syntheticImageOnly": true,
+  "expectedColor": "red",
+  "fixtureBgrPixel": [
+    0,
+    0,
+    254
+  ],
+  "codexVersion": "0.163.0",
+  "freshThreads": true,
+  "rows": [
+    {
+      "model": "gpt-6-luna",
+      "detail": "low",
+      "transport": "image",
+      "text": "I can’t see the image here. Please upload it again, and I’ll identify its color.",
+      "lastTextMs": 2534.519
+    },
+    {
+      "model": "gpt-6-luna",
+      "detail": "low",
+      "transport": "localImage",
+      "text": "The image appears to be a solid dark gray.",
+      "lastTextMs": 2287.502
+    },
+    {
+      "model": "gpt-6-luna",
+      "detail": "original",
+      "transport": "image",
+      "text": "Red",
+      "lastTextMs": 3273.286
+    },
+    {
+      "model": "gpt-6.1-sol",
+      "detail": "low",
+      "transport": "image",
+      "text": "Unknown",
+      "lastTextMs": 4459.926
+    },
+    {
+      "model": "gpt-5.6-luna",
+      "detail": "auto",
+      "transport": "image",
+      "text": "Red",
+      "lastTextMs": 2550.295
+    }
+  ],
+  "note": "Exploratory installed-route checks; color outcomes are not a general model vision evaluation. Final GUI bridge auto-detail validation is stored separately."
+}

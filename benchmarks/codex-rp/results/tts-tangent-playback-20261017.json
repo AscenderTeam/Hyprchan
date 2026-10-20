@@ -1,0 +1,46 @@
+{
+  "syntheticTextOnly": true,
+  "silentTestSink": true,
+  "passed": true,
+  "rows": [
+    {
+      "case": "greeting",
+      "text": "Hi!",
+      "firstPcmMs": 263.8,
+      "synthMs": 263.8,
+      "firstOutputMs": 476.8,
+      "firstWriteMs": 264.45512999998755,
+      "completedMs": 728.6
+    },
+    {
+      "case": "greeting",
+      "text": "Привет, я уже тут!",
+      "firstPcmMs": 91.2,
+      "synthMs": 91.2,
+      "firstOutputMs": 340.7,
+      "firstWriteMs": 91.98348599966266,
+      "completedMs": 1357.4
+    },
+    {
+      "case": "phrase_streaming",
+      "playedBeforeEnd": true
+    },
+    {
+      "case": "cancellation",
+      "ackMs": 0.2,
+      "outputTailMs": 83.2,
+      "playerExited": true
+    },
+    {
+      "case": "cancel_before_audio",
+      "oldPlayed": false,
+      "nextCompleted": true
+    },
+    {
+      "case": "whole_tangent_batch",
+      "submittedPhrases": 10,
+      "completedPhrases": 10,
+      "completedMs": 6369.2
+    }
+  ]
+}

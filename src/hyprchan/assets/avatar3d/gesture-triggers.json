@@ -1,0 +1,20 @@
+[
+  {
+    "id": "heart_hug",
+    "pattern": "(?:прижима|прижав|подношу|поднос|складыва|кладу|держу|жму)[^.!?\\n]{0,65}(?:рукав|ладон|рук)[^.!?\\n]{0,40}(?:груд|сердц)|(?:press|clutch|hold|bring|fold|hug|put|place)\\w*[^.!?\\n]{0,65}(?:sleeves?|hands?|palms?)[^.!?\\n]{0,40}(?:chest|heart)",
+    "examples": ["прижимаю рукава к груди", "press my hands to my heart"]
+  },
+  {"id": "jump", "pattern": "прыг|подскок|подскаки|\\bjump\\w*\\b|\\bhop(?:s|ped|ping)?\\b", "examples": ["подпрыгиваю", "jump happily"]},
+  {"id": "peace", "pattern": "✌|peace\\s*sign|v[ -]sign", "examples": ["показываю ✌", "peace sign by my face"]},
+  {"id": "wave_front", "pattern": "(?:маш|wave)[^.!?\\n]{0,65}(?:перед\\s+лицом|in\\s+front\\s+of\\s+(?:my\\s+|her\\s+|your\\s+)?face)", "examples": ["машу перед лицом", "wave in front of my face"]},
+  {"id": "pout", "pattern": "наду|puff|pout", "examples": ["надуваю щёки", "puff my cheeks"]},
+  {"id": "wink", "pattern": "подмиг|wink", "examples": ["подмигиваю", "wink"]},
+  {"id": "wave", "pattern": "маш|wave", "examples": ["машу рукавом", "wave a sleeve"]},
+  {"id": "laugh", "pattern": "хих|сме|giggl|laugh", "examples": ["хихикаю", "giggle"]},
+  {"id": "shy", "pattern": "смущ|красне|blush|shy", "examples": ["смущённо краснею", "blush shyly"]},
+  {"id": "sleepy", "pattern": "зева|сон|yawn|sleep", "examples": ["сонно прикрываю глаза", "sleepy eyes"]},
+  {"id": "curious", "pattern": "(?:наклон|склон)[^.!?\\n]{0,30}голов|tilt[^.!?\\n]{0,30}head|любопыт|curious", "examples": ["наклоняю голову", "tilt my head"]},
+  {"id": "nod", "pattern": "кива|nod", "examples": ["киваю", "nod"]},
+  {"id": "happy", "pattern": "улыб|smil", "examples": ["улыбаюсь", "smile"]},
+  {"id": "angry", "pattern": "серди|хмур|angry|frown", "examples": ["хмурюсь", "frown"]}
+]

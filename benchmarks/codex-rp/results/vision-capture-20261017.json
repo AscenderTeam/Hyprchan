@@ -1,0 +1,70 @@
+{
+  "snapshots": [
+    {
+      "elapsedMs": 2300,
+      "sources": [
+        {
+          "kind": "screen",
+          "width": 1512,
+          "height": 982,
+          "encodedBytes": 398295
+        }
+      ],
+      "requestIds": [],
+      "camera": "apple-isp",
+      "cameraError": null
+    },
+    {
+      "elapsedMs": 5296,
+      "sources": [
+        {
+          "kind": "screen",
+          "width": 1512,
+          "height": 982,
+          "encodedBytes": 398399
+        },
+        {
+          "kind": "webcam",
+          "width": 640,
+          "height": 480,
+          "encodedBytes": 28847
+        }
+      ],
+      "requestIds": [],
+      "camera": "apple-isp",
+      "cameraError": null
+    },
+    {
+      "elapsedMs": 6278,
+      "sources": [
+        {
+          "kind": "screen",
+          "width": 1512,
+          "height": 982,
+          "encodedBytes": 398247
+        },
+        {
+          "kind": "webcam",
+          "width": 640,
+          "height": 480,
+          "encodedBytes": 28835
+        }
+      ],
+      "requestIds": [
+        42
+      ],
+      "camera": "apple-isp",
+      "cameraError": null
+    }
+  ],
+  "lifecycle": [
+    {
+      "offAcknowledged": true,
+      "releaseMs": 66
+    },
+    {
+      "cameraReleased": true
+    }
+  ],
+  "exitCode": 0
+}

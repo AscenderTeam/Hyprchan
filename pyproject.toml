@@ -39,6 +39,7 @@ packages = [
 ]
 include = [
     { path = "src/hyprchan/assets/sprites/*.png", format = ["sdist", "wheel"] },
+    { path = "src/hyprchan/assets/avatar3d/*", format = ["sdist", "wheel"] },
     { path = "extensions/**", format = ["sdist", "wheel"] }
 ]
 [tool.poetry.scripts]

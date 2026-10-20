@@ -1,0 +1,16 @@
+{
+  "publicPromptOnly": true,
+  "passed": false,
+  "healthOnly": true,
+  "restored": {
+    "mic_active": false,
+    "vision_wanted": true,
+    "reactions_active": true,
+    "memory_wanted": true,
+    "audio_active": true,
+    "voice_active": true,
+    "notifications_active": true
+  },
+  "failure": "tts worker is busy; please wait.",
+  "cause": "A complete tangent sent more than eight separate phrase commands into the bounded GUI transport queue."
+}

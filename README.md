@@ -62,6 +62,18 @@ Once setup is complete, wake her up and start chatting:
 hyprchan tui
 ```
 
+### Codex desktop preview
+
+For the experimental GTK companion with streamed Codex replies, a kawaii persona, local speech recognition and Russian/English voices, persistent user facts, automatic camera/screen context, on-demand `look`, and optional screen/audio reactions, see [setup and controls](benchmarks/codex-rp/README.md) and the [measured latency report](benchmarks/codex-rp/REPORT.md). Screen checks run about once a minute with a `NO_REPLY` gate. New PipeWire channels can prompt her to listen to a playback stream for up to 20 seconds; longer requests deliver five transcript chunks, displayed as they arrive. Local Kokoro Bella and Silero Kseniya voices speak at phrase boundaries and can be interrupted with speech, typing, or the Stop button. Check the documented Russian model license before commercial use. This preview is separate from the autonomous kernel and does not guarantee responses within two seconds.
+
+Choose **Pixel art** or **3D · turquoise hoodie** in the GUI. The optional native
+3D avatar has a skinned upper-body rig, facial expressions, speech animation,
+and a persistent library of executable Python emotes she can create and play.
+See [3D controls, script permissions, asset credits and measured reasoning settings](docs/avatar3d.md).
+
+For simultaneous OBS and Hyprchan webcam access on Asahi, see
+[the independent shared-camera setup](docs/shared-camera.md).
+
 ---
 
 ## ✨ Features

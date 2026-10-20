@@ -1,0 +1,27 @@
+{
+  "passed": true,
+  "allPcmSamplesZero": true,
+  "streamVolume": 0,
+  "audiblePlaybackUsed": false,
+  "physicalOutputLinkedWithSilence": true,
+  "systemDefaultUnchanged": true,
+  "rows": [
+    {
+      "case": "system_output",
+      "currentDefaultReachable": true,
+      "processingFiltersAllowed": true,
+      "sessionManagerReroutedStream": true
+    },
+    {
+      "case": "disconnect",
+      "initialTargetWasNullSink": true,
+      "movedToAnotherSink": false,
+      "playerExited": true
+    },
+    {
+      "case": "target_missing_at_start",
+      "linkedToAnySink": false,
+      "playerRejected": true
+    }
+  ]
+}

@@ -1,0 +1,106 @@
+{
+  "syntheticOnly": true,
+  "engine": "expressive",
+  "voices": {
+    "ru": "Silero kseniya (high)",
+    "en": "Kokoro af_bella"
+  },
+  "rows": [
+    {
+      "text": "Привет, ня!",
+      "spans": [
+        [
+          "ru",
+          "Привет, ня!"
+        ]
+      ],
+      "firstPcmMs": 623.5,
+      "synthMs": 623.5,
+      "sampleRates": [
+        24000
+      ],
+      "chunks": 1,
+      "audioSeconds": 0.86
+    },
+    {
+      "text": "systemd уже заведует моим сном?!",
+      "spans": [
+        [
+          "en",
+          "systemd"
+        ],
+        [
+          "ru",
+          "уже заведует моим сном?!"
+        ]
+      ],
+      "firstPcmMs": 459.4,
+      "synthMs": 611.5,
+      "sampleRates": [
+        24000
+      ],
+      "chunks": 2,
+      "audioSeconds": 2.24
+    },
+    {
+      "text": "Требую cuddle.target и право на каприз!",
+      "spans": [
+        [
+          "ru",
+          "Требую"
+        ],
+        [
+          "en",
+          "cuddle.target"
+        ],
+        [
+          "ru",
+          "и право на каприз!"
+        ]
+      ],
+      "firstPcmMs": 85.8,
+      "synthMs": 722.3,
+      "sampleRates": [
+        24000
+      ],
+      "chunks": 3,
+      "audioSeconds": 2.53
+    },
+    {
+      "text": "О, у тебя играет GoGo Penguin — «Signal In The Noise»!",
+      "spans": [
+        [
+          "ru",
+          "О, у тебя играет"
+        ],
+        [
+          "en",
+          "GoGo Penguin — «Signal In The Noise»!"
+        ]
+      ],
+      "firstPcmMs": 104.2,
+      "synthMs": 985.3,
+      "sampleRates": [
+        24000
+      ],
+      "chunks": 2,
+      "audioSeconds": 2.99
+    },
+    {
+      "text": "GoGo Penguin.",
+      "spans": [
+        [
+          "en",
+          "GoGo Penguin."
+        ]
+      ],
+      "firstPcmMs": 455.4,
+      "synthMs": 455.4,
+      "sampleRates": [
+        24000
+      ],
+      "chunks": 1,
+      "audioSeconds": 0.75
+    }
+  ]
+}

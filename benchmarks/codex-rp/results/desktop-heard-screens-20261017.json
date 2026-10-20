@@ -1,0 +1,110 @@
+{
+  "healthAndTimingOnly": true,
+  "publicAudioFixture": "faster-whisper JFK",
+  "passed": true,
+  "rows": [
+    {
+      "captureEnabled": true,
+      "seconds": 12,
+      "chunksShown": 5,
+      "completedWithImages": 5,
+      "chunks": [
+        {
+          "firstTextMs": 1754.05,
+          "lastTextMs": 1766.57,
+          "completedMs": 2006.29,
+          "imageCount": 1,
+          "status": "completed",
+          "quiet": true,
+          "capturedAt": 1792257636.7190032,
+          "elapsedMs": 2009.5,
+          "index": 1,
+          "screenCapturedAt": 1792257636.7894568
+        },
+        {
+          "firstTextMs": 1452.68,
+          "lastTextMs": 1452.694,
+          "completedMs": 1720.453,
+          "imageCount": 1,
+          "status": "completed",
+          "quiet": true,
+          "capturedAt": 1792257639.154427,
+          "elapsedMs": 1728.2,
+          "index": 2,
+          "screenCapturedAt": 1792257639.2377841
+        },
+        {
+          "firstTextMs": 1686.854,
+          "lastTextMs": 1686.966,
+          "completedMs": 1954.055,
+          "imageCount": 1,
+          "status": "completed",
+          "quiet": true,
+          "capturedAt": 1792257641.6344008,
+          "elapsedMs": 1957.1,
+          "index": 3,
+          "screenCapturedAt": 1792257641.7333589
+        },
+        {
+          "firstTextMs": 1466.298,
+          "lastTextMs": 1466.366,
+          "completedMs": 1726.739,
+          "imageCount": 1,
+          "status": "completed",
+          "quiet": true,
+          "capturedAt": 1792257643.9196599,
+          "elapsedMs": 1730.2,
+          "index": 4,
+          "screenCapturedAt": 1792257643.9931443
+        },
+        {
+          "firstTextMs": 1634.359,
+          "lastTextMs": 2555.259,
+          "completedMs": 2696.349,
+          "imageCount": 1,
+          "status": "completed",
+          "quiet": false,
+          "capturedAt": 1792257646.2294466,
+          "elapsedMs": 2702.4,
+          "index": 5,
+          "screenCapturedAt": 1792257646.3351033
+        }
+      ],
+      "microphoneActive": true
+    },
+    {
+      "captureEnabled": false,
+      "seconds": 2,
+      "chunksShown": 1,
+      "completedWithImages": 0,
+      "chunks": [
+        {
+          "firstTextMs": 1065.532,
+          "lastTextMs": 1087.626,
+          "completedMs": 1325.288,
+          "imageCount": 0,
+          "status": "completed",
+          "quiet": true,
+          "capturedAt": 1792257653.1467216,
+          "elapsedMs": 1326.9,
+          "index": 1,
+          "screenCapturedAt": null
+        }
+      ],
+      "microphoneActive": true
+    }
+  ],
+  "restored": {
+    "mic_active": true,
+    "voice_active": true,
+    "tts_ready": true,
+    "vision_active": true,
+    "visual_sources": [
+      "screen",
+      "webcam"
+    ],
+    "audio_active": true,
+    "reactions_active": true,
+    "last_error": null
+  }
+}

@@ -1,0 +1,13 @@
+[Unit]
+Description=Independent OBS and Hyprchan camera outputs
+After=systemd-modules-load.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStartPre=/usr/bin/modprobe v4l2loopback
+ExecStart=/usr/local/libexec/hyprchan-camera-device 2
+ExecStart=/usr/local/libexec/hyprchan-camera-device 3 "Hyprchan Camera Context"
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,429 @@
+{
+  "avatarOnlyVerification": true,
+  "ready": true,
+  "examplesLoaded": 19,
+  "minLiftM": -0.033338,
+  "maxLiftM": 0.092647,
+  "finalRoot": [
+    0.0,
+    -0.0,
+    0.0
+  ],
+  "finalBuiltin": null,
+  "captureWritten": true,
+  "rendererErrors": [
+    null,
+    null
+  ],
+  "microphoneActive": false,
+  "microphoneLanguage": "ru",
+  "voiceActive": true,
+  "samples": [
+    {
+      "elapsed": 0.001,
+      "root": [
+        0,
+        0,
+        0
+      ],
+      "builtin": "jump"
+    },
+    {
+      "elapsed": 0.151,
+      "root": [
+        0.0,
+        -0.002126,
+        0.0
+      ],
+      "builtin": "jump"
+    },
+    {
+      "elapsed": 0.232,
+      "root": [
+        0.0,
+        -0.00741,
+        0.0
+      ],
+      "builtin": "jump"
+    },
+    {
+      "elapsed": 0.312,
+      "root": [
+        0.0,
+        -0.013474,
+        0.0
+      ],
+      "builtin": "jump"
+    },
+    {
+      "elapsed": 0.393,
+      "root": [
+        0.0,
+        -0.019024,
+        0.0
+      ],
+      "builtin": "jump"
+    },
+    {
+      "elapsed": 0.483,
+      "root": [
+        0.0,
+        -0.0267,
+        0.0
+      ],
+      "builtin": "jump"
+    },
+    {
+      "elapsed": 0.564,
+      "root": [
+        0.0,
+        -0.031182,
+        0.0
+      ],
+      "builtin": "jump"
+    },
+    {
+      "elapsed": 0.645,
+      "root": [
+        0.0,
+        -0.033338,
+        0.0
+      ],
+      "builtin": "jump"
+    },
+    {
+      "elapsed": 0.744,
+      "root": [
+        0.0,
+        -0.025236,
+        0.0
+      ],
+      "builtin": "jump"
+    },
+    {
+      "elapsed": 0.825,
+      "root": [
+        0.0,
+        -0.015542,
+        0.0
+      ],
+      "builtin": "jump"
+    },
+    {
+      "elapsed": 0.906,
+      "root": [
+        0.0,
+        -0.006133,
+        0.0
+      ],
+      "builtin": "jump"
+    },
+    {
+      "elapsed": 0.986,
+      "root": [
+        0.0,
+        0.019674,
+        0.0
+      ],
+      "builtin": "jump"
+    },
+    {
+      "elapsed": 1.069,
+      "root": [
+        0.0,
+        0.058357,
+        0.0
+      ],
+      "builtin": "jump"
+    },
+    {
+      "elapsed": 1.15,
+      "root": [
+        0.0,
+        0.080775,
+        0.0
+      ],
+      "builtin": "jump"
+    },
+    {
+      "elapsed": 1.255,
+      "root": [
+        0.0,
+        0.092647,
+        0.0
+      ],
+      "builtin": "jump"
+    },
+    {
+      "elapsed": 1.351,
+      "root": [
+        0.0,
+        0.087322,
+        0.0
+      ],
+      "builtin": "jump"
+    },
+    {
+      "elapsed": 1.432,
+      "root": [
+        0.0,
+        0.067422,
+        0.0
+      ],
+      "builtin": "jump"
+    },
+    {
+      "elapsed": 1.516,
+      "root": [
+        0.0,
+        0.028574,
+        0.0
+      ],
+      "builtin": "jump"
+    },
+    {
+      "elapsed": 1.597,
+      "root": [
+        0.0,
+        0.008363,
+        0.0
+      ],
+      "builtin": "jump"
+    },
+    {
+      "elapsed": 1.678,
+      "root": [
+        0.0,
+        -0.00469,
+        0.0
+      ],
+      "builtin": "jump"
+    },
+    {
+      "elapsed": 1.759,
+      "root": [
+        0.0,
+        -0.015358,
+        0.0
+      ],
+      "builtin": "jump"
+    },
+    {
+      "elapsed": 1.84,
+      "root": [
+        0.0,
+        -0.021702,
+        0.0
+      ],
+      "builtin": "jump"
+    },
+    {
+      "elapsed": 1.921,
+      "root": [
+        0.0,
+        -0.019724,
+        0.0
+      ],
+      "builtin": "jump"
+    },
+    {
+      "elapsed": 2.044,
+      "root": [
+        0.0,
+        -0.008926,
+        0.0
+      ],
+      "builtin": "jump"
+    },
+    {
+      "elapsed": 2.165,
+      "root": [
+        0.0,
+        -0.00159,
+        0.0
+      ],
+      "builtin": "jump"
+    },
+    {
+      "elapsed": 2.246,
+      "root": [
+        0.0,
+        -0.000555,
+        0.0
+      ],
+      "builtin": "jump"
+    },
+    {
+      "elapsed": 2.327,
+      "root": [
+        0.0,
+        -0.00012,
+        0.0
+      ],
+      "builtin": "jump"
+    },
+    {
+      "elapsed": 2.408,
+      "root": [
+        0.0,
+        -4.5e-05,
+        0.0
+      ],
+      "builtin": "jump"
+    },
+    {
+      "elapsed": 2.502,
+      "root": [
+        0.0,
+        -9e-06,
+        0.0
+      ],
+      "builtin": "jump"
+    },
+    {
+      "elapsed": 2.583,
+      "root": [
+        0.0,
+        -3e-06,
+        0.0
+      ],
+      "builtin": "jump"
+    },
+    {
+      "elapsed": 2.663,
+      "root": [
+        0.0,
+        -1e-06,
+        0.0
+      ],
+      "builtin": "jump"
+    },
+    {
+      "elapsed": 2.744,
+      "root": [
+        0.0,
+        -0.0,
+        0.0
+      ],
+      "builtin": "jump"
+    },
+    {
+      "elapsed": 2.825,
+      "root": [
+        0.0,
+        -0.0,
+        0.0
+      ],
+      "builtin": "jump"
+    },
+    {
+      "elapsed": 2.906,
+      "root": [
+        0.0,
+        -0.0,
+        0.0
+      ],
+      "builtin": "jump"
+    },
+    {
+      "elapsed": 2.987,
+      "root": [
+        0.0,
+        -0.0,
+        0.0
+      ],
+      "builtin": "jump"
+    },
+    {
+      "elapsed": 3.155,
+      "root": [
+        0.0,
+        -0.0,
+        0.0
+      ],
+      "builtin": null
+    },
+    {
+      "elapsed": 3.236,
+      "root": [
+        0.0,
+        -0.0,
+        0.0
+      ],
+      "builtin": null
+    },
+    {
+      "elapsed": 3.317,
+      "root": [
+        0.0,
+        -0.0,
+        0.0
+      ],
+      "builtin": null
+    },
+    {
+      "elapsed": 3.412,
+      "root": [
+        0.0,
+        -0.0,
+        0.0
+      ],
+      "builtin": null
+    },
+    {
+      "elapsed": 3.493,
+      "root": [
+        0.0,
+        -0.0,
+        0.0
+      ],
+      "builtin": null
+    },
+    {
+      "elapsed": 3.619,
+      "root": [
+        0.0,
+        -0.0,
+        0.0
+      ],
+      "builtin": null
+    },
+    {
+      "elapsed": 3.699,
+      "root": [
+        0.0,
+        -0.0,
+        0.0
+      ],
+      "builtin": null
+    },
+    {
+      "elapsed": 3.78,
+      "root": [
+        0.0,
+        -0.0,
+        0.0
+      ],
+      "builtin": null
+    },
+    {
+      "elapsed": 3.86,
+      "root": [
+        0.0,
+        -0.0,
+        0.0
+      ],
+      "builtin": null
+    },
+    {
+      "elapsed": 3.941,
+      "root": [
+        0.0,
+        -0.0,
+        0.0
+      ],
+      "builtin": null
+    }
+  ],
+  "passed": true
+}

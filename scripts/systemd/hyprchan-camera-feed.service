@@ -1,0 +1,13 @@
+[Unit]
+Description=Share the FaceTime camera between OBS and Hyprchan on demand
+After=graphical-session-pre.target
+
+[Service]
+ExecStart=/usr/bin/python3 %h/.local/libexec/hyprchan/shared_camera_feed.py --source /dev/v4l/by-path/platform-384000000.isp-video-index0
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=12
+KillMode=mixed
+
+[Install]
+WantedBy=default.target

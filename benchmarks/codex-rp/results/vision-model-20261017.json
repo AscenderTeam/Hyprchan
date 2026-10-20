@@ -1,0 +1,77 @@
+{
+  "syntheticImagesOnly": true,
+  "rows": [
+    {
+      "color": "red",
+      "text": "The camera image is solid bright red.",
+      "type": "done",
+      "id": 0,
+      "status": "completed",
+      "firstTextMs": 1445.138,
+      "lastTextMs": 1496.415,
+      "completedMs": 1553.162,
+      "errors": [],
+      "imageCount": 1
+    },
+    {
+      "color": "blue",
+      "text": "Изображение с камеры ярко-синее.",
+      "type": "done",
+      "id": 1,
+      "status": "completed",
+      "firstTextMs": 1187.516,
+      "lastTextMs": 1251.808,
+      "completedMs": 1318.201,
+      "errors": [],
+      "imageCount": 1
+    },
+    {
+      "color": "green",
+      "text": "Hi! *Waves softly.*",
+      "type": "done",
+      "id": 2,
+      "status": "completed",
+      "firstTextMs": 1150.931,
+      "lastTextMs": 1212.043,
+      "completedMs": 1356.032,
+      "errors": [],
+      "imageCount": 1
+    },
+    {
+      "color": "yellow",
+      "text": "Hi again! *Waves.*",
+      "type": "done",
+      "id": 3,
+      "status": "completed",
+      "firstTextMs": 1324.175,
+      "lastTextMs": 1337.524,
+      "completedMs": 1498.625,
+      "errors": [],
+      "imageCount": 1
+    },
+    {
+      "color": "purple",
+      "text": "Hi! *Gives a little wave.*",
+      "type": "done",
+      "id": 4,
+      "status": "completed",
+      "firstTextMs": 1053.326,
+      "lastTextMs": 1106.853,
+      "completedMs": 1205.445,
+      "errors": [],
+      "imageCount": 1
+    },
+    {
+      "color": null,
+      "text": "I can’t see your live camera right now—it’s off.",
+      "type": "done",
+      "id": 5,
+      "status": "completed",
+      "firstTextMs": 1119.422,
+      "lastTextMs": 1213.383,
+      "completedMs": 1287.297,
+      "errors": [],
+      "imageCount": 0
+    }
+  ]
+}

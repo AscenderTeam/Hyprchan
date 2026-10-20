@@ -1,0 +1,14 @@
+{
+  "type": "done",
+  "id": 1,
+  "language": "en",
+  "firstPcmMs": 798.9642659995297,
+  "firstWriteMs": 800.6166089999169,
+  "segments": 1,
+  "elapsedMs": 3875.6,
+  "volume": 0,
+  "mouthEvents": 71,
+  "peak": 1,
+  "distinctLevels": 60,
+  "mouthSpanMs": 2986.6
+}

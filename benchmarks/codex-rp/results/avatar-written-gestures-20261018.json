@@ -1,0 +1,294 @@
+{
+  "date": "2026-10-18",
+  "syntheticOnly": true,
+  "tests": {
+    "python": 30,
+    "node": 7
+  },
+  "agent": {
+    "syntheticOnly": true,
+    "turns": [
+      {
+        "type": "done",
+        "id": 0,
+        "text": "*I wave a sleeve.* Hi! ✨",
+        "status": "completed",
+        "quiet": false,
+        "effort": "low",
+        "reasoningTokens": 0,
+        "firstTextMs": 1043.602,
+        "lastTextMs": 1145.264,
+        "completedMs": 1215.966,
+        "errors": [],
+        "imageCount": 0,
+        "toolCalls": 0,
+        "webSearches": 0,
+        "tangentWords": 0,
+        "lookCalls": 0,
+        "memoryCount": 0
+      },
+      {
+        "type": "done",
+        "id": 1,
+        "text": "*Прижимаю ладони к груди.* Ты моё самое уютное солнышко, ня~",
+        "status": "completed",
+        "quiet": false,
+        "effort": "medium",
+        "reasoningTokens": 0,
+        "firstTextMs": 2764.309,
+        "lastTextMs": 2914.057,
+        "completedMs": 2979.273,
+        "errors": [],
+        "imageCount": 0,
+        "toolCalls": 1,
+        "webSearches": 0,
+        "tangentWords": 0,
+        "lookCalls": 0,
+        "memoryCount": 0
+      },
+      {
+        "type": "done",
+        "id": 2,
+        "text": "*На секунду прикрываю правый глаз ладонью и опускаю руку.* Вот так, ня~",
+        "status": "completed",
+        "quiet": false,
+        "effort": "medium",
+        "reasoningTokens": 0,
+        "firstTextMs": 3694.46,
+        "lastTextMs": 3860.398,
+        "completedMs": 3937.406,
+        "errors": [],
+        "imageCount": 0,
+        "toolCalls": 1,
+        "webSearches": 0,
+        "tangentWords": 0,
+        "lookCalls": 0,
+        "memoryCount": 0
+      }
+    ],
+    "emotes": [
+      {
+        "tool": "emote_play",
+        "result": {
+          "started": true,
+          "id": "heart_hug",
+          "builtin": true,
+          "seconds": 4.0,
+          "visible": true
+        }
+      },
+      {
+        "tool": "emote_create",
+        "result": {
+          "id": "cover_right_eye",
+          "title": "Peek and cover",
+          "description": "Raise right palm to cover the right eye briefly, then lower it.",
+          "seconds": 3.0,
+          "updatedAt": 1792286431.3852992,
+          "started": true,
+          "maxSeconds": 5.0,
+          "saved": true
+        }
+      }
+    ],
+    "scripts": [
+      {
+        "id": "cover_right_eye",
+        "code": "from math import sin, pi\nfrom hyprchan.core.animations.avatar3d.emote_api import animate, ease, hand_target\n\ndef pose(t):\n    if t < .22:\n        w = ease(t/.22)\n    elif t < .60:\n        w = 1.0\n    else:\n        w = ease((1-t)/.40)\n    return {'expressions': {'smile': .35*w},\n            'hands': {'right': hand_target([-.055, .035, .14], shape='open', weight=w)}}\n\nanimate(3, pose)"
+      }
+    ],
+    "animations": [
+      {
+        "state": "finished",
+        "id": "cover_right_eye",
+        "frames": 91,
+        "error": null,
+        "timedOut": false,
+        "wallSeconds": 3.05
+      }
+    ],
+    "spatial": {},
+    "gestures": [
+      {
+        "id": 0,
+        "written_emote_played": "wave",
+        "lastEvent": {
+          "state": "started",
+          "source": "written_action",
+          "id": "wave",
+          "builtin": true,
+          "seconds": 4.0,
+          "visible": true
+        },
+        "text": "*I wave a sleeve.* Hi! ✨"
+      },
+      {
+        "id": 1,
+        "emote_played": true,
+        "lastEvent": {
+          "state": "started",
+          "started": true,
+          "id": "heart_hug",
+          "builtin": true,
+          "seconds": 4.0,
+          "visible": true
+        },
+        "text": "*Прижимаю ладони к груди.* Ты моё самое уютное солнышко, ня~"
+      },
+      {
+        "id": 2,
+        "emote_played": true,
+        "lastEvent": {
+          "state": "started",
+          "id": "cover_right_eye",
+          "title": "Peek and cover",
+          "description": "Raise right palm to cover the right eye briefly, then lower it.",
+          "seconds": 3.0,
+          "updatedAt": 1792286431.3852992,
+          "started": true,
+          "maxSeconds": 5.0,
+          "saved": true
+        },
+        "text": "*На секунду прикрываю правый глаз ладонью и опускаю руку.* Вот так, ня~"
+      }
+    ],
+    "ready": {
+      "type": "ready",
+      "model": "gpt-6-luna",
+      "tier": "priority",
+      "webSearch": "disabled",
+      "emoteExamples": 19,
+      "reasoning": "adaptive: low greetings, medium conversation"
+    },
+    "animation": {
+      "state": "finished",
+      "id": "cover_right_eye",
+      "frames": 91,
+      "error": null,
+      "timedOut": false,
+      "wallSeconds": 3.05
+    }
+  },
+  "gpu": {
+    "cyan_yellow": [
+      {
+        "pose": "heart_hug_raise",
+        "hairClothingAndBodyCrossings": 0,
+        "drawMedianMs": 17.382
+      },
+      {
+        "pose": "heart_hug",
+        "hairClothingAndBodyCrossings": 0,
+        "drawMedianMs": 25.971
+      },
+      {
+        "pose": "heart_hug_lower",
+        "hairClothingAndBodyCrossings": 0,
+        "drawMedianMs": 19.524
+      }
+    ],
+    "hoodie": [
+      {
+        "pose": "heart_hug_raise",
+        "hairClothingAndBodyCrossings": 0,
+        "drawMedianMs": 11.526
+      },
+      {
+        "pose": "heart_hug",
+        "hairClothingAndBodyCrossings": 0,
+        "drawMedianMs": 12.681
+      },
+      {
+        "pose": "heart_hug_lower",
+        "hairClothingAndBodyCrossings": 0,
+        "drawMedianMs": 10.617
+      }
+    ]
+  },
+  "gpuScope": "Three sampled raising/holding/lowering poses per costume; authored scalp/face attachment overlaps excluded. Not a proof for every possible pose.",
+  "live": {
+    "avatarOnlyReplay": true,
+    "exactReportedAction": true,
+    "sourceFilesMatch": true,
+    "sourceFilesChecked": 6,
+    "controlsPreserved": [
+      "voice_active",
+      "mic_wanted",
+      "vision_wanted",
+      "reactions_active",
+      "memory_wanted",
+      "audio_active",
+      "notifications_active",
+      "language",
+      "microphone"
+    ],
+    "voiceActiveBefore": true,
+    "voiceActiveAfter": true,
+    "outfit": "cyan_yellow",
+    "samples": [
+      {
+        "phase": "held",
+        "builtin": "heart_hug",
+        "hands": {
+          "right": {
+            "space": "body",
+            "shape": "fist",
+            "weight": 1.0,
+            "palmFromFace": [
+              -0.0332,
+              -0.1789,
+              0.1648
+            ],
+            "errorMm": 0.0,
+            "reachClamped": false
+          },
+          "left": {
+            "space": "body",
+            "shape": "fist",
+            "weight": 1.0,
+            "palmFromFace": [
+              0.0564,
+              -0.1711,
+              0.1641
+            ],
+            "errorMm": 0.0,
+            "reachClamped": false
+          }
+        },
+        "lastEvent": {
+          "state": "started",
+          "source": "written_action",
+          "id": "heart_hug",
+          "builtin": true,
+          "seconds": 4.0,
+          "visible": true
+        },
+        "rendererErrors": [
+          null,
+          null
+        ]
+      },
+      {
+        "phase": "rest",
+        "builtin": null,
+        "lastEvent": {
+          "state": "finished",
+          "source": "written_action",
+          "id": "heart_hug",
+          "builtin": true,
+          "seconds": 4.0,
+          "visible": true
+        },
+        "rendererErrors": [
+          null,
+          null
+        ]
+      }
+    ],
+    "rendererFrameDelta": [
+      0,
+      2
+    ],
+    "review": "Fresh native overlay captures show both hands raised, then both arms lowered at rest. Chat portrait was occluded; its last-draw hand diagnostics can be stale. Animation clock and completion continued independently of compositor frames."
+  }
+}

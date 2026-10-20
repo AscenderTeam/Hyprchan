@@ -1,0 +1,13 @@
+{
+  "timestamp": "2026-10-17",
+  "command": "node scripts/chat_codex_rp.mjs",
+  "input": "hi",
+  "model": "gpt-5.6-luna",
+  "effort": "none",
+  "tier": "fast",
+  "reply": "Hey~ *gives a sleepy little wave*",
+  "firstTextMs": 1010.837,
+  "lastTextMs": 1100.939,
+  "completedMs": 1155.759,
+  "note": "Observed from the terminal prototype after its startup warmup; real inference, streamed output, exit code 0."
+}

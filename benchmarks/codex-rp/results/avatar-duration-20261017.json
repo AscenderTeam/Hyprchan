@@ -1,0 +1,110 @@
+{
+  "syntheticOnly": true,
+  "turns": [
+    {
+      "type": "done",
+      "id": 0,
+      "text": "*Waves a sleeve* Hi! I’ve settled in, nyah~",
+      "status": "completed",
+      "quiet": false,
+      "effort": "low",
+      "reasoningTokens": 0,
+      "firstTextMs": 1712.705,
+      "lastTextMs": 1843.71,
+      "completedMs": 1944.393,
+      "errors": [],
+      "imageCount": 0,
+      "toolCalls": 0,
+      "webSearches": 0,
+      "tangentWords": 0,
+      "lookCalls": 0,
+      "memoryCount": 0
+    },
+    {
+      "type": "done",
+      "id": 1,
+      "text": "*Задорно показываю знак мира* Вот мой маленький жест, ня~",
+      "status": "completed",
+      "quiet": false,
+      "effort": "medium",
+      "reasoningTokens": 0,
+      "firstTextMs": 3703.128,
+      "lastTextMs": 3886.381,
+      "completedMs": 3968.522,
+      "errors": [],
+      "imageCount": 0,
+      "toolCalls": 1,
+      "webSearches": 0,
+      "tangentWords": 0,
+      "lookCalls": 0,
+      "memoryCount": 0
+    },
+    {
+      "type": "done",
+      "id": 2,
+      "text": "*Waves a sleeve* Hi again! Nyah~",
+      "status": "completed",
+      "quiet": false,
+      "effort": "low",
+      "reasoningTokens": 0,
+      "firstTextMs": 1213.698,
+      "lastTextMs": 1309.157,
+      "completedMs": 1369.255,
+      "errors": [],
+      "imageCount": 0,
+      "toolCalls": 0,
+      "webSearches": 0,
+      "tangentWords": 0,
+      "lookCalls": 0,
+      "memoryCount": 0
+    }
+  ],
+  "emotes": [
+    {
+      "tool": "emote_create",
+      "result": {
+        "id": "duration_choice",
+        "title": "Tiny timekeeper",
+        "description": "A cute little anticipation, peace sign, and smooth return",
+        "seconds": 4.0,
+        "updatedAt": 1792267487.4383135,
+        "started": true,
+        "maxSeconds": 6.0,
+        "saved": true
+      }
+    }
+  ],
+  "scripts": [
+    {
+      "id": "duration_choice",
+      "code": "from math import sin, pi\nfrom hyprchan.core.animations.avatar3d.emote_api import animate, ease, hand_target\n\ndef pose(t):\n    w = ease(min(t/.22, (1-t)/.25))\n    perk = sin(pi*t)**2\n    return {'expressions': {'smile': .5*w, 'blush': .25*w, 'brow_up': .2*perk},\n            'bones': {'head': [2*perk, 0, 5*perk]},\n            'hands': {'right': hand_target([-.045, -.025, .14], shape='peace', roll=-8, weight=w)}}\n\nanimate(4, pose)"
+    }
+  ],
+  "animations": [
+    {
+      "state": "finished",
+      "id": "duration_choice",
+      "frames": 121,
+      "error": null,
+      "timedOut": false,
+      "wallSeconds": 4.025
+    }
+  ],
+  "spatial": {},
+  "ready": {
+    "type": "ready",
+    "model": "gpt-6-luna",
+    "tier": "priority",
+    "webSearch": "disabled",
+    "emoteExamples": 18,
+    "reasoning": "adaptive: low greetings, medium conversation"
+  },
+  "animation": {
+    "state": "finished",
+    "id": "duration_choice",
+    "frames": 121,
+    "error": null,
+    "timedOut": false,
+    "wallSeconds": 4.025
+  }
+}
