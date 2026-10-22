@@ -1,0 +1,10 @@
+version: "0.1.0"
+name: "hyprsovits"
+description: "GPT-SoVITS speech output extension with pronunciation middleware."
+author: "Ascender Team"
+homepage: "https://github.com/RVC-Boss/GPT-SoVITS"
+min_hyprchan_version: "0.1.0"
+requirements:
+  - httpx
+  - sounddevice
+  - numpy
